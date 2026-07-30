@@ -13,16 +13,15 @@ interface DPCard {
   key: string;
   label: string;
   icon: typeof Building2;
-  color: string;
   iconColor: string;
 }
 
 const TOP_DPS: DPCard[] = [
-  { key: 'total', label: 'Total Projects', icon: Building2, color: 'border-slate-200 bg-white', iconColor: 'text-slate-600' },
-  { key: 'active', label: 'Active Projects', icon: Activity, color: 'border-blue-200 bg-blue-50', iconColor: 'text-blue-600' },
-  { key: 'completed', label: 'Completed', icon: CheckCircle2, color: 'border-emerald-200 bg-emerald-50', iconColor: 'text-emerald-600' },
-  { key: 'inprogress', label: 'In Progress', icon: Loader2, color: 'border-cyan-200 bg-cyan-50', iconColor: 'text-cyan-600' },
-  { key: 'delayed', label: 'Delayed Projects', icon: AlertTriangle, color: 'border-amber-200 bg-amber-50', iconColor: 'text-amber-600' },
+  { key: 'total', label: 'Total Projects', icon: Building2, iconColor: 'text-slate-600' },
+  { key: 'active', label: 'Active Projects', icon: Activity, iconColor: 'text-blue-600' },
+  { key: 'completed', label: 'Completed', icon: CheckCircle2, iconColor: 'text-emerald-600' },
+  { key: 'inprogress', label: 'In Progress', icon: Loader2, iconColor: 'text-cyan-600' },
+  { key: 'delayed', label: 'Delayed Projects', icon: AlertTriangle, iconColor: 'text-amber-600' },
 ];
 
 const SUB_DPS: { key: DelayStatus; label: string }[] = [
@@ -77,7 +76,7 @@ export function StatusBar({ items, activeFilter, onFilterChange }: StatusBarProp
             <button
               key={dp.key}
               onClick={() => handleCardClick(dp.key)}
-              className={`flex items-center gap-2 px-2.5 py-1.5 rounded border min-w-[150px] transition-all ${dp.color} ${isActive ? 'ring-2 ring-cyan-500 ring-offset-1' : 'hover:shadow-sm'} ${(dp.key === 'inprogress' || dp.key === 'delayed') ? 'cursor-pointer' : ''}`}
+              className={`mirror-card flex items-center gap-2 px-2.5 py-1.5 rounded min-w-[150px] ${isActive ? 'ring-2 ring-cyan-500 ring-offset-1' : ''} ${(dp.key === 'inprogress' || dp.key === 'delayed') ? 'cursor-pointer' : ''}`}
             >
               <Icon className={`w-4 h-4 shrink-0 ${dp.iconColor}`} />
               <div className="text-left leading-tight">
@@ -108,7 +107,7 @@ export function StatusBar({ items, activeFilter, onFilterChange }: StatusBarProp
               <button
                 key={sub.key}
                 onClick={() => onFilterChange(activeFilter === sub.key ? null : sub.key)}
-                className={`flex items-center gap-2 px-2.5 py-1.5 rounded border min-w-[130px] transition-all ${colors.bg} ${colors.border} ${isActive ? 'ring-2 ring-cyan-500 ring-offset-1' : 'hover:shadow-sm'}`}
+                className={`mirror-card flex items-center gap-2 px-2.5 py-1.5 rounded min-w-[130px] ${isActive ? 'ring-2 ring-cyan-500 ring-offset-1' : ''}`}
               >
                 <div className={`w-2 h-2 rounded-full shrink-0 ${colors.dot}`} />
                 <div className="text-left leading-tight">

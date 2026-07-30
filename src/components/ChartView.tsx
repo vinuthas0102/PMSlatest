@@ -34,7 +34,7 @@ function ChartCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-white border border-slate-200 rounded p-2 flex flex-col">
+    <div className="mirror-card rounded p-2 flex flex-col">
       <div className="flex items-center justify-between mb-1.5">
         <h3 className="text-xs font-semibold text-slate-700">{title}</h3>
         <div className="flex items-center gap-0.5">
@@ -284,7 +284,7 @@ export function ChartView({ items, onCategoryClick }: ChartViewProps) {
       <ChartCard title="Category Breakdown" chartType={chart3Type} onChartTypeChange={setChart3Type}>
         {renderCategoryChart()}
       </ChartCard>
-      <div className="bg-white border border-slate-200 rounded p-2 flex flex-col">
+      <div className="mirror-card rounded p-2 flex flex-col">
         <div className="flex items-center justify-between mb-1.5">
           <h3 className="text-xs font-semibold text-slate-700">Timeline Trend</h3>
           <div className="flex items-center bg-slate-100 rounded text-[10px]">

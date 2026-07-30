@@ -20,7 +20,7 @@ export function CardView({ items, onShowDetails, onDrillDown, drillLabel }: Card
         const colors = delayStatusColor(item.delay_status);
         const balance = item.mbook_entry - item.paid_amount;
         return (
-          <div key={item.id} className="bg-white border border-slate-200 rounded p-2 flex flex-col hover:border-cyan-300 hover:shadow-sm transition-all">
+          <div key={item.id} className="mirror-card rounded p-2 flex flex-col">
             <div className="flex items-center gap-1.5 mb-1.5">
               <span className="text-[10px] font-mono font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
                 {item.seq_no}

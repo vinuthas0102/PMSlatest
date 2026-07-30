@@ -25,7 +25,7 @@ export function TileView({ items, onShowDetails, onDrillDown, drillLabel }: Tile
         const progressPct = Math.min(item.completed_pct, 100);
 
         return (
-          <div key={item.id} className="bg-white border border-slate-200 rounded p-2 hover:border-cyan-300 transition-colors">
+          <div key={item.id} className="mirror-card rounded p-2">
             {/* Line 1: Header */}
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[10px] font-mono font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
