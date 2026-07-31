@@ -80,10 +80,26 @@ export const SUBCATEGORIES: Record<string, string[]> = {
   'Electrical & HVAC': ['Substations', 'Street Lighting'],
 };
 
-export const STATES = ['Karnataka', 'Maharashtra', 'Tamil Nadu'];
+export const STATES = [
+  'Karnataka',
+  'Maharashtra',
+  'Tamil Nadu',
+  'Assam',
+  'Delhi',
+  'Gujarat',
+  'Odisha',
+  'Andhra Pradesh',
+  'Uttar Pradesh',
+];
 
 export const DISTRICTS: Record<string, string[]> = {
   Karnataka: ['Bengaluru Urban', 'Mysuru'],
   Maharashtra: ['Pune', 'Nagpur', 'Mumbai'],
   'Tamil Nadu': ['Chennai', 'Coimbatore'],
+  Assam: ['Guwahati', 'Dibrugarh'],
+  Delhi: ['New Delhi', 'Dwarka'],
+  Gujarat: ['Ahmedabad', 'Surat'],
+  Odisha: ['Bhubaneswar', 'Cuttack'],
+  'Andhra Pradesh': ['Visakhapatnam', 'Vijayawada'],
+  'Uttar Pradesh': ['Lucknow', 'Noida'],
 };

@@ -37,26 +37,49 @@ const STATE_PATHS: StatePath[] = [
     d: 'M178,318 L196,315 L200,335 L195,355 L182,365 L172,358 L170,338 L174,325 Z',
     labelX: 185, labelY: 340,
   },
+  {
+    name: 'Assam',
+    d: 'M268,155 L295,150 L305,165 L298,178 L278,175 L268,168 Z',
+    labelX: 285, labelY: 165,
+  },
+  {
+    name: 'Delhi',
+    d: 'M165,168 L175,165 L178,175 L170,180 L162,176 Z',
+    labelX: 170, labelY: 174,
+  },
+  {
+    name: 'Gujarat',
+    d: 'M88,168 L118,160 L132,175 L128,195 L108,200 L92,190 L85,178 Z',
+    labelX: 108, labelY: 182,
+  },
+  {
+    name: 'Odisha',
+    d: 'M225,215 L255,212 L268,230 L262,250 L245,258 L228,250 L220,232 Z',
+    labelX: 245, labelY: 235,
+  },
+  {
+    name: 'Andhra Pradesh',
+    d: 'M175,285 L195,282 L205,300 L200,320 L185,335 L170,330 L162,310 L165,295 Z',
+    labelX: 185, labelY: 310,
+  },
+  {
+    name: 'Uttar Pradesh',
+    d: 'M178,155 L225,150 L250,160 L255,180 L235,195 L205,192 L185,185 L175,172 Z',
+    labelX: 215, labelY: 175,
+  },
 ];
 
 const CONTEXT_PATHS: StatePath[] = [
-  { name: 'Gujarat', d: 'M88,168 L118,160 L132,175 L128,195 L108,200 L92,190 L85,178 Z', labelX: 108, labelY: 182 },
   { name: 'Rajasthan', d: 'M115,130 L160,122 L185,130 L190,155 L175,170 L145,172 L120,165 L108,150 Z', labelX: 150, labelY: 148 },
-  { name: 'Delhi', d: 'M165,168 L175,165 L178,175 L170,180 L162,176 Z', labelX: 170, labelY: 174 },
-  { name: 'Uttar Pradesh', d: 'M178,155 L225,150 L250,160 L255,180 L235,195 L205,192 L185,185 L175,172 Z', labelX: 215, labelY: 175 },
   { name: 'Madhya Pradesh', d: 'M165,180 L210,178 L235,195 L240,220 L220,235 L195,238 L175,225 L160,205 Z', labelX: 200, labelY: 210 },
   { name: 'West Bengal', d: 'M245,175 L268,170 L275,190 L270,210 L255,220 L248,205 L242,188 Z', labelX: 260, labelY: 195 },
-  { name: 'Odisha', d: 'M225,215 L255,212 L268,230 L262,250 L245,258 L228,250 L220,232 Z', labelX: 245, labelY: 235 },
   { name: 'Chhattisgarh', d: 'M210,225 L235,225 L245,245 L240,265 L220,270 L205,255 L202,238 Z', labelX: 222, labelY: 248 },
-  { name: 'Andhra Pradesh', d: 'M175,285 L195,282 L205,300 L200,320 L185,335 L170,330 L162,310 L165,295 Z', labelX: 185, labelY: 310 },
   { name: 'Telangana', d: 'M155,255 L180,250 L195,265 L190,285 L172,290 L158,278 L150,265 Z', labelX: 172, labelY: 272 },
   { name: 'Kerala', d: 'M168,338 L178,335 L182,355 L178,375 L170,380 L165,365 L162,348 Z', labelX: 173, labelY: 360 },
   { name: 'Punjab', d: 'M120,125 L145,120 L150,135 L138,145 L122,142 L115,132 Z', labelX: 132, labelY: 134 },
   { name: 'Haryana', d: 'M138,140 L165,135 L172,152 L158,162 L140,158 L132,148 Z', labelX: 150, labelY: 150 },
   { name: 'Bihar', d: 'M218,165 L245,160 L252,175 L245,188 L225,185 L215,175 Z', labelX: 232, labelY: 175 },
   { name: 'Jharkhand', d: 'M225,190 L248,188 L255,205 L248,220 L230,218 L222,205 Z', labelX: 238, labelY: 205 },
-  { name: 'Assam', d: 'M268,155 L295,150 L305,165 L298,178 L278,175 L268,168 Z', labelX: 285, labelY: 165 },
-  { name: 'Gujarat Coast', d: 'M85,195 L100,200 L105,215 L95,225 L85,218 L80,205 Z', labelX: 92, labelY: 212 },
 ];
 
 export function IndiaMap({ selectedStates, onToggleState, getStateStats }: IndiaMapProps) {
@@ -104,7 +127,7 @@ export function IndiaMap({ selectedStates, onToggleState, getStateStats }: India
           fill={isDataState ? (isSelected ? '#ffffff' : '#0c4a6e') : '#94a3b8'}
           className="pointer-events-none select-none"
         >
-          {isDataState ? sp.name.slice(0, 3).toUpperCase() : ''}
+          {isDataState ? (sp.name.length > 11 ? sp.name.slice(0, 3).toUpperCase() : sp.name.split(' ').map((w) => w[0]).join('').toUpperCase()) : ''}
         </text>
       </g>
     );

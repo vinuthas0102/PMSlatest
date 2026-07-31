@@ -9,7 +9,7 @@ interface TileViewProps {
   drillLabel: string;
 }
 
-interface MiniBarProps {
+interface MiniColumnProps {
   label: string;
   value: number;
   max: number;
@@ -17,17 +17,18 @@ interface MiniBarProps {
   textColor: string;
 }
 
-function MiniBar({ label, value, max, color, textColor }: MiniBarProps) {
+function MiniColumn({ label, value, max, color, textColor }: MiniColumnProps) {
   const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
   return (
-    <div className="flex items-center gap-1.5 w-full">
-      <span className="text-[9px] font-semibold text-slate-400 w-10 shrink-0 uppercase tracking-wide">{label}</span>
-      <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
-        <div className={`h-full rounded-full ${color} transition-all duration-500`} style={{ width: `${pct}%` }} />
+    <div className="flex flex-col items-center flex-1 min-w-0">
+      <div className="text-[9px] font-bold text-slate-600 mb-0.5 whitespace-nowrap">{formatINRShort(value)}</div>
+      <div className="w-full h-12 bg-slate-100 rounded-sm overflow-hidden flex items-end relative">
+        <div
+          className={`w-full rounded-t-sm ${color} transition-all duration-500`}
+          style={{ height: `${pct}%` }}
+        />
       </div>
-      <span className={`text-[10px] font-semibold ${textColor} w-14 text-right shrink-0`}>
-        {formatINRShort(value)}
-      </span>
+      <div className={`text-[9px] font-semibold ${textColor} mt-0.5 uppercase tracking-wide`}>{label}</div>
     </div>
   );
 }
@@ -105,13 +106,15 @@ export function TileView({ items, onShowDetails, onDrillDown, drillLabel }: Tile
               </div>
             </div>
 
-            {/* Line 3: Financial Mini Bar Charts */}
-            <div className="mt-1.5 bg-slate-50/70 rounded px-2 py-1.5 border border-slate-100 flex flex-col gap-1">
-              <div className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider mb-0.5">Financial</div>
-              <MiniBar label="MBook" value={item.mbook_entry} max={item.mbook_entry} color="bg-blue-600" textColor="text-blue-700" />
-              <MiniBar label="Billed" value={item.billed_amount} max={item.mbook_entry} color="bg-cyan-500" textColor="text-cyan-700" />
-              <MiniBar label="Paid" value={item.paid_amount} max={item.mbook_entry} color="bg-emerald-500" textColor="text-emerald-700" />
-              <MiniBar label="Bal" value={balance} max={item.mbook_entry} color="bg-red-400" textColor="text-red-600" />
+            {/* Line 3: Financial Mini Bar Charts (Vertical Columns) */}
+            <div className="mt-1.5 bg-slate-50/70 rounded px-2 py-1.5 border border-slate-100">
+              <div className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Financial</div>
+              <div className="flex items-end gap-1.5">
+                <MiniColumn label="MBook" value={item.mbook_entry} max={item.mbook_entry} color="bg-blue-600" textColor="text-blue-700" />
+                <MiniColumn label="Billed" value={item.billed_amount} max={item.mbook_entry} color="bg-cyan-500" textColor="text-cyan-700" />
+                <MiniColumn label="Paid" value={item.paid_amount} max={item.mbook_entry} color="bg-emerald-500" textColor="text-emerald-700" />
+                <MiniColumn label="Bal" value={balance} max={item.mbook_entry} color="bg-red-400" textColor="text-red-600" />
+              </div>
             </div>
 
             {/* Line 4: Action Bar */}
