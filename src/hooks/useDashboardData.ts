@@ -10,7 +10,27 @@ import type {
   AuditLogEntry,
 } from '@/types';
 
-const LOADING_KEY = 'pms_data_v4';
+const LOADING_KEY = 'pms_data_v5';
+
+const SPECS_PAGE_SIZE = 1000;
+
+async function fetchAllSpecs(): Promise<Spec[]> {
+  const all: Spec[] = [];
+  let from = 0;
+  while (true) {
+    const res = await supabase
+      .from('specs')
+      .select('*')
+      .order('level, spec_code')
+      .range(from, from + SPECS_PAGE_SIZE - 1);
+    if (res.error) throw res.error;
+    const rows = (res.data as Spec[]) ?? [];
+    all.push(...rows);
+    if (rows.length < SPECS_PAGE_SIZE) break;
+    from += SPECS_PAGE_SIZE;
+  }
+  return all;
+}
 
 export function useDashboardData() {
   const [data, setData] = useState<DashboardData | null>(null);
@@ -28,26 +48,25 @@ export function useDashboardData() {
         return;
       }
 
-      const [projRes, woRes, schedRes, trkRes, specRes] = await Promise.all([
+      const [projRes, woRes, schedRes, trkRes, allSpecs] = await Promise.all([
         supabase.from('projects').select('*').order('seq_no'),
         supabase.from('work_orders').select('*').order('seq_no'),
         supabase.from('schedules').select('*').order('seq_no'),
         supabase.from('tracking_entries').select('*').order('seq_no'),
-        supabase.from('specs').select('*').order('level, spec_code').limit(5000),
+        fetchAllSpecs(),
       ]);
 
       if (projRes.error) throw projRes.error;
       if (woRes.error) throw woRes.error;
       if (schedRes.error) throw schedRes.error;
       if (trkRes.error) throw trkRes.error;
-      if (specRes.error) throw specRes.error;
 
       const dashboardData: DashboardData = {
         projects: (projRes.data as Project[]) ?? [],
         workOrders: (woRes.data as WorkOrder[]) ?? [],
         schedules: (schedRes.data as Schedule[]) ?? [],
         trackingEntries: (trkRes.data as TrackingEntry[]) ?? [],
-        specs: (specRes.data as Spec[]) ?? [],
+        specs: allSpecs,
       };
       sessionStorage.setItem(LOADING_KEY, JSON.stringify(dashboardData));
       setData(dashboardData);
