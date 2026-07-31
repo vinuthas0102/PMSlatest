@@ -241,8 +241,8 @@ export function TrackingScreen({
               </button>
             </div>
 
-            {/* Scrollable body — vertical scroll only */}
-            <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden rounded-b-xl">
+            {/* Scrollable body */}
+            <div className="min-h-0 flex-1 overflow-y-auto rounded-b-xl">
               {activeTab === 'specs' ? (
                 <>
                   {/* Spec table section header (sticky) */}
@@ -256,14 +256,17 @@ export function TrackingScreen({
 
                   {/* Horizontal scroll wrapper for the table */}
                   <div className="overflow-x-auto">
-                    <table className="min-w-[740px] border-collapse text-xs">
+                    <table className="min-w-[960px] border-collapse text-xs">
                       <thead className="bg-slate-50">
                         <tr>
                           <th className="px-4 py-2.5 text-left font-semibold text-slate-600" style={{ width: '110px' }}>Spec Code</th>
                           <th className="px-4 py-2.5 text-left font-semibold text-slate-600">Description</th>
+                          <th className="px-4 py-2.5 text-right font-semibold text-slate-600" style={{ width: '80px' }}>Est. Qty</th>
                           <th className="px-4 py-2.5 text-right font-semibold text-slate-600" style={{ width: '80px' }}>Exec. Qty</th>
-                          <th className="px-4 py-2.5 text-left font-semibold text-slate-600" style={{ width: '110px' }}>Meas. Date</th>
-                          <th className="px-4 py-2.5 text-center font-semibold text-slate-600" style={{ width: '60px' }}>Photo/Att</th>
+                          <th className="px-4 py-2.5 text-right font-semibold text-slate-600" style={{ width: '80px' }}>Rate</th>
+                          <th className="px-4 py-2.5 text-right font-semibold text-slate-600" style={{ width: '100px' }}>Amount</th>
+                          <th className="px-4 py-2.5 text-left font-semibold text-slate-600" style={{ width: '100px' }}>Meas. Date</th>
+                          <th className="px-4 py-2.5 text-center font-semibold text-slate-600" style={{ width: '70px' }}>Photo/Att</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -273,7 +276,10 @@ export function TrackingScreen({
                             <td className="px-4 py-2 text-slate-700">
                               <div className="line-clamp-2">{spec.description}</div>
                             </td>
+                            <td className="whitespace-nowrap px-4 py-2 text-right tabular-nums text-slate-600">{spec.estimated_qty.toFixed(0)}</td>
                             <td className="whitespace-nowrap px-4 py-2 text-right tabular-nums text-slate-600">{spec.executed_qty.toFixed(0)}</td>
+                            <td className="whitespace-nowrap px-4 py-2 text-right tabular-nums text-slate-500">{spec.rate.toLocaleString('en-IN')}</td>
+                            <td className="whitespace-nowrap px-4 py-2 text-right tabular-nums font-medium text-slate-700">{formatINR(spec.amount)}</td>
                             <td className="whitespace-nowrap px-4 py-2 text-slate-500">{formatDateShort(spec.measurement_date)}</td>
                             <td className="px-4 py-2 text-center">
                               {spec.has_attachment ? (
@@ -286,7 +292,7 @@ export function TrackingScreen({
                         ))}
                         {selectedSpecs.length === 0 && (
                           <tr>
-                            <td colSpan={5} className="px-4 py-10 text-center text-sm text-slate-400">
+                            <td colSpan={8} className="px-4 py-10 text-center text-sm text-slate-400">
                               No specification items recorded for this entry.
                             </td>
                           </tr>
@@ -296,9 +302,12 @@ export function TrackingScreen({
                         <tfoot className="bg-slate-100">
                           <tr className="border-t-2 border-slate-200">
                             <td className="px-4 py-2.5 font-bold text-slate-700" colSpan={2}>Totals ({selectedSpecs.length} items)</td>
+                            <td className="px-4 py-2.5 text-right font-bold tabular-nums text-slate-700">{totals.estQty.toFixed(0)}</td>
                             <td className="px-4 py-2.5 text-right font-bold tabular-nums text-slate-700">{totals.execQty.toFixed(0)}</td>
                             <td className="px-4 py-2.5"></td>
-                            <td className="px-4 py-2.5 text-center text-slate-500">{totals.attachments}</td>
+                            <td className="px-4 py-2.5 text-right font-bold tabular-nums text-slate-700">{formatINR(totals.amount)}</td>
+                            <td className="px-4 py-2.5"></td>
+                            <td className="px-4 py-2.5 text-center font-bold text-slate-700">{totals.attachments}</td>
                           </tr>
                         </tfoot>
                       )}
