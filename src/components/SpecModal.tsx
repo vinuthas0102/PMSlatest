@@ -178,7 +178,7 @@ export function SpecModal({ item, level, specs, onClose }: SpecModalProps) {
                   <th className="px-4 py-2.5 text-right font-semibold text-slate-600" style={{ width: '80px' }}>Exec. Qty</th>
                   <th className="px-4 py-2.5 text-right font-semibold text-slate-600" style={{ width: '90px' }}>Rate</th>
                   <th className="px-4 py-2.5 text-right font-semibold text-slate-600" style={{ width: '110px' }}>Amount</th>
-                  <th className="px-4 py-2.5 text-center font-semibold text-slate-600" style={{ width: '50px' }}>Att</th>
+                  <th className="px-4 py-2.5 text-center font-semibold text-slate-600" style={{ width: '90px' }}>Attachment</th>
                 </tr>
               </thead>
               <tbody>
