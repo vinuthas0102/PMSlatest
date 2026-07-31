@@ -33,7 +33,7 @@ export function useDashboardData() {
         supabase.from('work_orders').select('*').order('seq_no'),
         supabase.from('schedules').select('*').order('seq_no'),
         supabase.from('tracking_entries').select('*').order('seq_no'),
-        supabase.from('specs').select('*').order('level, spec_code'),
+        supabase.from('specs').select('*').order('level, spec_code').limit(5000),
       ]);
 
       if (projRes.error) throw projRes.error;
