@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { X, Search, Paperclip, FileText } from 'lucide-react';
+import { X, Search, Paperclip, FileText, Layers, TrendingUp, Wallet, CalendarDays, AlertTriangle, FileCheck } from 'lucide-react';
 import type { BaseEntity, Spec, Level } from '@/types';
 import { formatINR, formatDateShort, delayStatusColor, delayStatusShort } from '@/lib/format';
 
@@ -8,6 +8,40 @@ interface SpecModalProps {
   level: Level;
   specs: Spec[];
   onClose: () => void;
+}
+
+const LEVEL_LABELS: Record<Level, string> = {
+  project: 'Project',
+  wo: 'Work Order',
+  schedule: 'Schedule',
+  tracking: 'Tracking',
+};
+
+function StatCard({
+  label,
+  value,
+  sub,
+  icon: Icon,
+  accent,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  icon: typeof FileText;
+  accent: string;
+}) {
+  return (
+    <div className={`flex items-start gap-2.5 rounded-lg border border-slate-200 bg-white px-3 py-2.5 shadow-sm`}>
+      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${accent}`}>
+        <Icon className="h-4 w-4" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{label}</div>
+        <div className="truncate text-sm font-bold text-slate-800">{value}</div>
+        {sub && <div className="truncate text-[10px] text-slate-400">{sub}</div>}
+      </div>
+    </div>
+  );
 }
 
 export function SpecModal({ item, level, specs, onClose }: SpecModalProps) {
@@ -25,137 +59,187 @@ export function SpecModal({ item, level, specs, onClose }: SpecModalProps) {
     );
   }, [levelSpecs, specFilter]);
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
-      <div className="bg-white rounded shadow-2xl max-w-3xl w-full mx-4 max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
-        <div className="flex items-center justify-between px-3 py-2 bg-slate-900 text-white border-b border-slate-700 rounded-t">
-          <div className="flex items-center gap-2">
-            <FileText className="w-4 h-4 text-cyan-400" />
-            <div>
-              <h2 className="text-sm font-bold">{item.title}</h2>
-              <p className="text-[10px] text-slate-400">
-                <span className="font-mono">{item.seq_no}</span> · {item.code} · {level.toUpperCase()} Level
-              </p>
-            </div>
-          </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+  const totals = useMemo(() => {
+    return {
+      estQty: filteredSpecs.reduce((s, sp) => s + sp.estimated_qty, 0),
+      execQty: filteredSpecs.reduce((s, sp) => s + sp.executed_qty, 0),
+      amount: filteredSpecs.reduce((s, sp) => s + sp.amount, 0),
+      attachments: filteredSpecs.filter((s) => s.has_attachment).length,
+    };
+  }, [filteredSpecs]);
 
-        {/* Metadata */}
-        <div className="px-3 py-2 bg-slate-50 border-b border-slate-100">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px]">
-            <div>
-              <div className="text-slate-400">Manager</div>
-              <div className="font-medium text-slate-700">{item.manager}</div>
-            </div>
-            <div>
-              <div className="text-slate-400">Location</div>
-              <div className="font-medium text-slate-700">{item.state} · {item.district}</div>
-            </div>
-            <div>
-              <div className="text-slate-400">Category</div>
-              <div className="font-medium text-slate-700">{item.category}</div>
-            </div>
-            <div>
-              <div className="text-slate-400">Subcategory</div>
-              <div className="font-medium text-slate-700">{item.subcategory}</div>
-            </div>
-            <div>
-              <div className="text-slate-400">Physical Progress</div>
-              <div className="font-medium text-slate-700">{item.completed_pct.toFixed(0)}% / {item.target_pct.toFixed(0)}%</div>
-            </div>
-            <div>
-              <div className="text-slate-400">Delay Status</div>
-              <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${colors.bg} ${colors.text} ${colors.border}`}>
-                {delayStatusShort(item.delay_status)}
-              </span>
-            </div>
-            <div>
-              <div className="text-slate-400">MBook Entry</div>
-              <div className="font-medium text-blue-700">{formatINR(item.mbook_entry)}</div>
-            </div>
-            <div>
-              <div className="text-slate-400">Billed / Paid</div>
-              <div className="font-medium text-slate-700">
-                <span className="text-cyan-600">{formatINR(item.billed_amount)}</span> / <span className="text-emerald-600">{formatINR(item.paid_amount)}</span>
+  const progressPct = item.target_pct > 0 ? Math.min(100, (item.completed_pct / item.target_pct) * 100) : 0;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4" onClick={onClose}>
+      <div
+        className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl ring-1 ring-slate-900/10"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header banner */}
+        <div className="relative bg-gradient-to-r from-slate-900 to-slate-800 px-5 py-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex min-w-0 items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-cyan-500/15 ring-1 ring-cyan-400/30">
+                <FileText className="h-5 w-5 text-cyan-400" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="rounded bg-slate-700 px-1.5 py-0.5 font-mono text-[10px] font-bold text-cyan-300">
+                    {item.seq_no}
+                  </span>
+                  <span className="rounded bg-cyan-500/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-cyan-300 ring-1 ring-cyan-400/30">
+                    {LEVEL_LABELS[level]} Level
+                  </span>
+                </div>
+                <h2 className="mt-1 truncate text-base font-bold text-white">{item.title}</h2>
+                <p className="truncate text-[11px] text-slate-400">
+                  {item.code} · {item.manager}
+                </p>
               </div>
             </div>
-            <div>
-              <div className="text-slate-400">Start Date</div>
-              <div className="font-medium text-slate-700">{formatDateShort(item.start_date)}</div>
-            </div>
-            <div>
-              <div className="text-slate-400">End Date</div>
-              <div className="font-medium text-slate-700">{formatDateShort(item.end_date)}</div>
-            </div>
-            <div>
-              <div className="text-slate-400">Qty Deviations</div>
-              <div className="font-medium text-orange-600">{item.qty_deviations}</div>
-            </div>
-            <div>
-              <div className="text-slate-400">Spec Deviations</div>
-              <div className="font-medium text-amber-600">{item.spec_deviations}</div>
-            </div>
+            <button
+              onClick={onClose}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-700 hover:text-white"
+            >
+              <X className="h-5 w-5" />
+            </button>
           </div>
         </div>
 
-        {/* Specs Table */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="flex items-center justify-between px-3 py-1.5 sticky top-0 bg-white border-b border-slate-100">
-            <h3 className="text-xs font-semibold text-slate-700">Specs ({filteredSpecs.length})</h3>
-            <div className="flex items-center gap-1 bg-slate-100 rounded px-1.5 py-0.5">
-              <Search className="w-3 h-3 text-slate-400" />
+        {/* Metadata stat cards */}
+        <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
+            <StatCard label="Location" value={`${item.state}`} sub={item.district} icon={Layers} accent="bg-indigo-50 text-indigo-600" />
+            <StatCard label="Category" value={item.category} sub={item.subcategory} icon={Layers} accent="bg-teal-50 text-teal-600" />
+
+            {/* Progress card with bar */}
+            <div className="flex flex-col justify-between rounded-lg border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-emerald-50 text-emerald-600">
+                  <TrendingUp className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Physical Progress</div>
+                  <div className="text-sm font-bold text-slate-800">
+                    {item.completed_pct.toFixed(0)}% <span className="text-[11px] font-medium text-slate-400">/ {item.target_pct.toFixed(0)}%</span>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600 transition-all"
+                  style={{ width: `${progressPct}%` }}
+                />
+              </div>
+            </div>
+
+            <StatCard
+              label="Delay Status"
+              value={delayStatusShort(item.delay_status)}
+              icon={AlertTriangle}
+              accent={`${colors.bg} ${colors.text}`}
+            />
+            <StatCard label="MBook Entry" value={formatINR(item.mbook_entry)} icon={Wallet} accent="bg-blue-50 text-blue-600" />
+            <StatCard label="Billed Amount" value={formatINR(item.billed_amount)} icon={Wallet} accent="bg-cyan-50 text-cyan-600" />
+            <StatCard label="Paid Amount" value={formatINR(item.paid_amount)} icon={Wallet} accent="bg-emerald-50 text-emerald-600" />
+            <StatCard label="Start Date" value={formatDateShort(item.start_date)} icon={CalendarDays} accent="bg-slate-100 text-slate-600" />
+            <StatCard label="End Date" value={formatDateShort(item.end_date)} icon={CalendarDays} accent="bg-slate-100 text-slate-600" />
+            <StatCard label="Qty Deviations" value={`${item.qty_deviations}`} icon={AlertTriangle} accent="bg-orange-50 text-orange-600" />
+            <StatCard label="Spec Deviations" value={`${item.spec_deviations}`} icon={AlertTriangle} accent="bg-amber-50 text-amber-600" />
+            <StatCard label="Extension Days" value={`${item.extension_days}`} icon={CalendarDays} accent="bg-rose-50 text-rose-600" />
+          </div>
+        </div>
+
+        {/* Specs table */}
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-2.5">
+            <div className="flex items-center gap-2">
+              <FileCheck className="h-4 w-4 text-cyan-600" />
+              <h3 className="text-sm font-bold text-slate-700">Specification Items</h3>
+              <span className="rounded-full bg-cyan-50 px-2 py-0.5 text-[11px] font-bold text-cyan-700 ring-1 ring-cyan-200">
+                {filteredSpecs.length}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 rounded-lg bg-slate-100 px-2.5 py-1 ring-1 ring-slate-200">
+              <Search className="h-3.5 w-3.5 text-slate-400" />
               <input
                 type="text"
                 placeholder="Filter specs..."
                 value={specFilter}
                 onChange={(e) => setSpecFilter(e.target.value)}
-                className="bg-transparent text-[11px] outline-none w-32"
+                className="w-40 bg-transparent text-xs text-slate-700 outline-none placeholder:text-slate-400"
               />
             </div>
           </div>
-          <table className="w-full text-xs border-collapse">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="text-left px-2 py-1.5 font-semibold text-slate-600">Spec Code</th>
-                <th className="text-left px-2 py-1.5 font-semibold text-slate-600">Description</th>
-                <th className="text-left px-2 py-1.5 font-semibold text-slate-600">Unit</th>
-                <th className="text-right px-2 py-1.5 font-semibold text-slate-600">Est. Qty</th>
-                <th className="text-right px-2 py-1.5 font-semibold text-slate-600">Exec. Qty</th>
-                <th className="text-right px-2 py-1.5 font-semibold text-slate-600">Rate</th>
-                <th className="text-right px-2 py-1.5 font-semibold text-slate-600">Amount</th>
-                <th className="text-center px-2 py-1.5 font-semibold text-slate-600">Att</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredSpecs.map((spec, idx) => (
-                <tr key={spec.id} className={`border-b border-slate-100 ${idx % 2 === 1 ? 'bg-slate-50/50' : ''}`}>
-                  <td className="px-2 py-1.5 font-mono text-slate-600 font-medium whitespace-nowrap">{spec.spec_code}</td>
-                  <td className="px-2 py-1.5 text-slate-700">{spec.description}</td>
-                  <td className="px-2 py-1.5 text-slate-500 whitespace-nowrap">{spec.unit}</td>
-                  <td className="px-2 py-1.5 text-right text-slate-600 whitespace-nowrap">{spec.estimated_qty.toFixed(0)}</td>
-                  <td className="px-2 py-1.5 text-right text-slate-600 whitespace-nowrap">{spec.executed_qty.toFixed(0)}</td>
-                  <td className="px-2 py-1.5 text-right text-slate-600 whitespace-nowrap">₹{spec.rate.toFixed(0)}</td>
-                  <td className="px-2 py-1.5 text-right font-medium text-blue-700 whitespace-nowrap">{formatINR(spec.amount)}</td>
-                  <td className="px-2 py-1.5 text-center">
-                    {spec.has_attachment ? (
-                      <Paperclip className="w-3.5 h-3.5 text-cyan-600 inline" />
-                    ) : (
-                      <span className="text-slate-300">-</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {filteredSpecs.length === 0 && (
+
+          <div className="min-h-0 flex-1 overflow-auto">
+            <table className="w-full border-collapse text-xs">
+              <thead className="sticky top-0 z-10 bg-slate-50 shadow-[0_1px_0_0_rgba(15,23,42,0.08)]">
                 <tr>
-                  <td colSpan={8} className="px-2 py-4 text-center text-slate-400 text-xs">No specs match the filter.</td>
+                  <th className="px-4 py-2.5 text-left font-semibold text-slate-600" style={{ width: '110px' }}>Spec Code</th>
+                  <th className="px-4 py-2.5 text-left font-semibold text-slate-600">Description</th>
+                  <th className="px-4 py-2.5 text-left font-semibold text-slate-600" style={{ width: '60px' }}>Unit</th>
+                  <th className="px-4 py-2.5 text-right font-semibold text-slate-600" style={{ width: '80px' }}>Est. Qty</th>
+                  <th className="px-4 py-2.5 text-right font-semibold text-slate-600" style={{ width: '80px' }}>Exec. Qty</th>
+                  <th className="px-4 py-2.5 text-right font-semibold text-slate-600" style={{ width: '90px' }}>Rate</th>
+                  <th className="px-4 py-2.5 text-right font-semibold text-slate-600" style={{ width: '110px' }}>Amount</th>
+                  <th className="px-4 py-2.5 text-center font-semibold text-slate-600" style={{ width: '50px' }}>Att</th>
                 </tr>
+              </thead>
+              <tbody>
+                {filteredSpecs.map((spec, idx) => {
+                  const ratio = spec.estimated_qty > 0 ? Math.min(100, (spec.executed_qty / spec.estimated_qty) * 100) : 0;
+                  return (
+                    <tr key={spec.id} className={`border-b border-slate-100 transition-colors hover:bg-cyan-50/40 ${idx % 2 === 1 ? 'bg-slate-50/40' : ''}`}>
+                      <td className="whitespace-nowrap px-4 py-2 font-mono font-medium text-slate-700">{spec.spec_code}</td>
+                      <td className="px-4 py-2 text-slate-700">
+                        <div className="line-clamp-2">{spec.description}</div>
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-2 text-slate-500">{spec.unit}</td>
+                      <td className="whitespace-nowrap px-4 py-2 text-right tabular-nums text-slate-600">{spec.estimated_qty.toFixed(0)}</td>
+                      <td className="whitespace-nowrap px-4 py-2 text-right tabular-nums text-slate-600">
+                        {spec.executed_qty.toFixed(0)}
+                        {spec.estimated_qty > 0 && (
+                          <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-slate-100">
+                            <div className="h-full rounded-full bg-cyan-500" style={{ width: `${ratio}%` }} />
+                          </div>
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-2 text-right tabular-nums text-slate-600">₹{spec.rate.toFixed(0)}</td>
+                      <td className="whitespace-nowrap px-4 py-2 text-right font-bold tabular-nums text-blue-700">{formatINR(spec.amount)}</td>
+                      <td className="px-4 py-2 text-center">
+                        {spec.has_attachment ? (
+                          <Paperclip className="mx-auto h-4 w-4 text-cyan-600" />
+                        ) : (
+                          <span className="text-slate-300">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+                {filteredSpecs.length === 0 && (
+                  <tr>
+                    <td colSpan={8} className="px-4 py-10 text-center text-sm text-slate-400">
+                      No specs match the current filter.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+              {filteredSpecs.length > 0 && (
+                <tfoot className="sticky bottom-0 bg-slate-100">
+                  <tr className="border-t-2 border-slate-200">
+                    <td className="px-4 py-2.5 font-bold text-slate-700" colSpan={3}>Totals ({filteredSpecs.length} items)</td>
+                    <td className="px-4 py-2.5 text-right font-bold tabular-nums text-slate-700">{totals.estQty.toFixed(0)}</td>
+                    <td className="px-4 py-2.5 text-right font-bold tabular-nums text-slate-700">{totals.execQty.toFixed(0)}</td>
+                    <td className="px-4 py-2.5"></td>
+                    <td className="px-4 py-2.5 text-right font-bold tabular-nums text-blue-700">{formatINR(totals.amount)}</td>
+                    <td className="px-4 py-2.5 text-center text-slate-500">{totals.attachments}</td>
+                  </tr>
+                </tfoot>
               )}
-            </tbody>
-          </table>
+            </table>
+          </div>
         </div>
       </div>
     </div>
