@@ -22,6 +22,8 @@ const STATUS_COLORS: Record<string, string> = {
   'Delayed - Critical': '#dc2626',
 };
 
+const CHART_H = 260;
+
 function ChartCard({
   title,
   chartType,
@@ -58,7 +60,7 @@ function ChartCard({
           </button>
         </div>
       </div>
-      <div className="flex-1 min-h-[180px]">{children}</div>
+      <div className="flex-1 min-h-[260px]">{children}</div>
     </div>
   );
 }
@@ -66,7 +68,7 @@ function ChartCard({
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export function ChartView({ items, onCategoryClick }: ChartViewProps) {
-  const [chart1Type, setChart1Type] = useState<ChartType>('pie');
+  const [chart1Type, setChart1Type] = useState<ChartType>('bar');
   const [chart2Type, setChart2Type] = useState<ChartType>('bar');
   const [chart3Type, setChart3Type] = useState<ChartType>('pie');
   const [chart4Type, setChart4Type] = useState<ChartType>('bar');
@@ -137,9 +139,9 @@ export function ChartView({ items, onCategoryClick }: ChartViewProps) {
   const renderPhysicalChart = () => {
     if (chart1Type === 'pie') {
       return (
-        <ResponsiveContainer width="100%" height={180}>
+        <ResponsiveContainer width="100%" height={CHART_H}>
           <PieChart>
-            <Pie data={physicalData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={60} innerRadius={30} label={(e) => `${e.name}: ${e.value}`}>
+            <Pie data={physicalData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} innerRadius={40} label={(e) => `${e.name}: ${e.value}`}>
               {physicalData.map((d, i) => <Cell key={i} fill={d.color} />)}
             </Pie>
             <Tooltip />
@@ -149,25 +151,27 @@ export function ChartView({ items, onCategoryClick }: ChartViewProps) {
     }
     if (chart1Type === 'bar') {
       return (
-        <ResponsiveContainer width="100%" height={180}>
-          <BarChart data={physicalData}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-slate-100" />
-            <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-            <YAxis tick={{ fontSize: 10 }} />
-            <Tooltip />
-            <Bar dataKey="value" fill="#0891b2" radius={[4, 4, 0, 0]} />
+        <ResponsiveContainer width="100%" height={CHART_H}>
+          <BarChart data={physicalData} margin={{ top: 20, right: 10, left: 0, bottom: 10 }}>
+            <CartesianGrid strokeDasharray="3 3" className="stroke-slate-100" vertical={false} />
+            <XAxis dataKey="name" tick={{ fontSize: 11, fontWeight: 600 }} axisLine={{ stroke: '#cbd5e1' }} />
+            <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+            <Tooltip cursor={{ fill: 'rgba(8,145,178,0.05)' }} />
+            <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={50} maxBarSize={60}>
+              {physicalData.map((d, i) => <Cell key={i} fill={d.color} />)}
+            </Bar>
           </BarChart>
         </ResponsiveContainer>
       );
     }
     return (
-      <ResponsiveContainer width="100%" height={180}>
-        <LineChart data={physicalData}>
+      <ResponsiveContainer width="100%" height={CHART_H}>
+        <LineChart data={physicalData} margin={{ top: 20, right: 10, left: 0, bottom: 10 }}>
           <CartesianGrid strokeDasharray="3 3" className="stroke-slate-100" />
-          <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+          <XAxis dataKey="name" tick={{ fontSize: 11 }} />
           <YAxis tick={{ fontSize: 10 }} />
           <Tooltip />
-          <Line dataKey="value" stroke="#0891b2" strokeWidth={2} />
+          <Line dataKey="value" stroke="#0891b2" strokeWidth={2} dot={{ r: 4 }} />
         </LineChart>
       </ResponsiveContainer>
     );
@@ -176,13 +180,13 @@ export function ChartView({ items, onCategoryClick }: ChartViewProps) {
   const renderFinancialChart = () => {
     if (chart2Type === 'bar') {
       return (
-        <ResponsiveContainer width="100%" height={180}>
-          <BarChart data={financialData}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-slate-100" />
-            <XAxis dataKey="name" tick={{ fontSize: 9 }} angle={-15} textAnchor="end" height={40} />
-            <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => formatINRShort(v)} />
-            <Tooltip formatter={(v: number) => formatINRShort(v)} />
-            <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+        <ResponsiveContainer width="100%" height={CHART_H}>
+          <BarChart data={financialData} margin={{ top: 20, right: 10, left: 0, bottom: 20 }}>
+            <CartesianGrid strokeDasharray="3 3" className="stroke-slate-100" vertical={false} />
+            <XAxis dataKey="name" tick={{ fontSize: 9, fontWeight: 600 }} angle={-20} textAnchor="end" height={50} axisLine={{ stroke: '#cbd5e1' }} />
+            <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => formatINRShort(v)} axisLine={false} tickLine={false} />
+            <Tooltip cursor={{ fill: 'rgba(8,145,178,0.05)' }} formatter={(v: number) => formatINRShort(v)} />
+            <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={40} maxBarSize={50}>
               {financialData.map((d, i) => <Cell key={i} fill={d.color} />)}
             </Bar>
           </BarChart>
@@ -191,9 +195,9 @@ export function ChartView({ items, onCategoryClick }: ChartViewProps) {
     }
     if (chart2Type === 'pie') {
       return (
-        <ResponsiveContainer width="100%" height={180}>
+        <ResponsiveContainer width="100%" height={CHART_H}>
           <PieChart>
-            <Pie data={financialData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={60} label={(e) => `${e.name}: ${formatINRShort(e.value as number)}`}>
+            <Pie data={financialData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} innerRadius={40} label={(e) => `${e.name}: ${formatINRShort(e.value as number)}`}>
               {financialData.map((d, i) => <Cell key={i} fill={d.color} />)}
             </Pie>
             <Tooltip formatter={(v: number) => formatINRShort(v)} />
@@ -202,13 +206,13 @@ export function ChartView({ items, onCategoryClick }: ChartViewProps) {
       );
     }
     return (
-      <ResponsiveContainer width="100%" height={180}>
-        <LineChart data={financialData}>
+      <ResponsiveContainer width="100%" height={CHART_H}>
+        <LineChart data={financialData} margin={{ top: 20, right: 10, left: 0, bottom: 20 }}>
           <CartesianGrid strokeDasharray="3 3" className="stroke-slate-100" />
-          <XAxis dataKey="name" tick={{ fontSize: 9 }} angle={-15} textAnchor="end" height={40} />
+          <XAxis dataKey="name" tick={{ fontSize: 9 }} angle={-15} textAnchor="end" height={50} />
           <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => formatINRShort(v)} />
           <Tooltip formatter={(v: number) => formatINRShort(v)} />
-          <Line dataKey="value" stroke="#1e40af" strokeWidth={2} />
+          <Line dataKey="value" stroke="#1e40af" strokeWidth={2} dot={{ r: 4 }} />
         </LineChart>
       </ResponsiveContainer>
     );
@@ -217,9 +221,9 @@ export function ChartView({ items, onCategoryClick }: ChartViewProps) {
   const renderCategoryChart = () => {
     if (chart3Type === 'pie') {
       return (
-        <ResponsiveContainer width="100%" height={180}>
+        <ResponsiveContainer width="100%" height={CHART_H}>
           <PieChart>
-            <Pie data={categoryData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={60} label={(e) => e.name} onClick={(_, idx) => onCategoryClick(categoryData[idx].name)}>
+            <Pie data={categoryData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} innerRadius={40} label={(e) => e.name} onClick={(_, idx) => onCategoryClick(categoryData[idx].name)}>
               {categoryData.map((d, i) => <Cell key={i} fill={d.color} className="cursor-pointer" />)}
             </Pie>
             <Tooltip />
@@ -229,13 +233,13 @@ export function ChartView({ items, onCategoryClick }: ChartViewProps) {
     }
     if (chart3Type === 'bar') {
       return (
-        <ResponsiveContainer width="100%" height={180}>
-          <BarChart data={categoryData}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-slate-100" />
-            <XAxis dataKey="name" tick={{ fontSize: 9 }} angle={-15} textAnchor="end" height={40} />
-            <YAxis tick={{ fontSize: 10 }} />
-            <Tooltip />
-            <Bar dataKey="value" radius={[4, 4, 0, 0]} onClick={(_, idx) => onCategoryClick(categoryData[idx].name)} className="cursor-pointer">
+        <ResponsiveContainer width="100%" height={CHART_H}>
+          <BarChart data={categoryData} margin={{ top: 20, right: 10, left: 0, bottom: 20 }}>
+            <CartesianGrid strokeDasharray="3 3" className="stroke-slate-100" vertical={false} />
+            <XAxis dataKey="name" tick={{ fontSize: 9, fontWeight: 600 }} angle={-20} textAnchor="end" height={50} axisLine={{ stroke: '#cbd5e1' }} />
+            <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+            <Tooltip cursor={{ fill: 'rgba(8,145,178,0.05)' }} />
+            <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={40} maxBarSize={50} onClick={(_, idx) => onCategoryClick(categoryData[idx].name)} className="cursor-pointer">
               {categoryData.map((d, i) => <Cell key={i} fill={d.color} />)}
             </Bar>
           </BarChart>
@@ -243,13 +247,13 @@ export function ChartView({ items, onCategoryClick }: ChartViewProps) {
       );
     }
     return (
-      <ResponsiveContainer width="100%" height={180}>
-        <LineChart data={categoryData}>
+      <ResponsiveContainer width="100%" height={CHART_H}>
+        <LineChart data={categoryData} margin={{ top: 20, right: 10, left: 0, bottom: 20 }}>
           <CartesianGrid strokeDasharray="3 3" className="stroke-slate-100" />
-          <XAxis dataKey="name" tick={{ fontSize: 9 }} angle={-15} textAnchor="end" height={40} />
+          <XAxis dataKey="name" tick={{ fontSize: 9 }} angle={-15} textAnchor="end" height={50} />
           <YAxis tick={{ fontSize: 10 }} />
           <Tooltip />
-          <Line dataKey="value" stroke="#0891b2" strokeWidth={2} />
+          <Line dataKey="value" stroke="#0891b2" strokeWidth={2} dot={{ r: 4 }} />
         </LineChart>
       </ResponsiveContainer>
     );
@@ -257,17 +261,17 @@ export function ChartView({ items, onCategoryClick }: ChartViewProps) {
 
   const renderTimelineChart = () => {
     return (
-      <ResponsiveContainer width="100%" height={180}>
-        <ComposedChart data={timelineData}>
-          <CartesianGrid strokeDasharray="3 3" className="stroke-slate-100" />
-          <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-          <YAxis yAxisId="left" tick={{ fontSize: 10 }} />
-          <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10 }} tickFormatter={(v) => formatINRShort(v)} />
-          <Tooltip />
+      <ResponsiveContainer width="100%" height={CHART_H}>
+        <ComposedChart data={timelineData} margin={{ top: 20, right: 10, left: 0, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" className="stroke-slate-100" vertical={false} />
+          <XAxis dataKey="name" tick={{ fontSize: 10 }} axisLine={{ stroke: '#cbd5e1' }} />
+          <YAxis yAxisId="left" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+          <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10 }} tickFormatter={(v) => formatINRShort(v)} axisLine={false} tickLine={false} />
+          <Tooltip cursor={{ fill: 'rgba(8,145,178,0.05)' }} />
           <Legend wrapperStyle={{ fontSize: 10 }} />
-          <Bar yAxisId="left" dataKey="Completed" stackId="a" fill="#059669" radius={[0, 0, 0, 0]} />
-          <Bar yAxisId="left" dataKey="Active" stackId="a" fill="#0891b2" radius={[4, 4, 0, 0]} />
-          <Line yAxisId="right" type="monotone" dataKey="Outflow" stroke="#d97706" strokeWidth={2} />
+          <Bar yAxisId="left" dataKey="Completed" stackId="a" fill="#059669" radius={[0, 0, 0, 0]} barSize={30} maxBarSize={40} />
+          <Bar yAxisId="left" dataKey="Active" stackId="a" fill="#0891b2" radius={[6, 6, 0, 0]} barSize={30} maxBarSize={40} />
+          <Line yAxisId="right" type="monotone" dataKey="Outflow" stroke="#d97706" strokeWidth={2} dot={{ r: 3 }} />
         </ComposedChart>
       </ResponsiveContainer>
     );
@@ -299,7 +303,7 @@ export function ChartView({ items, onCategoryClick }: ChartViewProps) {
             ))}
           </div>
         </div>
-        <div className="flex-1 min-h-[180px]">{renderTimelineChart()}</div>
+        <div className="flex-1 min-h-[260px]">{renderTimelineChart()}</div>
       </div>
     </div>
   );
