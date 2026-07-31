@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import {
   Search, Paperclip, CalendarDays, Wallet, FileCheck, FileText,
-  ChevronRight, User, ClipboardCheck, Hash,
+  ChevronRight, Hash,
 } from 'lucide-react';
 import type { TrackingEntry, Spec } from '@/types';
 import { formatINR, formatDateShort } from '@/lib/format';
@@ -13,11 +13,19 @@ interface TrackingScreenProps {
   scheduleTitle: string;
 }
 
-function MetaItem({ label, value, accent }: { label: string; value: string; accent?: string }) {
+function MetaCell({
+  label,
+  value,
+  valueClass = 'text-slate-800',
+}: {
+  label: string;
+  value: string;
+  valueClass?: string;
+}) {
   return (
-    <div className="flex flex-col gap-0.5">
+    <div className="flex min-w-0 flex-col gap-0.5">
       <span className="text-[9px] font-semibold uppercase tracking-wide text-slate-400">{label}</span>
-      <span className={`truncate text-xs font-bold ${accent ?? 'text-slate-800'}`}>{value}</span>
+      <span className={`truncate text-xs font-bold ${valueClass}`}>{value}</span>
     </div>
   );
 }
@@ -82,7 +90,7 @@ export function TrackingScreen({
             />
           </div>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto rounded-b-xl">
+        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden rounded-b-xl">
           {filteredEntries.length === 0 ? (
             <div className="flex h-full items-center justify-center p-6 text-center text-sm text-slate-400">
               No tracking entries found.
@@ -145,8 +153,8 @@ export function TrackingScreen({
       <div className="flex min-h-0 flex-1 flex-col rounded-xl border border-slate-200 bg-white shadow-sm">
         {selected ? (
           <>
-            {/* Header (pinned) */}
-            <div className="shrink-0 rounded-t-xl border-b border-slate-200 bg-gradient-to-r from-slate-900 to-slate-800 px-5 py-3">
+            {/* Dark header — title only, pinned */}
+            <div className="shrink-0 overflow-hidden rounded-t-xl border-b border-slate-200 bg-gradient-to-r from-slate-900 to-slate-800 px-5 py-3">
               <div className="flex items-start gap-3">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cyan-500/15 ring-1 ring-cyan-400/30">
                   <FileText className="h-5 w-5 text-cyan-400" />
@@ -172,29 +180,29 @@ export function TrackingScreen({
                   </p>
                 </div>
               </div>
+            </div>
 
-              {/* Compact metadata strip */}
-              <div className="mt-3 grid grid-cols-3 gap-x-4 gap-y-2 border-t border-slate-700 pt-3 sm:grid-cols-4 lg:grid-cols-6">
-                <MetaItem label="Site Officer" value={selected.site_officer} />
-                <MetaItem label="Meas. Date" value={formatDateShort(selected.measurement_date)} />
-                <MetaItem label="Completion" value={selected.completion_tag} />
-                <MetaItem label="MBook" value={formatINR(selected.mbook_entry)} accent="text-cyan-300" />
-                <MetaItem label="Billed" value={formatINR(selected.billed_amount)} accent="text-cyan-300" />
-                <MetaItem label="Paid" value={formatINR(selected.paid_amount)} accent="text-emerald-300" />
+            {/* Light metadata strip — readable values, pinned */}
+            <div className="shrink-0 border-b border-slate-200 bg-slate-50 px-5 py-3">
+              <div className="grid grid-cols-3 gap-x-5 gap-y-2.5 sm:grid-cols-4 lg:grid-cols-6">
+                <MetaCell label="Site Officer" value={selected.site_officer} />
+                <MetaCell label="Meas. Date" value={formatDateShort(selected.measurement_date)} />
+                <MetaCell label="Completion" value={selected.completion_tag} />
+                <MetaCell label="MBook Entry" value={formatINR(selected.mbook_entry)} valueClass="text-blue-700" />
+                <MetaCell label="Billed Amount" value={formatINR(selected.billed_amount)} valueClass="text-cyan-700" />
+                <MetaCell label="Paid Amount" value={formatINR(selected.paid_amount)} valueClass="text-emerald-700" />
               </div>
             </div>
 
-            {/* Scrollable body: spec table */}
-            <div className="min-h-0 flex-1 overflow-y-auto rounded-b-xl">
+            {/* Scrollable body — vertical scroll only */}
+            <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden rounded-b-xl">
               {/* Spec table section header (sticky) */}
-              <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white px-5 py-2.5">
-                <div className="flex items-center gap-2">
-                  <FileCheck className="h-4 w-4 text-cyan-600" />
-                  <h3 className="text-sm font-bold text-slate-700">Specification Items</h3>
-                  <span className="rounded-full bg-cyan-50 px-2 py-0.5 text-[11px] font-bold text-cyan-700 ring-1 ring-cyan-200">
-                    {selectedSpecs.length}
-                  </span>
-                </div>
+              <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-slate-200 bg-white px-5 py-2.5">
+                <FileCheck className="h-4 w-4 text-cyan-600" />
+                <h3 className="text-sm font-bold text-slate-700">Specification Items</h3>
+                <span className="rounded-full bg-cyan-50 px-2 py-0.5 text-[11px] font-bold text-cyan-700 ring-1 ring-cyan-200">
+                  {selectedSpecs.length}
+                </span>
               </div>
 
               {/* Horizontal scroll wrapper for the table */}

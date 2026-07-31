@@ -19,11 +19,21 @@ const LEVEL_LABELS: Record<Level, string> = {
   tracking: 'Tracking',
 };
 
-function MetaItem({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function MetaCell({
+  label,
+  value,
+  sub,
+  valueClass = 'text-slate-800',
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  valueClass?: string;
+}) {
   return (
-    <div className="flex flex-col gap-0.5">
+    <div className="flex min-w-0 flex-col gap-0.5">
       <span className="text-[9px] font-semibold uppercase tracking-wide text-slate-400">{label}</span>
-      <span className="truncate text-xs font-bold text-slate-800">{value}</span>
+      <span className={`truncate text-xs font-bold ${valueClass}`}>{value}</span>
       {sub && <span className="truncate text-[10px] text-slate-400">{sub}</span>}
     </div>
   );
@@ -61,11 +71,11 @@ export function SpecModal({ item, level, specs, onClose }: SpecModalProps) {
       onClick={onClose}
     >
       <div
-        className="flex h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl ring-1 ring-slate-900/10"
+        className="flex h-[92vh] w-full max-w-4xl flex-col rounded-xl bg-white shadow-2xl ring-1 ring-slate-900/10"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header banner (pinned) */}
-        <div className="shrink-0 rounded-t-xl bg-gradient-to-r from-slate-900 to-slate-800 px-5 py-3">
+        {/* Dark header banner — title only, pinned */}
+        <div className="shrink-0 overflow-hidden rounded-t-xl bg-gradient-to-r from-slate-900 to-slate-800 px-5 py-3">
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-start gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cyan-500/15 ring-1 ring-cyan-400/30">
@@ -93,40 +103,48 @@ export function SpecModal({ item, level, specs, onClose }: SpecModalProps) {
               <X className="h-5 w-5" />
             </button>
           </div>
+        </div>
 
-          {/* Compact metadata strip */}
-          <div className="mt-3 grid grid-cols-3 gap-x-4 gap-y-2 border-t border-slate-700 pt-3 sm:grid-cols-4 lg:grid-cols-6">
-            <MetaItem label="Location" value={item.state} sub={item.district} />
-            <MetaItem label="Category" value={item.category} sub={item.subcategory} />
-            <div className="flex flex-col gap-0.5">
+        {/* Light metadata strip — readable values on white, pinned */}
+        <div className="shrink-0 border-b border-slate-200 bg-slate-50 px-5 py-3">
+          <div className="grid grid-cols-3 gap-x-5 gap-y-2.5 sm:grid-cols-4 lg:grid-cols-6">
+            <MetaCell label="Location" value={item.state} sub={item.district} />
+            <MetaCell label="Category" value={item.category} sub={item.subcategory} />
+
+            {/* Progress */}
+            <div className="flex min-w-0 flex-col gap-0.5">
               <span className="text-[9px] font-semibold uppercase tracking-wide text-slate-400">Progress</span>
-              <span className="text-xs font-bold text-white">
-                {item.completed_pct.toFixed(0)}% <span className="font-medium text-slate-500">/ {item.target_pct.toFixed(0)}%</span>
+              <span className="text-xs font-bold text-slate-800">
+                {item.completed_pct.toFixed(0)}%{' '}
+                <span className="font-medium text-slate-400">/ {item.target_pct.toFixed(0)}%</span>
               </span>
-              <div className="mt-0.5 h-1 w-full overflow-hidden rounded-full bg-slate-700">
+              <div className="mt-0.5 h-1 w-full overflow-hidden rounded-full bg-slate-200">
                 <div className="h-full rounded-full bg-emerald-500" style={{ width: `${progressPct}%` }} />
               </div>
             </div>
-            <div className="flex flex-col gap-0.5">
-              <span className="text-[9px] font-semibold uppercase tracking-wide text-slate-400">Delay</span>
-              <span className={`text-xs font-bold ${colors.text.replace('text-', 'text-')}`}>
-                <span className={`inline-flex h-1.5 w-1.5 rounded-full ${colors.dot} mr-1`} />
+
+            {/* Delay status badge */}
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <span className="text-[9px] font-semibold uppercase tracking-wide text-slate-400">Delay Status</span>
+              <span className={`inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${colors.bg} ${colors.text}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${colors.dot}`} />
                 {delayStatusShort(item.delay_status)}
               </span>
             </div>
-            <MetaItem label="MBook" value={formatINR(item.mbook_entry)} />
-            <MetaItem label="Billed" value={formatINR(item.billed_amount)} />
-            <MetaItem label="Paid" value={formatINR(item.paid_amount)} />
-            <MetaItem label="Start" value={formatDateShort(item.start_date)} />
-            <MetaItem label="End" value={formatDateShort(item.end_date)} />
-            <MetaItem label="Qty Dev" value={`${item.qty_deviations}`} />
-            <MetaItem label="Spec Dev" value={`${item.spec_deviations}`} />
-            <MetaItem label="Extension" value={`${item.extension_days}d`} />
+
+            <MetaCell label="MBook Entry" value={formatINR(item.mbook_entry)} valueClass="text-blue-700" />
+            <MetaCell label="Billed Amount" value={formatINR(item.billed_amount)} valueClass="text-cyan-700" />
+            <MetaCell label="Paid Amount" value={formatINR(item.paid_amount)} valueClass="text-emerald-700" />
+            <MetaCell label="Start Date" value={formatDateShort(item.start_date)} />
+            <MetaCell label="End Date" value={formatDateShort(item.end_date)} />
+            <MetaCell label="Qty Deviations" value={`${item.qty_deviations}`} valueClass="text-orange-700" />
+            <MetaCell label="Spec Deviations" value={`${item.spec_deviations}`} valueClass="text-amber-700" />
+            <MetaCell label="Extension Days" value={`${item.extension_days}d`} valueClass="text-rose-700" />
           </div>
         </div>
 
-        {/* Unified scrollable body */}
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        {/* Scrollable body — vertical scroll only here */}
+        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
           {/* Specs table section header (sticky) */}
           <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white px-5 py-2.5">
             <div className="flex items-center gap-2">
