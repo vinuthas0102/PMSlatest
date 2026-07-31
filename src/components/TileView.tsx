@@ -20,15 +20,15 @@ interface MiniColumnProps {
 function MiniColumn({ label, value, max, color, textColor }: MiniColumnProps) {
   const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
   return (
-    <div className="flex flex-col items-center flex-1 min-w-0">
-      <div className="text-[9px] font-bold text-slate-600 mb-0.5 whitespace-nowrap">{formatINRShort(value)}</div>
-      <div className="w-full h-12 bg-slate-100 rounded-sm overflow-hidden flex items-end relative">
+    <div className="flex flex-col items-center" style={{ width: 32 }}>
+      <div className="text-[8px] font-semibold text-slate-500 mb-0.5 whitespace-nowrap leading-none">{formatINRShort(value)}</div>
+      <div className="w-4 h-10 bg-slate-100 rounded-sm overflow-hidden flex items-end">
         <div
           className={`w-full rounded-t-sm ${color} transition-all duration-500`}
           style={{ height: `${pct}%` }}
         />
       </div>
-      <div className={`text-[9px] font-semibold ${textColor} mt-0.5 uppercase tracking-wide`}>{label}</div>
+      <div className={`text-[8px] font-semibold ${textColor} mt-0.5 uppercase tracking-wide leading-none`}>{label}</div>
     </div>
   );
 }
@@ -107,9 +107,9 @@ export function TileView({ items, onShowDetails, onDrillDown, drillLabel }: Tile
             </div>
 
             {/* Line 3: Financial Mini Bar Charts (Vertical Columns) */}
-            <div className="mt-1.5 bg-slate-50/70 rounded px-2 py-1.5 border border-slate-100">
-              <div className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Financial</div>
-              <div className="flex items-end gap-1.5">
+            <div className="mt-1.5 bg-slate-50/70 rounded px-3 py-1.5 border border-slate-100 flex items-center gap-4">
+              <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider shrink-0">Financial</span>
+              <div className="flex items-end gap-3">
                 <MiniColumn label="MBook" value={item.mbook_entry} max={item.mbook_entry} color="bg-blue-600" textColor="text-blue-700" />
                 <MiniColumn label="Billed" value={item.billed_amount} max={item.mbook_entry} color="bg-cyan-500" textColor="text-cyan-700" />
                 <MiniColumn label="Paid" value={item.paid_amount} max={item.mbook_entry} color="bg-emerald-500" textColor="text-emerald-700" />
