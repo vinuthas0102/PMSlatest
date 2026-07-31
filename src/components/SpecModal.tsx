@@ -168,7 +168,7 @@ export function SpecModal({ item, level, specs, onClose }: SpecModalProps) {
 
           {/* Specs table — independent horizontal scroll */}
           <div className="overflow-x-auto">
-            <table className="min-w-[760px] w-full border-collapse text-xs">
+            <table className="min-w-[960px] border-collapse text-xs">
               <thead className="bg-slate-50">
                 <tr>
                   <th className="px-4 py-2.5 text-left font-semibold text-slate-600" style={{ width: '110px' }}>Spec Code</th>
