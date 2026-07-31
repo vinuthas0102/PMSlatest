@@ -10,7 +10,7 @@ import type {
   AuditLogEntry,
 } from '@/types';
 
-const LOADING_KEY = 'pms_data_v3';
+const LOADING_KEY = 'pms_data_v4';
 
 export function useDashboardData() {
   const [data, setData] = useState<DashboardData | null>(null);
