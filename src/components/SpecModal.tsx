@@ -144,7 +144,7 @@ export function SpecModal({ item, level, specs, onClose }: SpecModalProps) {
         </div>
 
         {/* Scrollable body — vertical scroll only here */}
-        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+        <div className="min-h-0 flex-1 overflow-y-auto">
           {/* Specs table section header (sticky) */}
           <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white px-5 py-2.5">
             <div className="flex items-center gap-2">
