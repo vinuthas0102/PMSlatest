@@ -174,7 +174,7 @@ export function SpecModal({ item, level, specs, onClose }: SpecModalProps) {
           </div>
 
           <div className="min-h-0 flex-1 overflow-auto">
-            <table className="w-full border-collapse text-xs">
+            <table className="min-w-[700px] w-full border-collapse text-xs">
               <thead className="sticky top-0 z-10 bg-slate-50 shadow-[0_1px_0_0_rgba(15,23,42,0.08)]">
                 <tr>
                   <th className="px-4 py-2.5 text-left font-semibold text-slate-600" style={{ width: '110px' }}>Spec Code</th>
