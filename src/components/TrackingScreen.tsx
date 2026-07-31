@@ -1,8 +1,10 @@
 import { useState, useMemo } from 'react';
-import { Search, Paperclip, FileText, ClipboardList, History, CheckCircle2, Clock, AlertCircle, User, CalendarDays, Wallet, TrendingUp } from 'lucide-react';
-import type { TrackingEntry, Spec, AuditLogEntry } from '@/types';
-import { formatINR, formatDateShort, formatDate } from '@/lib/format';
-import { generateAuditLog } from '@/hooks/useDashboardData';
+import {
+  Search, Paperclip, CalendarDays, Wallet, FileCheck, FileText,
+  ChevronRight, MapPin, User, ClipboardCheck, Hash,
+} from 'lucide-react';
+import type { TrackingEntry, Spec } from '@/types';
+import { formatINR, formatDateShort } from '@/lib/format';
 
 interface TrackingScreenProps {
   trackingEntries: TrackingEntry[];
@@ -11,241 +13,267 @@ interface TrackingScreenProps {
   scheduleTitle: string;
 }
 
-const TAG_COLORS: Record<string, string> = {
-  Completed: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  Approved: 'bg-cyan-50 text-cyan-700 border-cyan-200',
-  Pending: 'bg-amber-50 text-amber-700 border-amber-200',
-  Upcoming: 'bg-slate-50 text-slate-500 border-slate-200',
-};
+export function TrackingScreen({
+  trackingEntries,
+  specs,
+  scheduleSeqNo,
+  scheduleTitle,
+}: TrackingScreenProps) {
+  const [selectedId, setSelectedId] = useState<string | null>(
+    trackingEntries[0]?.id ?? null
+  );
+  const [search, setSearch] = useState('');
 
-const TAG_BAR: Record<string, string> = {
-  Completed: 'bg-emerald-500',
-  Approved: 'bg-cyan-500',
-  Pending: 'bg-amber-500',
-  Upcoming: 'bg-slate-400',
-};
+  const filteredEntries = useMemo(() => {
+    const q = search.toLowerCase();
+    return trackingEntries.filter(
+      (t) => t.seq_no.toLowerCase().includes(q) || t.title.toLowerCase().includes(q)
+    );
+  }, [trackingEntries, search]);
 
-const TAG_ICONS: Record<string, typeof CheckCircle2> = {
-  Completed: CheckCircle2,
-  Approved: CheckCircle2,
-  Pending: Clock,
-  Upcoming: AlertCircle,
-};
+  const selected = useMemo(
+    () => trackingEntries.find((t) => t.id === selectedId) ?? null,
+    [trackingEntries, selectedId]
+  );
 
-function initials(name: string): string {
-  return name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
-}
+  const selectedSpecs = useMemo(() => {
+    if (!selected) return [];
+    return specs.filter((s) => s.level === 'tracking' && s.parent_id === selected.id);
+  }, [specs, selected]);
 
-function MiniStat({ label, value, sub, icon: Icon, accent }: { label: string; value: string; sub?: string; icon: typeof User; accent: string }) {
+  const totals = useMemo(() => {
+    return {
+      estQty: selectedSpecs.reduce((s, sp) => s + sp.estimated_qty, 0),
+      execQty: selectedSpecs.reduce((s, sp) => s + sp.executed_qty, 0),
+      amount: selectedSpecs.reduce((s, sp) => s + sp.amount, 0),
+      attachments: selectedSpecs.filter((s) => s.has_attachment).length,
+    };
+  }, [selectedSpecs]);
+
   return (
-    <div className="flex items-start gap-2.5 rounded-lg border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
-      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${accent}`}>
-        <Icon className="h-4 w-4" />
+    <div className="flex h-[calc(100vh-180px)] min-h-0 flex-col gap-3 p-3 sm:p-4 lg:flex-row">
+      {/* Left pane — tracking entries list */}
+      <div className="flex w-full shrink-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm lg:w-2/5 xl:w-[36%]">
+        <div className="shrink-0 border-b border-slate-200 bg-slate-50 px-4 py-3">
+          <div className="mb-2 flex items-center gap-2">
+            <FileCheck className="h-4 w-4 text-cyan-600" />
+            <h3 className="text-sm font-bold text-slate-700">Tracking Entries</h3>
+            <span className="rounded-full bg-cyan-50 px-2 py-0.5 text-[11px] font-bold text-cyan-700 ring-1 ring-cyan-200">
+              {filteredEntries.length}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 rounded-lg bg-white px-2.5 py-1.5 ring-1 ring-slate-200">
+            <Search className="h-3.5 w-3.5 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search entries..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-transparent text-xs text-slate-700 outline-none placeholder:text-slate-400"
+            />
+          </div>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          {filteredEntries.length === 0 ? (
+            <div className="flex h-full items-center justify-center p-6 text-center text-sm text-slate-400">
+              No tracking entries found.
+            </div>
+          ) : (
+            <ul className="divide-y divide-slate-100">
+              {filteredEntries.map((entry) => {
+                const isActive = entry.id === selectedId;
+                return (
+                  <li key={entry.id}>
+                    <button
+                      onClick={() => setSelectedId(entry.id)}
+                      className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors ${
+                        isActive
+                          ? 'bg-cyan-50 ring-1 ring-inset ring-cyan-200'
+                          : 'hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+                        isActive ? 'bg-cyan-600 text-white' : 'bg-slate-100 text-slate-500'
+                      }`}>
+                        <Hash className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-[11px] font-bold text-slate-500">{entry.seq_no}</span>
+                          <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+                            entry.completion_tag === 'Completed'
+                              ? 'bg-emerald-100 text-emerald-700'
+                              : entry.completion_tag === 'In Progress'
+                              ? 'bg-blue-100 text-blue-700'
+                              : 'bg-amber-100 text-amber-700'
+                          }`}>
+                            {entry.completion_tag}
+                          </span>
+                        </div>
+                        <div className="mt-0.5 truncate text-sm font-semibold text-slate-800">{entry.title}</div>
+                        <div className="mt-0.5 flex items-center gap-3 text-[11px] text-slate-400">
+                          <span className="flex items-center gap-1">
+                            <CalendarDays className="h-3 w-3" />
+                            {formatDateShort(entry.measurement_date)}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Wallet className="h-3 w-3" />
+                            {formatINR(entry.billed_amount)}
+                          </span>
+                        </div>
+                      </div>
+                      <ChevronRight className={`mt-2 h-4 w-4 shrink-0 ${isActive ? 'text-cyan-600' : 'text-slate-300'}`} />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
       </div>
-      <div className="min-w-0 flex-1">
-        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{label}</div>
-        <div className="truncate text-sm font-bold text-slate-800">{value}</div>
-        {sub && <div className="truncate text-[10px] text-slate-400">{sub}</div>}
+
+      {/* Right pane — entry detail (independently scrollable) */}
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        {selected ? (
+          <>
+            {/* Header (pinned) */}
+            <div className="shrink-0 border-b border-slate-200 bg-gradient-to-r from-slate-900 to-slate-800 px-5 py-4">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-cyan-500/15 ring-1 ring-cyan-400/30">
+                  <FileText className="h-5 w-5 text-cyan-400" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded bg-slate-700 px-1.5 py-0.5 font-mono text-[10px] font-bold text-cyan-300">
+                      {selected.seq_no}
+                    </span>
+                    <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${
+                      selected.completion_tag === 'Completed'
+                        ? 'bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-400/30'
+                        : selected.completion_tag === 'In Progress'
+                        ? 'bg-blue-500/20 text-blue-300 ring-1 ring-blue-400/30'
+                        : 'bg-amber-500/20 text-amber-300 ring-1 ring-amber-400/30'
+                    }`}>
+                      {selected.completion_tag}
+                    </span>
+                  </div>
+                  <h2 className="mt-1 truncate text-base font-bold text-white">{selected.title}</h2>
+                  <p className="truncate text-[11px] text-slate-400">
+                    Schedule {scheduleSeqNo} · {scheduleTitle}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Scrollable body: metadata + spec table */}
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              {/* Metadata grid */}
+              <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
+                <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-3">
+                  <DetailField icon={User} label="Site Officer" value={selected.site_officer} />
+                  <DetailField icon={CalendarDays} label="Measurement Date" value={formatDateShort(selected.measurement_date)} />
+                  <DetailField icon={ClipboardCheck} label="Completion Tag" value={selected.completion_tag} />
+                  <DetailField icon={Wallet} label="MBook Entry" value={formatINR(selected.mbook_entry)} accent="text-blue-700" />
+                  <DetailField icon={Wallet} label="Billed Amount" value={formatINR(selected.billed_amount)} accent="text-cyan-700" />
+                  <DetailField icon={Wallet} label="Paid Amount" value={formatINR(selected.paid_amount)} accent="text-emerald-700" />
+                </div>
+              </div>
+
+              {/* Spec table section */}
+              <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white px-5 py-2.5 shadow-[0_1px_0_0_rgba(15,23,42,0.08)]">
+                <div className="flex items-center gap-2">
+                  <FileCheck className="h-4 w-4 text-cyan-600" />
+                  <h3 className="text-sm font-bold text-slate-700">Specification Items</h3>
+                  <span className="rounded-full bg-cyan-50 px-2 py-0.5 text-[11px] font-bold text-cyan-700 ring-1 ring-cyan-200">
+                    {selectedSpecs.length}
+                  </span>
+                </div>
+              </div>
+
+              {/* Horizontal scroll wrapper for the table */}
+              <div className="overflow-x-auto">
+                <table className="min-w-[560px] w-full border-collapse text-xs">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="px-4 py-2.5 text-left font-semibold text-slate-600" style={{ width: '110px' }}>Spec Code</th>
+                      <th className="px-4 py-2.5 text-left font-semibold text-slate-600">Description</th>
+                      <th className="px-4 py-2.5 text-right font-semibold text-slate-600" style={{ width: '80px' }}>Exec. Qty</th>
+                      <th className="px-4 py-2.5 text-left font-semibold text-slate-600" style={{ width: '110px' }}>Meas. Date</th>
+                      <th className="px-4 py-2.5 text-center font-semibold text-slate-600" style={{ width: '60px' }}>Photo/Att</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedSpecs.map((spec, idx) => (
+                      <tr key={spec.id} className={`border-b border-slate-100 transition-colors hover:bg-cyan-50/40 ${idx % 2 === 1 ? 'bg-slate-50/40' : ''}`}>
+                        <td className="whitespace-nowrap px-4 py-2 font-mono font-medium text-slate-700">{spec.spec_code}</td>
+                        <td className="px-4 py-2 text-slate-700">
+                          <div className="line-clamp-2">{spec.description}</div>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-2 text-right tabular-nums text-slate-600">{spec.executed_qty.toFixed(0)}</td>
+                        <td className="whitespace-nowrap px-4 py-2 text-slate-500">{formatDateShort(spec.measurement_date)}</td>
+                        <td className="px-4 py-2 text-center">
+                          {spec.has_attachment ? (
+                            <Paperclip className="mx-auto h-4 w-4 text-cyan-600" />
+                          ) : (
+                            <span className="text-slate-300">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                    {selectedSpecs.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-10 text-center text-sm text-slate-400">
+                          No specification items recorded for this entry.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                  {selectedSpecs.length > 0 && (
+                    <tfoot className="bg-slate-100">
+                      <tr className="border-t-2 border-slate-200">
+                        <td className="px-4 py-2.5 font-bold text-slate-700" colSpan={2}>Totals ({selectedSpecs.length} items)</td>
+                        <td className="px-4 py-2.5 text-right font-bold tabular-nums text-slate-700">{totals.execQty.toFixed(0)}</td>
+                        <td className="px-4 py-2.5"></td>
+                        <td className="px-4 py-2.5 text-center text-slate-500">{totals.attachments}</td>
+                      </tr>
+                    </tfoot>
+                  )}
+                </table>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="flex h-full items-center justify-center p-6 text-center">
+            <div>
+              <FileCheck className="mx-auto h-10 w-10 text-slate-300" />
+              <p className="mt-2 text-sm text-slate-400">Select an entry to view details</p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-export function TrackingScreen({ trackingEntries, specs, scheduleSeqNo, scheduleTitle }: TrackingScreenProps) {
-  const [selectedId, setSelectedId] = useState<string | null>(trackingEntries[0]?.id ?? null);
-  const [activeTab, setActiveTab] = useState<'detail' | 'audit'>('detail');
-  const [specFilter, setSpecFilter] = useState('');
-
-  const selected = trackingEntries.find((t) => t.id === selectedId) ?? trackingEntries[0];
-
-  const trackingSpecs = useMemo(() => {
-    return specs.filter((s) => s.level === 'tracking' && s.parent_id === selected?.id);
-  }, [specs, selected]);
-
-  const filteredSpecs = useMemo(() => {
-    const q = specFilter.toLowerCase();
-    return trackingSpecs.filter(
-      (s) => s.spec_code.toLowerCase().includes(q) || s.description.toLowerCase().includes(q)
-    );
-  }, [trackingSpecs, specFilter]);
-
-  const auditLog = useMemo(() => {
-    return selected ? generateAuditLog(selected) : [];
-  }, [selected]);
-
-  if (!selected) {
-    return <div className="p-4 text-center text-sm text-slate-500">No tracking entries available.</div>;
-  }
-
+function DetailField({
+  icon: Icon,
+  label,
+  value,
+  accent,
+}: {
+  icon: typeof User;
+  label: string;
+  value: string;
+  accent?: string;
+}) {
   return (
-    <div className="flex h-[calc(100vh-180px)] min-h-[400px] border-t border-slate-200">
-      {/* Left Pane - 40% */}
-      <div className="w-2/5 min-w-[300px] border-r border-slate-200 flex flex-col bg-slate-50">
-        <div className="px-3 py-2.5 bg-gradient-to-r from-slate-900 to-slate-800 border-b border-slate-700">
-          <h3 className="text-xs font-bold text-white">
-            Tracking Entries — {scheduleSeqNo}
-          </h3>
-          <p className="text-[10px] text-slate-400 truncate">{scheduleTitle}</p>
-        </div>
-        <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
-          {trackingEntries.map((entry) => {
-            const isSelected = entry.id === selectedId;
-            const TagIcon = TAG_ICONS[entry.completion_tag] || AlertCircle;
-            return (
-              <button
-                key={entry.id}
-                onClick={() => setSelectedId(entry.id)}
-                className={`flex w-full items-stretch overflow-hidden rounded-lg border text-left transition-all ${isSelected ? 'border-cyan-300 bg-white shadow-md ring-1 ring-cyan-200' : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm'}`}
-              >
-                {/* Status stripe */}
-                <div className={`w-1 shrink-0 ${TAG_BAR[entry.completion_tag] || 'bg-slate-300'}`} />
-                <div className="flex-1 px-2.5 py-2 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-mono font-bold text-slate-500">{entry.seq_no}</span>
-                    <span className={`flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded border ${TAG_COLORS[entry.completion_tag] || TAG_COLORS.Upcoming}`}>
-                      <TagIcon className="w-2.5 h-2.5" />
-                      {entry.completion_tag}
-                    </span>
-                  </div>
-                  <div className="text-xs font-semibold text-slate-700 truncate mt-1">{entry.title}</div>
-                  <div className="flex items-center justify-between text-[10px] text-slate-500 mt-1">
-                    <span className="truncate">{entry.site_officer}</span>
-                    <span className="whitespace-nowrap">{formatDateShort(entry.measurement_date)}</span>
-                  </div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
+    <div className="flex items-start gap-2.5 rounded-lg border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-500">
+        <Icon className="h-4 w-4" />
       </div>
-
-      {/* Right Pane - 60% */}
-      <div className="flex-1 flex flex-col bg-white">
-        {/* Tabs */}
-        <div className="flex items-center border-b border-slate-200 bg-slate-50">
-          <button
-            onClick={() => setActiveTab('detail')}
-            className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors ${activeTab === 'detail' ? 'border-cyan-600 text-cyan-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-          >
-            <ClipboardList className="w-3.5 h-3.5" />
-            Tracking Detail &amp; Specs
-          </button>
-          <button
-            onClick={() => setActiveTab('audit')}
-            className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors ${activeTab === 'audit' ? 'border-cyan-600 text-cyan-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-          >
-            <History className="w-3.5 h-3.5" />
-            Audit Log
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto">
-          {activeTab === 'detail' ? (
-            <>
-              {/* Header Info — banner + stat cards */}
-              <div className="px-4 pt-3 pb-3 bg-slate-50 border-b border-slate-100">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-[10px] font-mono font-bold text-slate-500 bg-white px-1.5 py-0.5 rounded border border-slate-200">
-                    {selected.seq_no}
-                  </span>
-                  <span className={`flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded border ${TAG_COLORS[selected.completion_tag] || TAG_COLORS.Upcoming}`}>
-                    {selected.completion_tag}
-                  </span>
-                  <h3 className="text-sm font-bold text-slate-800 truncate">{selected.title}</h3>
-                </div>
-                <div className="grid grid-cols-2 gap-2.5">
-                  <MiniStat label="Site Officer" value={selected.site_officer} icon={User} accent="bg-indigo-50 text-indigo-600" />
-                  <MiniStat label="Measurement Date" value={formatDate(selected.measurement_date)} icon={CalendarDays} accent="bg-slate-100 text-slate-600" />
-                  <MiniStat label="MBook Entry" value={formatINR(selected.mbook_entry)} icon={Wallet} accent="bg-blue-50 text-blue-600" />
-                  <MiniStat label="Billed / Paid" value={formatINR(selected.billed_amount)} sub={`Paid ${formatINR(selected.paid_amount)}`} icon={TrendingUp} accent="bg-emerald-50 text-emerald-600" />
-                </div>
-              </div>
-
-              {/* Spec Filter */}
-              <div className="flex items-center justify-between px-4 py-2.5 sticky top-0 bg-white border-b border-slate-100 z-10">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-cyan-600" />
-                  <h4 className="text-xs font-bold text-slate-700">Spec Items</h4>
-                  <span className="rounded-full bg-cyan-50 px-2 py-0.5 text-[11px] font-bold text-cyan-700 ring-1 ring-cyan-200">{filteredSpecs.length}</span>
-                </div>
-                <div className="flex items-center gap-1.5 bg-slate-100 rounded-lg px-2.5 py-1 ring-1 ring-slate-200">
-                  <Search className="w-3.5 h-3.5 text-slate-400" />
-                  <input
-                    type="text"
-                    placeholder="Filter specs..."
-                    value={specFilter}
-                    onChange={(e) => setSpecFilter(e.target.value)}
-                    className="bg-transparent text-[11px] outline-none w-32 text-slate-700 placeholder:text-slate-400"
-                  />
-                </div>
-              </div>
-
-              {/* Spec Table */}
-              <div className="overflow-x-auto">
-              <table className="min-w-[500px] w-full text-xs border-collapse">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200">
-                    <th className="text-left px-3 py-2 font-semibold text-slate-600" style={{ width: '110px' }}>Spec Code</th>
-                    <th className="text-left px-3 py-2 font-semibold text-slate-600">Description</th>
-                    <th className="text-right px-3 py-2 font-semibold text-slate-600 whitespace-nowrap" style={{ width: '80px' }}>Exec. Qty</th>
-                    <th className="text-left px-3 py-2 font-semibold text-slate-600 whitespace-nowrap" style={{ width: '90px' }}>Meas. Date</th>
-                    <th className="text-center px-3 py-2 font-semibold text-slate-600" style={{ width: '60px' }}>Photo/Att</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredSpecs.map((spec, idx) => (
-                    <tr key={spec.id} className={`border-b border-slate-100 transition-colors hover:bg-cyan-50/40 ${idx % 2 === 1 ? 'bg-slate-50/40' : ''}`}>
-                      <td className="px-3 py-2 font-mono font-medium text-slate-700 whitespace-nowrap">{spec.spec_code}</td>
-                      <td className="px-3 py-2 text-slate-700"><div className="line-clamp-2">{spec.description}</div></td>
-                      <td className="px-3 py-2 text-right text-slate-600 whitespace-nowrap tabular-nums">{spec.executed_qty.toFixed(0)} {spec.unit}</td>
-                      <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{formatDateShort(spec.measurement_date)}</td>
-                      <td className="px-3 py-2 text-center">
-                        {spec.has_attachment ? (
-                          <Paperclip className="w-3.5 h-3.5 text-cyan-600 inline" />
-                        ) : (
-                          <span className="text-slate-300">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                  {filteredSpecs.length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="px-3 py-8 text-center text-slate-400 text-xs">No specs match the filter.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-              </div>
-            </>
-          ) : (
-            /* Audit Log Tab */
-            <div className="p-4">
-              <div className="relative">
-                <div className="absolute left-[19px] top-2 bottom-2 w-0.5 bg-slate-200" />
-                {auditLog.map((log: AuditLogEntry) => (
-                  <div key={log.id} className="flex gap-3 mb-4 last:mb-0">
-                    <div className="relative shrink-0">
-                      <div className="w-10 h-10 rounded-full bg-cyan-100 border-2 border-cyan-500 flex items-center justify-center text-[11px] font-bold text-cyan-700">
-                        {initials(log.officer)}
-                      </div>
-                    </div>
-                    <div className="flex-1 bg-white rounded-lg border border-slate-200 px-3 py-2 shadow-sm">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-bold text-slate-700">{log.action}</span>
-                        <span className="text-[10px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">{log.revision}</span>
-                      </div>
-                      <p className="text-[11px] text-slate-600 mb-1.5">{log.details}</p>
-                      <div className="flex items-center justify-between text-[10px] text-slate-400">
-                        <span className="font-medium text-slate-500">{log.officer}</span>
-                        <span>{formatDate(log.timestamp)}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+      <div className="min-w-0 flex-1">
+        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{label}</div>
+        <div className={`truncate text-sm font-bold ${accent ?? 'text-slate-800'}`}>{value}</div>
       </div>
     </div>
   );
