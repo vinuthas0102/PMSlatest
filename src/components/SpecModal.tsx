@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react';
 import {
-  X, Search, Paperclip, FileText, Layers, TrendingUp, Wallet,
-  CalendarDays, AlertTriangle, FileCheck,
+  X, Search, Paperclip, FileText, FileCheck,
 } from 'lucide-react';
 import type { BaseEntity, Spec, Level } from '@/types';
 import { formatINR, formatDateShort, delayStatusColor, delayStatusShort } from '@/lib/format';
@@ -20,29 +19,12 @@ const LEVEL_LABELS: Record<Level, string> = {
   tracking: 'Tracking',
 };
 
-function StatCard({
-  label,
-  value,
-  sub,
-  icon: Icon,
-  accent,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  icon: typeof FileText;
-  accent: string;
-}) {
+function MetaItem({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="flex items-start gap-2.5 rounded-lg border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
-      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${accent}`}>
-        <Icon className="h-4 w-4" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{label}</div>
-        <div className="truncate text-sm font-bold text-slate-800">{value}</div>
-        {sub && <div className="truncate text-[10px] text-slate-400">{sub}</div>}
-      </div>
+    <div className="flex flex-col gap-0.5">
+      <span className="text-[9px] font-semibold uppercase tracking-wide text-slate-400">{label}</span>
+      <span className="truncate text-xs font-bold text-slate-800">{value}</span>
+      {sub && <span className="truncate text-[10px] text-slate-400">{sub}</span>}
     </div>
   );
 }
@@ -79,14 +61,14 @@ export function SpecModal({ item, level, specs, onClose }: SpecModalProps) {
       onClick={onClose}
     >
       <div
-        className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl ring-1 ring-slate-900/10"
+        className="flex h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl ring-1 ring-slate-900/10"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header banner (pinned) */}
-        <div className="relative shrink-0 bg-gradient-to-r from-slate-900 to-slate-800 px-5 py-4">
+        <div className="shrink-0 rounded-t-xl bg-gradient-to-r from-slate-900 to-slate-800 px-5 py-3">
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-cyan-500/15 ring-1 ring-cyan-400/30">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cyan-500/15 ring-1 ring-cyan-400/30">
                 <FileText className="h-5 w-5 text-cyan-400" />
               </div>
               <div className="min-w-0">
@@ -111,56 +93,42 @@ export function SpecModal({ item, level, specs, onClose }: SpecModalProps) {
               <X className="h-5 w-5" />
             </button>
           </div>
+
+          {/* Compact metadata strip */}
+          <div className="mt-3 grid grid-cols-3 gap-x-4 gap-y-2 border-t border-slate-700 pt-3 sm:grid-cols-4 lg:grid-cols-6">
+            <MetaItem label="Location" value={item.state} sub={item.district} />
+            <MetaItem label="Category" value={item.category} sub={item.subcategory} />
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[9px] font-semibold uppercase tracking-wide text-slate-400">Progress</span>
+              <span className="text-xs font-bold text-white">
+                {item.completed_pct.toFixed(0)}% <span className="font-medium text-slate-500">/ {item.target_pct.toFixed(0)}%</span>
+              </span>
+              <div className="mt-0.5 h-1 w-full overflow-hidden rounded-full bg-slate-700">
+                <div className="h-full rounded-full bg-emerald-500" style={{ width: `${progressPct}%` }} />
+              </div>
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[9px] font-semibold uppercase tracking-wide text-slate-400">Delay</span>
+              <span className={`text-xs font-bold ${colors.text.replace('text-', 'text-')}`}>
+                <span className={`inline-flex h-1.5 w-1.5 rounded-full ${colors.dot} mr-1`} />
+                {delayStatusShort(item.delay_status)}
+              </span>
+            </div>
+            <MetaItem label="MBook" value={formatINR(item.mbook_entry)} />
+            <MetaItem label="Billed" value={formatINR(item.billed_amount)} />
+            <MetaItem label="Paid" value={formatINR(item.paid_amount)} />
+            <MetaItem label="Start" value={formatDateShort(item.start_date)} />
+            <MetaItem label="End" value={formatDateShort(item.end_date)} />
+            <MetaItem label="Qty Dev" value={`${item.qty_deviations}`} />
+            <MetaItem label="Spec Dev" value={`${item.spec_deviations}`} />
+            <MetaItem label="Extension" value={`${item.extension_days}d`} />
+          </div>
         </div>
 
-        {/* Unified scrollable body: stat cards + specs table together */}
+        {/* Unified scrollable body */}
         <div className="min-h-0 flex-1 overflow-y-auto">
-          {/* Metadata stat cards */}
-          <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
-              <StatCard label="Location" value={`${item.state}`} sub={item.district} icon={Layers} accent="bg-indigo-50 text-indigo-600" />
-              <StatCard label="Category" value={item.category} sub={item.subcategory} icon={Layers} accent="bg-teal-50 text-teal-600" />
-
-              {/* Progress card with bar */}
-              <div className="flex flex-col justify-between rounded-lg border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-emerald-50 text-emerald-600">
-                    <TrendingUp className="h-4 w-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Physical Progress</div>
-                    <div className="text-sm font-bold text-slate-800">
-                      {item.completed_pct.toFixed(0)}% <span className="text-[11px] font-medium text-slate-400">/ {item.target_pct.toFixed(0)}%</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600 transition-all"
-                    style={{ width: `${progressPct}%` }}
-                  />
-                </div>
-              </div>
-
-              <StatCard
-                label="Delay Status"
-                value={delayStatusShort(item.delay_status)}
-                icon={AlertTriangle}
-                accent={`${colors.bg} ${colors.text}`}
-              />
-              <StatCard label="MBook Entry" value={formatINR(item.mbook_entry)} icon={Wallet} accent="bg-blue-50 text-blue-600" />
-              <StatCard label="Billed Amount" value={formatINR(item.billed_amount)} icon={Wallet} accent="bg-cyan-50 text-cyan-600" />
-              <StatCard label="Paid Amount" value={formatINR(item.paid_amount)} icon={Wallet} accent="bg-emerald-50 text-emerald-600" />
-              <StatCard label="Start Date" value={formatDateShort(item.start_date)} icon={CalendarDays} accent="bg-slate-100 text-slate-600" />
-              <StatCard label="End Date" value={formatDateShort(item.end_date)} icon={CalendarDays} accent="bg-slate-100 text-slate-600" />
-              <StatCard label="Qty Deviations" value={`${item.qty_deviations}`} icon={AlertTriangle} accent="bg-orange-50 text-orange-600" />
-              <StatCard label="Spec Deviations" value={`${item.spec_deviations}`} icon={AlertTriangle} accent="bg-amber-50 text-amber-600" />
-              <StatCard label="Extension Days" value={`${item.extension_days}`} icon={CalendarDays} accent="bg-rose-50 text-rose-600" />
-            </div>
-          </div>
-
-          {/* Specs table section header (pinned within scroll area via sticky) */}
-          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white px-5 py-2.5 shadow-[0_1px_0_0_rgba(15,23,42,0.08)]">
+          {/* Specs table section header (sticky) */}
+          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white px-5 py-2.5">
             <div className="flex items-center gap-2">
               <FileCheck className="h-4 w-4 text-cyan-600" />
               <h3 className="text-sm font-bold text-slate-700">Specification Items</h3>
@@ -180,10 +148,10 @@ export function SpecModal({ item, level, specs, onClose }: SpecModalProps) {
             </div>
           </div>
 
-          {/* Specs table — horizontal scroll wrapper, vertical scroll via parent */}
+          {/* Specs table — independent horizontal scroll */}
           <div className="overflow-x-auto">
             <table className="min-w-[760px] w-full border-collapse text-xs">
-              <thead className="sticky top-[41px] z-[5] bg-slate-50">
+              <thead className="bg-slate-50">
                 <tr>
                   <th className="px-4 py-2.5 text-left font-semibold text-slate-600" style={{ width: '110px' }}>Spec Code</th>
                   <th className="px-4 py-2.5 text-left font-semibold text-slate-600">Description</th>

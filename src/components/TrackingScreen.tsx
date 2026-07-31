@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import {
   Search, Paperclip, CalendarDays, Wallet, FileCheck, FileText,
-  ChevronRight, MapPin, User, ClipboardCheck, Hash,
+  ChevronRight, User, ClipboardCheck, Hash,
 } from 'lucide-react';
 import type { TrackingEntry, Spec } from '@/types';
 import { formatINR, formatDateShort } from '@/lib/format';
@@ -11,6 +11,15 @@ interface TrackingScreenProps {
   specs: Spec[];
   scheduleSeqNo: string;
   scheduleTitle: string;
+}
+
+function MetaItem({ label, value, accent }: { label: string; value: string; accent?: string }) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="text-[9px] font-semibold uppercase tracking-wide text-slate-400">{label}</span>
+      <span className={`truncate text-xs font-bold ${accent ?? 'text-slate-800'}`}>{value}</span>
+    </div>
+  );
 }
 
 export function TrackingScreen({
@@ -53,8 +62,8 @@ export function TrackingScreen({
   return (
     <div className="flex h-[calc(100vh-180px)] min-h-0 flex-col gap-3 p-3 sm:p-4 lg:flex-row">
       {/* Left pane — tracking entries list */}
-      <div className="flex w-full shrink-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm lg:w-2/5 xl:w-[36%]">
-        <div className="shrink-0 border-b border-slate-200 bg-slate-50 px-4 py-3">
+      <div className="flex w-full shrink-0 flex-col rounded-xl border border-slate-200 bg-white shadow-sm lg:w-2/5 xl:w-[36%]">
+        <div className="shrink-0 rounded-t-xl border-b border-slate-200 bg-slate-50 px-4 py-3">
           <div className="mb-2 flex items-center gap-2">
             <FileCheck className="h-4 w-4 text-cyan-600" />
             <h3 className="text-sm font-bold text-slate-700">Tracking Entries</h3>
@@ -73,7 +82,7 @@ export function TrackingScreen({
             />
           </div>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto rounded-b-xl">
           {filteredEntries.length === 0 ? (
             <div className="flex h-full items-center justify-center p-6 text-center text-sm text-slate-400">
               No tracking entries found.
@@ -133,13 +142,13 @@ export function TrackingScreen({
       </div>
 
       {/* Right pane — entry detail (independently scrollable) */}
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex min-h-0 flex-1 flex-col rounded-xl border border-slate-200 bg-white shadow-sm">
         {selected ? (
           <>
             {/* Header (pinned) */}
-            <div className="shrink-0 border-b border-slate-200 bg-gradient-to-r from-slate-900 to-slate-800 px-5 py-4">
+            <div className="shrink-0 rounded-t-xl border-b border-slate-200 bg-gradient-to-r from-slate-900 to-slate-800 px-5 py-3">
               <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-cyan-500/15 ring-1 ring-cyan-400/30">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cyan-500/15 ring-1 ring-cyan-400/30">
                   <FileText className="h-5 w-5 text-cyan-400" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -163,24 +172,22 @@ export function TrackingScreen({
                   </p>
                 </div>
               </div>
+
+              {/* Compact metadata strip */}
+              <div className="mt-3 grid grid-cols-3 gap-x-4 gap-y-2 border-t border-slate-700 pt-3 sm:grid-cols-4 lg:grid-cols-6">
+                <MetaItem label="Site Officer" value={selected.site_officer} />
+                <MetaItem label="Meas. Date" value={formatDateShort(selected.measurement_date)} />
+                <MetaItem label="Completion" value={selected.completion_tag} />
+                <MetaItem label="MBook" value={formatINR(selected.mbook_entry)} accent="text-cyan-300" />
+                <MetaItem label="Billed" value={formatINR(selected.billed_amount)} accent="text-cyan-300" />
+                <MetaItem label="Paid" value={formatINR(selected.paid_amount)} accent="text-emerald-300" />
+              </div>
             </div>
 
-            {/* Scrollable body: metadata + spec table */}
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              {/* Metadata grid */}
-              <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
-                <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-3">
-                  <DetailField icon={User} label="Site Officer" value={selected.site_officer} />
-                  <DetailField icon={CalendarDays} label="Measurement Date" value={formatDateShort(selected.measurement_date)} />
-                  <DetailField icon={ClipboardCheck} label="Completion Tag" value={selected.completion_tag} />
-                  <DetailField icon={Wallet} label="MBook Entry" value={formatINR(selected.mbook_entry)} accent="text-blue-700" />
-                  <DetailField icon={Wallet} label="Billed Amount" value={formatINR(selected.billed_amount)} accent="text-cyan-700" />
-                  <DetailField icon={Wallet} label="Paid Amount" value={formatINR(selected.paid_amount)} accent="text-emerald-700" />
-                </div>
-              </div>
-
-              {/* Spec table section */}
-              <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white px-5 py-2.5 shadow-[0_1px_0_0_rgba(15,23,42,0.08)]">
+            {/* Scrollable body: spec table */}
+            <div className="min-h-0 flex-1 overflow-y-auto rounded-b-xl">
+              {/* Spec table section header (sticky) */}
+              <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white px-5 py-2.5">
                 <div className="flex items-center gap-2">
                   <FileCheck className="h-4 w-4 text-cyan-600" />
                   <h3 className="text-sm font-bold text-slate-700">Specification Items</h3>
@@ -250,30 +257,6 @@ export function TrackingScreen({
             </div>
           </div>
         )}
-      </div>
-    </div>
-  );
-}
-
-function DetailField({
-  icon: Icon,
-  label,
-  value,
-  accent,
-}: {
-  icon: typeof User;
-  label: string;
-  value: string;
-  accent?: string;
-}) {
-  return (
-    <div className="flex items-start gap-2.5 rounded-lg border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-500">
-        <Icon className="h-4 w-4" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{label}</div>
-        <div className={`truncate text-sm font-bold ${accent ?? 'text-slate-800'}`}>{value}</div>
       </div>
     </div>
   );
