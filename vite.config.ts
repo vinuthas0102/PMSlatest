@@ -12,6 +12,8 @@ export default defineConfig({
   },
   optimizeDeps: {
     exclude: ['lucide-react'],
-    esbuildOptions: { target: 'esnext' },
+    esbuildOptions: {
+      target: 'esnext',
+    },
   },
 });

@@ -185,7 +185,7 @@ export function ChartView({ items, onCategoryClick }: ChartViewProps) {
             <CartesianGrid strokeDasharray="3 3" className="stroke-slate-100" vertical={false} />
             <XAxis dataKey="name" tick={{ fontSize: 9, fontWeight: 600 }} angle={-20} textAnchor="end" height={50} axisLine={{ stroke: '#cbd5e1' }} />
             <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => formatINRShort(v)} axisLine={false} tickLine={false} />
-            <Tooltip cursor={{ fill: 'rgba(8,145,178,0.05)' }} formatter={(v) => formatINRShort(Number(v))} />
+            <Tooltip cursor={{ fill: 'rgba(8,145,178,0.05)' }} formatter={(v: number) => formatINRShort(v)} />
             <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={40} maxBarSize={50}>
               {financialData.map((d, i) => <Cell key={i} fill={d.color} />)}
             </Bar>
@@ -200,7 +200,7 @@ export function ChartView({ items, onCategoryClick }: ChartViewProps) {
             <Pie data={financialData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} innerRadius={40} label={(e) => `${e.name}: ${formatINRShort(e.value as number)}`}>
               {financialData.map((d, i) => <Cell key={i} fill={d.color} />)}
             </Pie>
-            <Tooltip formatter={(v) => formatINRShort(Number(v))} />
+            <Tooltip formatter={(v: number) => formatINRShort(v)} />
           </PieChart>
         </ResponsiveContainer>
       );
@@ -211,7 +211,7 @@ export function ChartView({ items, onCategoryClick }: ChartViewProps) {
           <CartesianGrid strokeDasharray="3 3" className="stroke-slate-100" />
           <XAxis dataKey="name" tick={{ fontSize: 9 }} angle={-15} textAnchor="end" height={50} />
           <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => formatINRShort(v)} />
-          <Tooltip formatter={(v) => formatINRShort(Number(v))} />
+          <Tooltip formatter={(v: number) => formatINRShort(v)} />
           <Line dataKey="value" stroke="#1e40af" strokeWidth={2} dot={{ r: 4 }} />
         </LineChart>
       </ResponsiveContainer>

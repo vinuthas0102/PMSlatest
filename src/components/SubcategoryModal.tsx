@@ -101,7 +101,7 @@ export function SubcategoryModal({ category, items, onClose }: SubcategoryModalP
                       </Pie>
                       <Tooltip
                         contentStyle={{ fontSize: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}
-                        formatter={(v, _n, p) => [`${v} projects · ${formatINRShort(p?.payload?.value ?? 0)}`, '']}
+                        formatter={(v: number, _n: string, p: { payload?: { value?: number } }) => [`${v} projects · ${formatINRShort(p?.payload?.value ?? 0)}`, '']}
                       />
                       <Legend
                         verticalAlign="bottom"
@@ -116,7 +116,7 @@ export function SubcategoryModal({ category, items, onClose }: SubcategoryModalP
                       <YAxis tick={{ fontSize: 10, fill: '#64748b' }} allowDecimals={false} />
                       <Tooltip
                         contentStyle={{ fontSize: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}
-                        formatter={(v, _n, p) => [`${v} projects · ${formatINRShort(p?.payload?.value ?? 0)}`, '']}
+                        formatter={(v: number, _n: string, p: { payload?: { value?: number } }) => [`${v} projects · ${formatINRShort(p?.payload?.value ?? 0)}`, '']}
                         cursor={{ fill: 'rgba(8,145,178,0.08)' }}
                       />
                       <Bar dataKey="count" radius={[6, 6, 0, 0]} maxBarSize={70}>
