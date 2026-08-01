@@ -12,6 +12,6 @@ export default defineConfig({
   },
   optimizeDeps: {
     noDiscovery: true,
-    include: [],
+    include: ['react', 'react-dom', 'react-dom/client', 'lucide-react', 'recharts'],
   },
 });
