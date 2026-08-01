@@ -11,7 +11,7 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    noDiscovery: true,
-    include: ['react', 'react-dom', 'react-dom/client', 'lucide-react', 'recharts'],
+    exclude: ['lucide-react'],
+    esbuildOptions: { target: 'esnext' },
   },
 });
