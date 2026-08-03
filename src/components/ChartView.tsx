@@ -72,7 +72,7 @@ export function ChartView({ items, onCategoryClick }: ChartViewProps) {
   const [chart2Type, setChart2Type] = useState<ChartType>('bar');
   const [chart3Type, setChart3Type] = useState<ChartType>('pie');
   const [chart4Type, setChart4Type] = useState<ChartType>('bar');
-  const [timelineMode, setTimelineMode] = useState<'monthly' | 'weekly' | 'daily' | 'yearly'>('monthly');
+  const [timelineMode, setTimelineMode] = useState<'yearly' | 'monthly'>('monthly');
 
   const physicalData = useMemo(() => {
     const total = items.length;
@@ -86,15 +86,13 @@ export function ChartView({ items, onCategoryClick }: ChartViewProps) {
   }, [items]);
 
   const financialData = useMemo(() => {
-    const active = items.filter((i) => i.completed_pct < 100 && i.completed_pct > 0).length;
+    const mbook = items.reduce((s, i) => s + i.mbook_entry, 0);
     const billed = items.reduce((s, i) => s + i.billed_amount, 0);
     const paid = items.reduce((s, i) => s + i.paid_amount, 0);
-    const balance = items.reduce((s, i) => s + (i.mbook_entry - i.paid_amount), 0);
     return [
-      { name: 'Active Projects', value: active, color: '#0891b2' },
-      { name: 'Total Billed', value: billed, color: '#1e40af' },
-      { name: 'Total Paid', value: paid, color: '#059669' },
-      { name: 'Balance', value: balance, color: '#d97706' },
+      { name: 'Total Mbook', value: mbook, color: '#0891b2' },
+      { name: 'Billed', value: billed, color: '#1e40af' },
+      { name: 'Paid', value: paid, color: '#059669' },
     ];
   }, [items]);
 
@@ -113,10 +111,6 @@ export function ChartView({ items, onCategoryClick }: ChartViewProps) {
   const timelineData = useMemo(() => {
     const labels = timelineMode === 'yearly'
       ? ['2023', '2024', '2025', '2026']
-      : timelineMode === 'weekly'
-      ? ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7', 'W8']
-      : timelineMode === 'daily'
-      ? Array.from({ length: 12 }, (_, i) => `D${i + 1}`)
       : MONTHS;
 
     return labels.map((label, idx) => {
@@ -279,7 +273,7 @@ export function ChartView({ items, onCategoryClick }: ChartViewProps) {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-1.5 p-2">
-      <ChartCard title="Physical Progress" chartType={chart1Type} onChartTypeChange={setChart1Type}>
+      <ChartCard title="Project Status" chartType={chart1Type} onChartTypeChange={setChart1Type}>
         {renderPhysicalChart()}
       </ChartCard>
       <ChartCard title="Financial Progress (₹)" chartType={chart2Type} onChartTypeChange={setChart2Type}>
@@ -292,13 +286,13 @@ export function ChartView({ items, onCategoryClick }: ChartViewProps) {
         <div className="flex items-center justify-between mb-1.5">
           <h3 className="text-xs font-semibold text-slate-700">Timeline Trend</h3>
           <div className="flex items-center bg-slate-100 rounded text-[10px]">
-            {(['yearly', 'monthly', 'weekly', 'daily'] as const).map((m) => (
+            {(['yearly', 'monthly'] as const).map((m) => (
               <button
                 key={m}
                 onClick={() => setTimelineMode(m)}
                 className={`px-1.5 py-0.5 rounded font-medium capitalize transition-colors ${timelineMode === m ? 'bg-cyan-700 text-white' : 'text-slate-500 hover:bg-slate-200'}`}
               >
-                {m.slice(0, 3)}
+                {m === 'yearly' ? 'Year' : 'Month'}
               </button>
             ))}
           </div>
