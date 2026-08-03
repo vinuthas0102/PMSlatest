@@ -1,4 +1,4 @@
-import { FileText, ChevronRight, MapPin, User, AlertTriangle, Ruler, CalendarClock } from 'lucide-react';
+import { FileText, ChevronRight, MapPin, AlertTriangle, Ruler, CalendarClock } from 'lucide-react';
 import type { BaseEntity } from '@/types';
 import { formatINRShort, delayStatusColor, delayStatusShort } from '@/lib/format';
 
@@ -7,59 +7,40 @@ interface TileViewProps {
   onShowDetails: (item: BaseEntity) => void;
 }
 
-interface MiniColumnProps {
-  label: string;
-  value: number;
-  max: number;
-  color: string;
-  textColor: string;
-}
-
-function MiniColumn({ label, value, max, color, textColor }: MiniColumnProps) {
-  const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
-  return (
-    <div className="flex flex-col items-center" style={{ width: 32 }}>
-      <div className="text-[8px] font-semibold text-slate-500 mb-0.5 whitespace-nowrap leading-none">{formatINRShort(value)}</div>
-      <div className="w-4 h-10 bg-slate-100 rounded-sm overflow-hidden flex items-end">
-        <div
-          className={`w-full rounded-t-sm ${color} transition-all duration-500`}
-          style={{ height: `${pct}%` }}
-        />
-      </div>
-      <div className={`text-[8px] font-semibold ${textColor} mt-0.5 uppercase tracking-wide leading-none`}>{label}</div>
-    </div>
-  );
-}
-
 export function TileView({ items, onShowDetails }: TileViewProps) {
   if (items.length === 0) {
     return <div className="p-4 text-center text-sm text-slate-500">No items match the current filters.</div>;
   }
 
   return (
-    <div className="flex flex-col gap-6 p-4">
+    <div className="flex flex-col gap-4 p-4">
       {items.map((item) => {
         const colors = delayStatusColor(item.delay_status);
-        const balance = item.mbook_entry - item.paid_amount;
+        const balance = Math.max(0, item.mbook_entry - item.paid_amount);
+        const billedNotPaid = Math.max(0, item.billed_amount - item.paid_amount);
         const progressPct = Math.min(item.completed_pct, 100);
         const targetPct = Math.min(item.target_pct, 100);
 
+        // Stacked bar segment widths (relative to Mbook)
+        const mbook = Math.max(1, item.mbook_entry);
+        const paidPct = Math.min(100, (item.paid_amount / mbook) * 100);
+        const billedNotPaidPct = Math.min(100 - paidPct, (billedNotPaid / mbook) * 100);
+        const remPct = Math.max(0, 100 - paidPct - billedNotPaidPct);
+
         return (
-          <div key={item.id} className="mirror-card rounded p-5">
-            {/* Line 1: Header */}
+          <div
+            key={item.id}
+            className={`mirror-card rounded-r-lg rounded-l-sm p-4 flex flex-col gap-3 border-l-4 ${colors.borderAccent}`}
+          >
+            {/* Line 1: Header — seq, status badge, title, location */}
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[10px] font-mono font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
                 Seq # {item.seq_no}
               </span>
-              <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${colors.bg} ${colors.text} ${colors.border}`}>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${colors.bg} ${colors.text} ${colors.border}`}>
                 {delayStatusShort(item.delay_status)}
               </span>
-              <span className="text-xs font-semibold text-slate-800 truncate flex-1 min-w-0">{item.title}</span>
-              <span className="text-[10px] text-slate-400 font-mono">{item.code}</span>
-              <div className="flex items-center gap-1 text-[10px] text-slate-500">
-                <User className="w-3 h-3" />
-                <span>{item.manager}</span>
-              </div>
+              <span className="text-sm font-semibold text-slate-800 truncate flex-1 min-w-0">{item.title}</span>
               <div className="flex items-center gap-1 text-[10px] text-slate-500">
                 <MapPin className="w-3 h-3" />
                 <span>{item.state} · {item.district}</span>
@@ -67,7 +48,7 @@ export function TileView({ items, onShowDetails }: TileViewProps) {
             </div>
 
             {/* Line 2: Physical Progress + deviation badges */}
-            <div className="flex items-center gap-3 mt-5">
+            <div className="flex items-center gap-3">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between text-[10px] text-slate-500 mb-0.5">
                   <span className="font-medium text-slate-600">Physical Progress</span>
@@ -76,56 +57,97 @@ export function TileView({ items, onShowDetails }: TileViewProps) {
                     <span className="text-slate-400"> / target {targetPct.toFixed(0)}%</span>
                   </span>
                 </div>
-                <div className="h-2 bg-slate-100 rounded-full overflow-hidden relative">
-                  {/* Target marker */}
+                <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden relative">
                   <div
-                    className="absolute top-0 bottom-0 w-0.5 bg-slate-400/60 z-10"
+                    className="absolute top-0 bottom-0 w-0.5 bg-slate-500 z-10"
                     style={{ left: `${targetPct}%` }}
                   />
-                  <div className="h-full bg-cyan-500 rounded-full" style={{ width: `${progressPct}%` }} />
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-blue-600"
+                    style={{ width: `${progressPct}%` }}
+                  />
                 </div>
               </div>
               <div className="flex items-center gap-1.5 text-[10px] shrink-0">
                 {item.spec_deviations > 0 && (
-                  <span className="flex items-center gap-0.5 text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">
+                  <span className="flex items-center gap-0.5 text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-300 font-medium">
                     <AlertTriangle className="w-2.5 h-2.5" /> {item.spec_deviations} Spec
                   </span>
                 )}
                 {item.qty_deviations > 0 && (
-                  <span className="flex items-center gap-0.5 text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded border border-orange-100">
+                  <span className="flex items-center gap-0.5 text-orange-700 bg-orange-100 px-1.5 py-0.5 rounded border border-orange-300 font-medium">
                     <Ruler className="w-2.5 h-2.5" /> {item.qty_deviations} Qty
                   </span>
                 )}
                 {item.extension_days > 0 && (
-                  <span className="flex items-center gap-0.5 text-red-600 bg-red-50 px-1.5 py-0.5 rounded border border-red-100">
+                  <span className="flex items-center gap-0.5 text-red-700 bg-red-100 px-1.5 py-0.5 rounded border border-red-300 font-medium">
                     <CalendarClock className="w-2.5 h-2.5" /> {item.extension_days}d Ext
                   </span>
                 )}
               </div>
             </div>
 
-            {/* Line 3: Financial Mini Bar Charts (Vertical Columns) */}
-            <div className="mt-5 bg-slate-50/70 rounded px-3 py-2 border border-slate-100 flex items-center gap-4">
-              <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider shrink-0">Financial</span>
-              <div className="flex items-end gap-3">
-                <MiniColumn label="MBook" value={item.mbook_entry} max={item.mbook_entry} color="bg-blue-600" textColor="text-blue-700" />
-                <MiniColumn label="Billed" value={item.billed_amount} max={item.mbook_entry} color="bg-cyan-500" textColor="text-cyan-700" />
-                <MiniColumn label="Paid" value={item.paid_amount} max={item.mbook_entry} color="bg-emerald-500" textColor="text-emerald-700" />
-                <MiniColumn label="Bal" value={balance} max={item.mbook_entry} color="bg-red-400" textColor="text-red-600" />
+            {/* Line 3: Financial — single horizontal stacked bar */}
+            <div className="bg-slate-50/80 rounded px-3 py-2 border border-slate-200">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[9px] font-semibold text-slate-500 uppercase tracking-wider">Financial Progress</span>
+                <span className="text-[9px] font-semibold text-slate-400">MBook: {formatINRShort(item.mbook_entry)}</span>
+              </div>
+              {/* Stacked bar */}
+              <div className="flex h-4 rounded-full overflow-hidden border border-slate-200 bg-slate-100">
+                {paidPct > 0 && (
+                  <div
+                    className="bg-emerald-500 flex items-center justify-center transition-all duration-500"
+                    style={{ width: `${paidPct}%` }}
+                    title={`Paid: ${formatINRShort(item.paid_amount)}`}
+                  />
+                )}
+                {billedNotPaidPct > 0 && (
+                  <div
+                    className="bg-cyan-500 flex items-center justify-center transition-all duration-500"
+                    style={{ width: `${billedNotPaidPct}%` }}
+                    title={`Billed (not paid): ${formatINRShort(billedNotPaid)}`}
+                  />
+                )}
+                {remPct > 0 && (
+                  <div
+                    className="bg-rose-400 flex items-center justify-center transition-all duration-500"
+                    style={{ width: `${remPct}%` }}
+                    title={`Remaining: ${formatINRShort(balance)}`}
+                  />
+                )}
+              </div>
+              {/* Legend */}
+              <div className="flex items-center justify-between mt-1.5 text-[10px]">
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center gap-1">
+                    <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500" />
+                    <span className="text-slate-500">Paid</span>
+                    <span className="font-semibold text-emerald-700">{formatINRShort(item.paid_amount)}</span>
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-2.5 h-2.5 rounded-sm bg-cyan-500" />
+                    <span className="text-slate-500">Billed</span>
+                    <span className="font-semibold text-cyan-700">{formatINRShort(billedNotPaid)}</span>
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-2.5 h-2.5 rounded-sm bg-rose-400" />
+                    <span className="text-slate-500">Remaining</span>
+                    <span className="font-semibold text-rose-600">{formatINRShort(balance)}</span>
+                  </span>
+                </div>
               </div>
             </div>
 
             {/* Line 4: Action Bar */}
-            <div className="flex items-center gap-1.5 mt-5">
+            <div className="flex items-center gap-1.5">
               <button
                 onClick={() => onShowDetails(item)}
-                className="flex items-center gap-1 text-[10px] font-medium text-cyan-700 hover:text-cyan-800 bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 px-2 py-1 rounded transition-colors"
+                className="flex items-center gap-1 text-[10px] font-medium text-cyan-700 hover:text-white hover:bg-cyan-600 bg-cyan-50 border border-cyan-200 px-2.5 py-1 rounded transition-colors"
               >
                 <FileText className="w-3 h-3" /> Show Details
               </button>
-              <span
-                className="flex items-center gap-1 text-[10px] font-medium text-slate-500 bg-slate-100 border border-slate-200 px-2 py-1 rounded"
-              >
+              <span className="flex items-center gap-1 text-[10px] font-medium text-slate-500 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded">
                 Show CMS WOs <ChevronRight className="w-3 h-3" />
               </span>
             </div>
