@@ -1,4 +1,4 @@
-import { BarChart3, LayoutGrid, Table2, CreditCard, SlidersHorizontal } from 'lucide-react';
+import { BarChart3, LayoutGrid, Table2, CreditCard, SlidersHorizontal, XCircle } from 'lucide-react';
 import type { ViewType } from '@/types';
 
 interface ViewControlsProps {
@@ -36,12 +36,21 @@ export function ViewControls({
         </span>
         <span className="text-slate-300">|</span>
         {isFiltered ? (
-          <button
-            onClick={onClearFilters}
-            className="text-xs font-semibold text-cyan-700 hover:text-cyan-900 underline decoration-cyan-400 decoration-2 underline-offset-2 transition-colors"
-          >
-            Filtered Data (click to show ALL)
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={onOpenFilterDrawer}
+              className="text-xs font-semibold text-cyan-700 hover:text-cyan-900 underline decoration-cyan-400 decoration-2 underline-offset-2 transition-colors"
+            >
+              Filtered Data
+            </button>
+            <button
+              onClick={onClearFilters}
+              title="Clear all filters"
+              className="flex items-center text-cyan-700 hover:text-red-600 transition-colors"
+            >
+              <XCircle className="w-3.5 h-3.5" />
+            </button>
+          </div>
         ) : (
           <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
             ALL Data
