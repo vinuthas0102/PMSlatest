@@ -56,7 +56,7 @@ export function TableView({ items, onShowDetails, onCreateNew }: TableViewProps)
       {onCreateNew && (
         <button
           onClick={onCreateNew}
-          className="flex items-center gap-2 text-sm font-semibold text-white bg-cyan-700 hover:bg-cyan-800 px-4 py-2 rounded-lg transition-colors mb-3 shadow-sm"
+          className="flex items-center gap-2 text-sm font-semibold text-white bg-cyan-700 hover:bg-cyan-800 px-4 py-2 rounded-lg transition-colors mb-3 ml-auto shadow-sm"
         >
           <FilePlus className="w-4 h-4" />
           Create New Project

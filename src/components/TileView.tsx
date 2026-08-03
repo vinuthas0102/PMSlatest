@@ -14,7 +14,7 @@ export function TileView({ items, onShowDetails, onCreateNew }: TileViewProps) {
       {onCreateNew && (
         <button
           onClick={onCreateNew}
-          className="flex items-center gap-2 text-sm font-semibold text-white bg-cyan-700 hover:bg-cyan-800 px-4 py-2.5 rounded-lg transition-colors self-start shadow-sm"
+          className="flex items-center gap-2 text-sm font-semibold text-white bg-cyan-700 hover:bg-cyan-800 px-4 py-2.5 rounded-lg transition-colors self-end shadow-sm"
         >
           <FilePlus className="w-4 h-4" />
           Create New Project
