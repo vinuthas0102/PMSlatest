@@ -3,7 +3,7 @@ import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis,
   CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart, Line,
 } from 'recharts';
-import { BarChart3, PieChart as PieIcon, RefreshCw } from 'lucide-react';
+import { BarChart3, PieChart as PieIcon } from 'lucide-react';
 import type { BaseEntity } from '@/types';
 import { formatINRShort, CATEGORIES } from '@/lib/format';
 
