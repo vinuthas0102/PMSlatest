@@ -1,19 +1,32 @@
-import { FileText, ChevronRight, MapPin } from 'lucide-react';
+import { FileText, ChevronRight, MapPin, FilePlus } from 'lucide-react';
 import type { BaseEntity } from '@/types';
 import { formatINRShort, delayStatusColor, delayStatusShort } from '@/lib/format';
 
 interface CardViewProps {
   items: BaseEntity[];
   onShowDetails: (item: BaseEntity) => void;
+  onCreateNew?: () => void;
 }
 
-export function CardView({ items, onShowDetails }: CardViewProps) {
-  if (items.length === 0) {
-    return <div className="p-4 text-center text-sm text-slate-500">No items match the current filters.</div>;
-  }
-
+export function CardView({ items, onShowDetails, onCreateNew }: CardViewProps) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 p-2">
+    <div className="p-2">
+      {onCreateNew && (
+        <button
+          onClick={onCreateNew}
+          className="flex items-center gap-2 text-sm font-semibold text-white bg-cyan-700 hover:bg-cyan-800 px-4 py-2 rounded-lg transition-colors mb-3 shadow-sm"
+        >
+          <FilePlus className="w-4 h-4" />
+          Create New Project
+        </button>
+      )}
+      {items.length === 0 && (
+        <div className="text-center text-sm text-slate-500 py-6">
+          {onCreateNew ? 'No projects yet. Click "Create New Project" to add one.' : 'No items match the current filters.'}
+        </div>
+      )}
+      {items.length > 0 && (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
       {items.map((item) => {
         const colors = delayStatusColor(item.delay_status);
         const balance = Math.max(0, item.mbook_entry - item.paid_amount);
@@ -110,6 +123,8 @@ export function CardView({ items, onShowDetails }: CardViewProps) {
           </div>
         );
       })}
+      </div>
+      )}
     </div>
   );
 }

@@ -1,19 +1,31 @@
-import { FileText, ChevronRight, MapPin, AlertTriangle, Ruler, CalendarClock } from 'lucide-react';
+import { FileText, ChevronRight, MapPin, AlertTriangle, Ruler, CalendarClock, FilePlus } from 'lucide-react';
 import type { BaseEntity } from '@/types';
 import { formatINRShort, delayStatusColor, delayStatusShort } from '@/lib/format';
 
 interface TileViewProps {
   items: BaseEntity[];
   onShowDetails: (item: BaseEntity) => void;
+  onCreateNew?: () => void;
 }
 
-export function TileView({ items, onShowDetails }: TileViewProps) {
-  if (items.length === 0) {
-    return <div className="p-4 text-center text-sm text-slate-500">No items match the current filters.</div>;
-  }
-
+export function TileView({ items, onShowDetails, onCreateNew }: TileViewProps) {
   return (
     <div className="flex flex-col gap-4 p-4">
+      {onCreateNew && (
+        <button
+          onClick={onCreateNew}
+          className="flex items-center gap-2 text-sm font-semibold text-white bg-cyan-700 hover:bg-cyan-800 px-4 py-2.5 rounded-lg transition-colors self-start shadow-sm"
+        >
+          <FilePlus className="w-4 h-4" />
+          Create New Project
+        </button>
+      )}
+      {items.length === 0 && !onCreateNew && (
+        <div className="text-center text-sm text-slate-500 py-4">No items match the current filters.</div>
+      )}
+      {items.length === 0 && onCreateNew && (
+        <div className="text-center text-sm text-slate-500 py-4">No projects yet. Click "Create New Project" to add one.</div>
+      )}
       {items.map((item) => {
         const colors = delayStatusColor(item.delay_status);
         const balance = Math.max(0, item.mbook_entry - item.paid_amount);

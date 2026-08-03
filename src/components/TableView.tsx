@@ -1,17 +1,18 @@
 import { useState } from 'react';
-import { ArrowUpDown, FileText, ChevronRight } from 'lucide-react';
+import { ArrowUpDown, FileText, ChevronRight, FilePlus } from 'lucide-react';
 import type { BaseEntity } from '@/types';
 import { formatINRShort, delayStatusColor, delayStatusShort } from '@/lib/format';
 
 interface TableViewProps {
   items: BaseEntity[];
   onShowDetails: (item: BaseEntity) => void;
+  onCreateNew?: () => void;
 }
 
 type SortKey = keyof BaseEntity;
 type SortDir = 'asc' | 'desc';
 
-export function TableView({ items, onShowDetails }: TableViewProps) {
+export function TableView({ items, onShowDetails, onCreateNew }: TableViewProps) {
   const [sortKey, setSortKey] = useState<SortKey>('seq_no');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
 
@@ -51,7 +52,23 @@ export function TableView({ items, onShowDetails }: TableViewProps) {
   ];
 
   return (
-    <div className="overflow-x-auto p-2">
+    <div className="p-2">
+      {onCreateNew && (
+        <button
+          onClick={onCreateNew}
+          className="flex items-center gap-2 text-sm font-semibold text-white bg-cyan-700 hover:bg-cyan-800 px-4 py-2 rounded-lg transition-colors mb-3 shadow-sm"
+        >
+          <FilePlus className="w-4 h-4" />
+          Create New Project
+        </button>
+      )}
+      {sorted.length === 0 && (
+        <div className="text-center text-sm text-slate-500 py-6">
+          {onCreateNew ? 'No projects yet. Click "Create New Project" to add one.' : 'No items match the current filters.'}
+        </div>
+      )}
+      {sorted.length > 0 && (
+      <div className="overflow-x-auto">
       <table className="w-full text-xs border-collapse">
         <thead>
           <tr className="bg-slate-200 border-b-2 border-slate-300">
@@ -122,6 +139,8 @@ export function TableView({ items, onShowDetails }: TableViewProps) {
           })}
         </tbody>
       </table>
+      </div>
+      )}
     </div>
   );
 }

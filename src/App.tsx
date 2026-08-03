@@ -1,10 +1,12 @@
 import { useState, useMemo, useCallback } from 'react';
 import { Loader2 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import type {
   BaseEntity, ViewType, Filters, Level, DelayStatus, Spec,
+  Project, ProjectFormData,
 } from '@/types';
-import { Header } from '@/components/Header';
+import { Header, type AppScreen } from '@/components/Header';
 import { StatusBar } from '@/components/StatusBar';
 import { ViewControls } from '@/components/ViewControls';
 import { ChartView } from '@/components/ChartView';
@@ -14,6 +16,7 @@ import { CardView } from '@/components/CardView';
 import { FilterDrawer } from '@/components/FilterDrawer';
 import { SpecModal } from '@/components/SpecModal';
 import { SubcategoryModal } from '@/components/SubcategoryModal';
+import { ProjectFormModal } from '@/components/ProjectFormModal';
 
 const DEFAULT_FILTERS: Filters = {
   states: [],
@@ -26,8 +29,9 @@ const DEFAULT_FILTERS: Filters = {
 };
 
 export default function App() {
-  const { data, loading, error } = useDashboardData();
+  const { data, loading, error, reload } = useDashboardData();
 
+  const [activeScreen, setActiveScreen] = useState<AppScreen>('dashboard');
   const [viewType, setViewType] = useState<ViewType>('chart');
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
@@ -36,6 +40,17 @@ export default function App() {
 
   const [specModalItem, setSpecModalItem] = useState<{ item: BaseEntity; level: Level } | null>(null);
   const [subcategoryModal, setSubcategoryModal] = useState<string | null>(null);
+  const [projectFormModal, setProjectFormModal] = useState<{ project: Project | null; mode: 'edit' | 'create' } | null>(null);
+
+  // When switching to maintenance screen, default to tile view
+  const handleScreenChange = useCallback((s: AppScreen) => {
+    setActiveScreen(s);
+    if (s === 'maintenance') {
+      setViewType('tile');
+    } else {
+      setViewType('chart');
+    }
+  }, []);
 
   // Project-level items only
   const currentItems = useMemo<BaseEntity[]>(() => {
@@ -104,8 +119,12 @@ export default function App() {
   }, [statusFilteredItems, appliedFilters]);
 
   const handleShowDetails = useCallback((item: BaseEntity) => {
-    setSpecModalItem({ item, level: 'project' });
-  }, []);
+    if (activeScreen === 'maintenance') {
+      setProjectFormModal({ project: item as Project, mode: 'edit' });
+    } else {
+      setSpecModalItem({ item, level: 'project' });
+    }
+  }, [activeScreen]);
 
   const handleApplyFilters = useCallback(() => {
     setAppliedFilters(filters);
@@ -133,6 +152,60 @@ export default function App() {
     setStatusFilter(null);
   }, []);
 
+  // Save project (create or update)
+  const handleSaveProject = useCallback(async (id: string | null, formData: ProjectFormData): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const payload = {
+        title: formData.title,
+        description: formData.description || null,
+        state: formData.state,
+        district: formData.district,
+        category: formData.category,
+        subcategory: formData.subcategory,
+        start_date: formData.start_date || null,
+        duration_days: formData.duration_days ? parseInt(formData.duration_days, 10) : null,
+        mbook_entry: formData.mbook_entry ? parseFloat(formData.mbook_entry) : 0,
+        manager: formData.manager,
+        remarks: formData.remarks || null,
+      };
+
+      if (id) {
+        // Update existing
+        const { error: updateError } = await supabase
+          .from('projects')
+          .update(payload)
+          .eq('id', id);
+        if (updateError) return { success: false, error: updateError.message };
+      } else {
+        // Create new - compute next seq_no
+        const maxSeq = data?.projects.reduce((max, p) => {
+          const n = parseFloat(p.seq_no);
+          return isNaN(n) ? max : Math.max(max, n);
+        }, 0) ?? 0;
+        const nextSeqNo = `${maxSeq + 1}.0.0`;
+        const nextCode = `PRJ-${String(maxSeq + 1).padStart(3, '0')}`;
+
+        const insertPayload = {
+          ...payload,
+          seq_no: nextSeqNo,
+          code: nextCode,
+          delay_status: 'On Time' as const,
+        };
+        const { error: insertError } = await supabase
+          .from('projects')
+          .insert(insertPayload);
+        if (insertError) return { success: false, error: insertError.message };
+      }
+
+      // Clear cache and reload
+      sessionStorage.removeItem('pms_data_v5');
+      await reload();
+      return { success: true };
+    } catch (e) {
+      return { success: false, error: e instanceof Error ? e.message : 'Unknown error' };
+    }
+  }, [data, reload]);
+
   const isFiltered =
     appliedFilters.states.length > 0 ||
     appliedFilters.districts.length > 0 ||
@@ -143,6 +216,8 @@ export default function App() {
     Boolean(appliedFilters.endMonth);
 
   const allSpecs: Spec[] = data?.specs ?? [];
+
+  const isMaintenance = activeScreen === 'maintenance';
 
   if (loading) {
     return (
@@ -166,9 +241,14 @@ export default function App() {
     );
   }
 
+  const levelLabel = isMaintenance ? 'Project Summary' : 'Project Dashboard';
+  const viewLabel = isMaintenance
+    ? viewType === 'tile' ? 'Tile View' : viewType === 'table' ? 'Table View' : 'Card View'
+    : viewType === 'chart' ? 'Chart View' : viewType === 'tile' ? 'Tile View' : viewType === 'table' ? 'Table View' : 'Card View';
+
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col">
-      <Header levelLabel="Project Dashboard" />
+      <Header levelLabel={levelLabel} activeScreen={activeScreen} onScreenChange={handleScreenChange} />
 
       <StatusBar
         items={filteredItems}
@@ -182,12 +262,13 @@ export default function App() {
         isFiltered={isFiltered || !!statusFilter}
         onOpenFilterDrawer={() => setFilterDrawerOpen(true)}
         onClearFilters={handleClearAllFilters}
-        levelLabel={viewType === 'chart' ? 'Chart View' : viewType === 'tile' ? 'Tile View' : viewType === 'table' ? 'Table View' : 'Card View'}
+        levelLabel={viewLabel}
+        hideChartView={isMaintenance}
       />
 
       {/* Main Content */}
       <div className="flex-1">
-        {viewType === 'chart' && (
+        {!isMaintenance && viewType === 'chart' && (
           <ChartView
             items={filteredItems}
             selectedStates={appliedFilters.states}
@@ -196,22 +277,25 @@ export default function App() {
             onToggleSelection={handleToggleChartSelection}
           />
         )}
-        {viewType === 'tile' && (
+        {(!isMaintenance ? viewType === 'tile' : viewType === 'tile') && (
           <TileView
             items={filteredItems}
             onShowDetails={(item) => handleShowDetails(item)}
+            onCreateNew={isMaintenance ? () => setProjectFormModal({ project: null, mode: 'create' }) : undefined}
           />
         )}
-        {viewType === 'table' && (
+        {(!isMaintenance ? viewType === 'table' : viewType === 'table') && (
           <TableView
             items={filteredItems}
             onShowDetails={(item) => handleShowDetails(item)}
+            onCreateNew={isMaintenance ? () => setProjectFormModal({ project: null, mode: 'create' }) : undefined}
           />
         )}
-        {viewType === 'card' && (
+        {(!isMaintenance ? viewType === 'card' : viewType === 'card') && (
           <CardView
             items={filteredItems}
             onShowDetails={(item) => handleShowDetails(item)}
+            onCreateNew={isMaintenance ? () => setProjectFormModal({ project: null, mode: 'create' }) : undefined}
           />
         )}
       </div>
@@ -226,7 +310,7 @@ export default function App() {
         items={currentItems}
       />
 
-      {specModalItem && (
+      {specModalItem && !isMaintenance && (
         <SpecModal
           item={specModalItem.item}
           level={specModalItem.level}
@@ -235,7 +319,16 @@ export default function App() {
         />
       )}
 
-      {subcategoryModal && (
+      {projectFormModal && isMaintenance && (
+        <ProjectFormModal
+          project={projectFormModal.project}
+          mode={projectFormModal.mode}
+          onClose={() => setProjectFormModal(null)}
+          onSave={handleSaveProject}
+        />
+      )}
+
+      {subcategoryModal && !isMaintenance && (
         <SubcategoryModal
           category={subcategoryModal}
           items={filteredItems}

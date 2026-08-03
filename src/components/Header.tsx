@@ -1,12 +1,16 @@
-import { User, Clock } from 'lucide-react';
+import { User, Clock, Wrench, LayoutDashboard } from 'lucide-react';
 import { DEPT_NAME, USER_NAME, LOGIN_TIME } from '@/lib/constants';
 import epiLogo from './logo.png';
 
+export type AppScreen = 'dashboard' | 'maintenance';
+
 interface HeaderProps {
   levelLabel: string;
+  activeScreen: AppScreen;
+  onScreenChange: (s: AppScreen) => void;
 }
 
-export function Header({ levelLabel }: HeaderProps) {
+export function Header({ levelLabel, activeScreen, onScreenChange }: HeaderProps) {
   return (
     <header className="bg-blue-700 text-white border-b border-blue-500">
       <div className="flex items-center justify-between px-4 py-3 gap-3">
@@ -21,6 +25,31 @@ export function Header({ levelLabel }: HeaderProps) {
         </div>
 
         <div className="flex items-center gap-4 shrink-0">
+          <div className="flex items-center gap-1 bg-blue-800/60 rounded-lg p-0.5 border border-blue-400/30">
+            <button
+              onClick={() => onScreenChange('dashboard')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                activeScreen === 'dashboard'
+                  ? 'bg-white text-blue-700 shadow-sm'
+                  : 'text-blue-100 hover:bg-blue-700/50'
+              }`}
+            >
+              <LayoutDashboard className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Dashboard</span>
+            </button>
+            <button
+              onClick={() => onScreenChange('maintenance')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                activeScreen === 'maintenance'
+                  ? 'bg-white text-blue-700 shadow-sm'
+                  : 'text-blue-100 hover:bg-blue-700/50'
+              }`}
+            >
+              <Wrench className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Maintenance</span>
+            </button>
+          </div>
+
           <div className="hidden lg:flex items-center gap-2 text-sm text-blue-100">
             <User className="w-4 h-4 text-cyan-300" />
             <span className="font-medium">{USER_NAME}</span>

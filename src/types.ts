@@ -28,7 +28,25 @@ export interface BaseEntity {
   created_at: string;
 }
 
-export interface Project extends BaseEntity {}
+export interface Project extends BaseEntity {
+  description: string | null;
+  remarks: string | null;
+  duration_days: number | null;
+}
+
+export interface ProjectFormData {
+  title: string;
+  description: string;
+  state: string;
+  district: string;
+  category: string;
+  subcategory: string;
+  start_date: string;
+  duration_days: string;
+  mbook_entry: string;
+  manager: string;
+  remarks: string;
+}
 
 export interface WorkOrder extends BaseEntity {
   project_id: string;

@@ -8,9 +8,10 @@ interface ViewControlsProps {
   onOpenFilterDrawer: () => void;
   onClearFilters: () => void;
   levelLabel: string;
+  hideChartView?: boolean;
 }
 
-const VIEWS: { key: ViewType; label: string; icon: typeof BarChart3 }[] = [
+const ALL_VIEWS: { key: ViewType; label: string; icon: typeof BarChart3 }[] = [
   { key: 'chart', label: 'Chart View', icon: BarChart3 },
   { key: 'tile', label: 'Tile View', icon: LayoutGrid },
   { key: 'table', label: 'Table View', icon: Table2 },
@@ -24,7 +25,9 @@ export function ViewControls({
   onOpenFilterDrawer,
   onClearFilters,
   levelLabel,
+  hideChartView = false,
 }: ViewControlsProps) {
+  const VIEWS = hideChartView ? ALL_VIEWS.filter((v) => v.key !== 'chart') : ALL_VIEWS;
   return (
     <div className="flex items-center justify-between px-3 py-2 bg-cyan-50/60 border-b border-cyan-100">
       <div className="flex items-center gap-2">
