@@ -241,15 +241,15 @@ export function ChartView({ items, onCategoryClick }: ChartViewProps) {
     });
   }, [items, timelineMode]);
 
-  const renderBar = (data: ChartPoint[], money = false) => (
+  const renderBar = (data: ChartPoint[], money = false, onClick?: (name: string) => void) => (
     <ResponsiveContainer width="100%" height={CHART_H}>
       <BarChart data={data} margin={{ top: 20, right: 10, left: 0, bottom: 20 }}>
         <CartesianGrid strokeDasharray="3 3" className="stroke-slate-100" vertical={false} />
         <XAxis dataKey="name" tick={{ fontSize: 10, fontWeight: 600 }} angle={-15} textAnchor="end" height={50} axisLine={{ stroke: '#cbd5e1' }} />
         <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => (money ? formatINRShort(v) : v)} axisLine={false} tickLine={false} />
         <Tooltip cursor={{ fill: 'rgba(8,145,178,0.05)' }} content={<StatusTooltip />} />
-        <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={50} maxBarSize={60}>
-          {data.map((d, i) => <Cell key={i} fill={d.color} />)}
+        <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={50} maxBarSize={60} onClick={(_payload, idx) => onClick?.(data[idx].name)} cursor={onClick ? 'pointer' : undefined}>
+          {data.map((d, i) => <Cell key={i} fill={d.color} className={onClick ? 'cursor-pointer' : ''} />)}
         </Bar>
       </BarChart>
     </ResponsiveContainer>
@@ -310,7 +310,7 @@ export function ChartView({ items, onCategoryClick }: ChartViewProps) {
         {chart4Type === 'bar' ? renderBar(regionData) : renderPie(regionData)}
       </ChartCard>
       <ChartCard title="Category-wise" chartType={chart5Type} onChartTypeChange={setChart5Type}>
-        {chart5Type === 'bar' ? renderBar(categoryData) : renderPie(categoryData, false, onCategoryClick)}
+        {chart5Type === 'bar' ? renderBar(categoryData, false, onCategoryClick) : renderPie(categoryData, false, onCategoryClick)}
       </ChartCard>
       <div className="mirror-card rounded p-3 flex flex-col">
         <div className="flex items-center justify-between mb-2">
