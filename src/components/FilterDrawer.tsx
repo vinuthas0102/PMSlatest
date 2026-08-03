@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { X, RotateCcw, Map as MapIcon, List, Search, XCircle, Check, ChevronRight } from 'lucide-react';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import { X, RotateCcw, Map as MapIcon, List, Search, XCircle, Check, ChevronRight, ChevronLeft, MapPin } from 'lucide-react';
 import type { Filters, DelayStatus } from '@/types';
 import {
   CATEGORIES, SUBCATEGORIES, STATES, DISTRICTS,
@@ -33,9 +33,21 @@ interface DistrictStats {
 
 export function FilterDrawer({ open, onClose, filters, onFiltersChange, onApply, onReset, items }: FilterDrawerProps) {
   const [mapView, setMapView] = useState(true);
-  const [districtPopup, setDistrictPopup] = useState(false);
+  const [cityPopupState, setCityPopupState] = useState<string | null>(null);
   const [subcatPopup, setSubcatPopup] = useState<string | null>(null);
-  const [districtSearch, setDistrictSearch] = useState('');
+  const [citySearch, setCitySearch] = useState('');
+  const popupRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!cityPopupState) return;
+    const handler = (e: MouseEvent) => {
+      if (popupRef.current && !popupRef.current.contains(e.target as Node)) {
+        setCityPopupState(null);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [cityPopupState]);
 
   const toggleState = (state: string) => {
     const newStates = filters.states.includes(state)
@@ -96,26 +108,21 @@ export function FilterDrawer({ open, onClose, filters, onFiltersChange, onApply,
     };
   };
 
-  const availableDistricts = useMemo(() => {
-    const base = filters.states.length > 0
-      ? filters.states.flatMap((s) => DISTRICTS[s] || [])
-      : Object.values(DISTRICTS).flat();
-    if (!districtSearch.trim()) return base;
-    return base.filter((d) => d.toLowerCase().includes(districtSearch.toLowerCase()));
-  }, [filters.states, districtSearch]);
-
-  const groupedDistricts = useMemo(() => {
-    const groups: Record<string, string[]> = {};
-    availableDistricts.forEach((d) => {
-      const parent = Object.entries(DISTRICTS).find(([, ds]) => ds.includes(d))?.[0] || 'Other';
-      if (!groups[parent]) groups[parent] = [];
-      groups[parent].push(d);
-    });
-    return groups;
-  }, [availableDistricts]);
+  const getCityPopupDistricts = useMemo(() => {
+    if (!cityPopupState) return [];
+    const base = DISTRICTS[cityPopupState] || [];
+    if (!citySearch.trim()) return base;
+    return base.filter((d) => d.toLowerCase().includes(citySearch.toLowerCase()));
+  }, [cityPopupState, citySearch]);
 
   const clearRegion = () => {
     onFiltersChange({ ...filters, states: [], districts: [] });
+  };
+
+  const removeStateAndItsCities = (state: string) => {
+    const stateCities = DISTRICTS[state] || [];
+    const newDistricts = filters.districts.filter((d) => !stateCities.includes(d));
+    onFiltersChange({ ...filters, states: filters.states.filter((s) => s !== state), districts: newDistricts });
   };
 
   if (!open) return null;
@@ -174,40 +181,50 @@ export function FilterDrawer({ open, onClose, filters, onFiltersChange, onApply,
                   selectedStates={filters.states}
                   onToggleState={toggleState}
                   getStateStats={getStateStats}
+                  onFilterCity={(s) => setCityPopupState(s)}
                 />
               ) : (
-                <div className="bg-slate-50 rounded border border-slate-200 overflow-x-auto max-h-[200px] overflow-y-auto">
+                <div className="bg-slate-50 rounded border border-slate-200 overflow-x-auto max-h-[220px] overflow-y-auto">
                   <table className="w-full text-[11px]">
-                    <thead className="sticky top-0 bg-slate-100 text-slate-500">
+                    <thead className="sticky top-0 bg-slate-200 text-slate-600 shadow-sm z-10">
                       <tr>
-                        <th className="px-1.5 py-1 text-left font-semibold w-6"></th>
-                        <th className="px-1.5 py-1 text-left font-semibold">State</th>
-                        <th className="px-1.5 py-1 text-right font-semibold">Projects</th>
-                        <th className="px-1.5 py-1 text-right font-semibold whitespace-nowrap">Value (₹L)</th>
-                        <th className="px-1.5 py-1 text-right font-semibold whitespace-nowrap">Avg %</th>
-                        <th className="px-1.5 py-1 text-right font-semibold">Delayed</th>
+                        <th className="px-1.5 py-1.5 text-left font-bold w-6"></th>
+                        <th className="px-1.5 py-1.5 text-left font-bold">State</th>
+                        <th className="px-1.5 py-1.5 text-right font-bold">Projects</th>
+                        <th className="px-1.5 py-1.5 text-right font-bold whitespace-nowrap">Value (₹L)</th>
+                        <th className="px-1.5 py-1.5 text-right font-bold whitespace-nowrap">Avg %</th>
+                        <th className="px-1.5 py-1.5 text-right font-bold">Delayed</th>
+                        <th className="px-1.5 py-1.5 text-center font-bold w-16">Cities</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {STATES.map((state) => {
+                      {STATES.map((state, idx) => {
                         const isSelected = filters.states.includes(state);
                         const stats = getStateStats(state);
                         return (
                           <tr
                             key={state}
-                            onClick={() => toggleState(state)}
-                            className={`cursor-pointer border-b border-slate-100 last:border-0 transition-colors ${isSelected ? 'bg-cyan-50' : 'hover:bg-slate-100'}`}
+                            className={`cursor-pointer border-b border-slate-200 last:border-0 transition-colors ${isSelected ? 'bg-cyan-50 border-l-[3px] border-l-cyan-500' : idx % 2 === 0 ? 'bg-white hover:bg-slate-100' : 'bg-slate-50 hover:bg-slate-100'}`}
                           >
-                            <td className="px-1.5 py-1">
+                            <td className="px-1.5 py-1" onClick={() => toggleState(state)}>
                               <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center ${isSelected ? 'bg-cyan-600 border-cyan-600' : 'border-slate-300'}`}>
                                 {isSelected && <Check className="w-2.5 h-2.5 text-white" />}
                               </div>
                             </td>
-                            <td className={`px-1.5 py-1 font-medium ${isSelected ? 'text-cyan-700' : 'text-slate-600'}`}>{state}</td>
-                            <td className="px-1.5 py-1 text-right text-slate-600">{stats.count}</td>
-                            <td className="px-1.5 py-1 text-right text-blue-700 font-medium">{stats.value.toFixed(0)}</td>
-                            <td className="px-1.5 py-1 text-right text-emerald-700">{stats.avgCompletion.toFixed(0)}%</td>
-                            <td className="px-1.5 py-1 text-right text-amber-700">{stats.delayed}</td>
+                            <td className={`px-1.5 py-1 font-semibold ${isSelected ? 'text-cyan-700' : 'text-slate-700'}`} onClick={() => toggleState(state)}>{state}</td>
+                            <td className="px-1.5 py-1 text-right text-slate-600 tabular-nums" onClick={() => toggleState(state)}>{stats.count}</td>
+                            <td className="px-1.5 py-1 text-right text-blue-700 font-semibold tabular-nums" onClick={() => toggleState(state)}>{stats.value.toFixed(0)}</td>
+                            <td className="px-1.5 py-1 text-right text-emerald-700 tabular-nums" onClick={() => toggleState(state)}>{stats.avgCompletion.toFixed(0)}%</td>
+                            <td className="px-1.5 py-1 text-right text-amber-700 tabular-nums" onClick={() => toggleState(state)}>{stats.delayed}</td>
+                            <td className="px-1 py-1 text-center">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setCityPopupState(state); }}
+                                className={`flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded transition-colors mx-auto ${isSelected ? 'text-cyan-700 hover:bg-cyan-100 bg-cyan-50 border border-cyan-200' : 'text-slate-400 hover:bg-slate-200 border border-transparent'}`}
+                              >
+                                <MapPin className="w-2.5 h-2.5" />
+                                Select
+                              </button>
+                            </td>
                           </tr>
                         );
                       })}
@@ -216,25 +233,12 @@ export function FilterDrawer({ open, onClose, filters, onFiltersChange, onApply,
                 </div>
               )}
 
-              <button
-                onClick={() => setDistrictPopup(true)}
-                className="mt-1.5 flex items-center justify-between text-[11px] font-medium text-cyan-700 hover:text-cyan-800 bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 px-2 py-1 rounded transition-colors w-full"
-              >
-                <span>Select Districts / City</span>
-                <span className="flex items-center gap-1">
-                  <span className="bg-cyan-200 text-cyan-800 px-1.5 py-0.5 rounded-full text-[10px] font-bold">
-                    {filters.districts.length}
-                  </span>
-                  <ChevronRight className="w-3 h-3" />
-                </span>
-              </button>
-
-              {/* Selection Summary */}
+              {/* Selected Region Frame */}
               {(filters.states.length > 0 || filters.districts.length > 0) && (
                 <div className="mt-1.5 bg-slate-50 rounded border border-slate-200 p-1.5">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">
-                      {filters.states.length} state{filters.states.length !== 1 ? 's' : ''} · {filters.districts.length} district{filters.districts.length !== 1 ? 's' : ''}
+                    <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wide">
+                      Selected State/Cities
                     </span>
                     <button
                       onClick={clearRegion}
@@ -243,32 +247,40 @@ export function FilterDrawer({ open, onClose, filters, onFiltersChange, onApply,
                       <XCircle className="w-3 h-3" /> Clear Region
                     </button>
                   </div>
-                  {filters.states.length > 0 && (
-                    <div className="mb-1">
-                      <span className="text-[9px] font-semibold text-slate-400 uppercase">States</span>
-                      <div className="flex flex-wrap gap-1 mt-0.5">
-                        {filters.states.map((s) => (
-                          <span key={s} className="flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-cyan-100 text-cyan-700">
+                  <div className="space-y-1">
+                    {filters.states.map((s) => {
+                      const stateCities = (DISTRICTS[s] || []).filter((d) => filters.districts.includes(d));
+                      return (
+                        <div key={s} className="flex items-start gap-1 flex-wrap text-[10px]">
+                          <span className="flex items-center gap-1 font-semibold px-1.5 py-0.5 rounded-full bg-cyan-100 text-cyan-700">
                             {s}
-                            <button onClick={() => toggleState(s)} className="hover:text-red-600"><XCircle className="w-3 h-3" /></button>
+                            <button onClick={() => removeStateAndItsCities(s)} className="hover:text-red-600"><XCircle className="w-3 h-3" /></button>
                           </span>
-                        ))}
+                          {stateCities.map((d) => (
+                            <span key={d} className="flex items-center gap-1">
+                              <ChevronRight className="w-2.5 h-2.5 text-slate-300" />
+                              <span className="flex items-center gap-1 font-medium px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                                {d}
+                                <button onClick={() => toggleDistrict(d)} className="hover:text-red-600"><XCircle className="w-3 h-3" /></button>
+                              </span>
+                            </span>
+                          ))}
+                        </div>
+                      );
+                    })}
+                    {filters.districts.filter((d) => !filters.states.some((s) => (DISTRICTS[s] || []).includes(d))).length > 0 && (
+                      <div className="flex items-start gap-1 flex-wrap text-[10px]">
+                        {filters.districts
+                          .filter((d) => !filters.states.some((s) => (DISTRICTS[s] || []).includes(d)))
+                          .map((d) => (
+                            <span key={d} className="flex items-center gap-1 font-medium px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                              {d}
+                              <button onClick={() => toggleDistrict(d)} className="hover:text-red-600"><XCircle className="w-3 h-3" /></button>
+                            </span>
+                          ))}
                       </div>
-                    </div>
-                  )}
-                  {filters.districts.length > 0 && (
-                    <div>
-                      <span className="text-[9px] font-semibold text-slate-400 uppercase">Districts</span>
-                      <div className="flex flex-wrap gap-1 mt-0.5">
-                        {filters.districts.map((d) => (
-                          <span key={d} className="flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">
-                            {d}
-                            <button onClick={() => toggleDistrict(d)} className="hover:text-red-600"><XCircle className="w-3 h-3" /></button>
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -279,12 +291,13 @@ export function FilterDrawer({ open, onClose, filters, onFiltersChange, onApply,
               <div className="space-y-1">
                 {CATEGORIES.map((cat) => {
                   const isSelected = filters.categories.includes(cat);
+                  const subs = SUBCATEGORIES[cat] || [];
                   return (
-                    <div key={cat}>
+                    <div key={cat} className="bg-slate-50 rounded border border-slate-200 px-1.5 py-1">
                       <div className="flex items-center justify-between">
                         <button
                           onClick={() => toggleCategory(cat)}
-                          className={`flex items-center gap-1.5 text-[11px] ${isSelected ? 'text-cyan-700 font-medium' : 'text-slate-600'}`}
+                          className={`flex items-center gap-1.5 text-[11px] ${isSelected ? 'text-cyan-700 font-semibold' : 'text-slate-600'}`}
                         >
                           <div className={`w-3 h-3 rounded border ${isSelected ? 'bg-cyan-600 border-cyan-600' : 'border-slate-300'}`} />
                           {cat}
@@ -293,12 +306,19 @@ export function FilterDrawer({ open, onClose, filters, onFiltersChange, onApply,
                           onClick={() => setSubcatPopup(subcatPopup === cat ? null : cat)}
                           className="text-[10px] font-medium text-slate-500 hover:text-cyan-700 underline"
                         >
-                          Select Subcategories
+                          All
                         </button>
                       </div>
+                      {/* Inline subcategory pills with scroll arrows */}
+                      <SubcategoryPills
+                        subs={subs}
+                        selected={filters.subcategories}
+                        onToggle={toggleSubcategory}
+                      />
                       {subcatPopup === cat && (
-                        <div className="ml-4 mt-1 p-1.5 bg-slate-50 rounded border border-slate-200">
-                          {(SUBCATEGORIES[cat] || []).map((sub) => {
+                        <div className="mt-1 p-1.5 bg-white rounded border border-slate-200">
+                          <div className="text-[9px] font-semibold text-slate-400 uppercase mb-1">All Subcategories</div>
+                          {subs.map((sub) => {
                             const isSel = filters.subcategories.includes(sub);
                             return (
                               <button
@@ -317,16 +337,6 @@ export function FilterDrawer({ open, onClose, filters, onFiltersChange, onApply,
                   );
                 })}
               </div>
-              {filters.subcategories.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-1.5">
-                  {filters.subcategories.map((sub) => (
-                    <span key={sub} className="flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">
-                      {sub}
-                      <button onClick={() => toggleSubcategory(sub)} className="hover:text-red-600"><XCircle className="w-3 h-3" /></button>
-                    </span>
-                  ))}
-                </div>
-              )}
             </div>
 
             {/* 3. Delay Status Filter */}
@@ -390,82 +400,162 @@ export function FilterDrawer({ open, onClose, filters, onFiltersChange, onApply,
         </div>
       </div>
 
-      {/* District Popup */}
-      {districtPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={() => setDistrictPopup(false)}>
-          <div className="bg-white rounded-lg shadow-2xl max-w-lg w-full mx-4 max-h-[70vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-3 py-2 border-b border-slate-200">
-              <h3 className="text-sm font-semibold text-slate-700">Select Districts / City</h3>
-              <button onClick={() => setDistrictPopup(false)} className="text-slate-400 hover:text-slate-600">
-                <X className="w-4 h-4" />
-              </button>
+      {/* City Popup - positioned panel, not centered overlay */}
+      {cityPopupState && (
+        <div
+          ref={popupRef}
+          className="fixed z-50 bg-white rounded-lg shadow-2xl border border-slate-200 w-72 max-h-[60vh] flex flex-col"
+          style={{
+            right: '420px',
+            top: '120px',
+          }}
+        >
+          <div className="flex items-center justify-between px-3 py-2 border-b border-slate-200 bg-slate-900 text-white rounded-t-lg">
+            <div className="flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5 text-cyan-400" />
+              <h3 className="text-xs font-bold">{cityPopupState} · Cities</h3>
             </div>
+            <button onClick={() => setCityPopupState(null)} className="text-slate-400 hover:text-white">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
 
-            {/* Search bar */}
-            <div className="px-3 py-2 border-b border-slate-100">
-              <div className="relative">
-                <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                <input
-                  type="text"
-                  value={districtSearch}
-                  onChange={(e) => setDistrictSearch(e.target.value)}
-                  placeholder="Search districts..."
-                  className="w-full text-[11px] border border-slate-200 rounded pl-7 pr-2 py-1.5 focus:outline-none focus:border-cyan-400"
-                />
-              </div>
+          <div className="px-2 py-1.5 border-b border-slate-100">
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" />
+              <input
+                type="text"
+                value={citySearch}
+                onChange={(e) => setCitySearch(e.target.value)}
+                placeholder="Search cities..."
+                className="w-full text-[11px] border border-slate-200 rounded pl-6 pr-2 py-1 focus:outline-none focus:border-cyan-400"
+              />
             </div>
+          </div>
 
-            {/* District list grouped by state */}
-            <div className="overflow-y-auto p-2 flex-1">
-              {Object.keys(groupedDistricts).length === 0 ? (
-                <div className="text-center text-[11px] text-slate-400 py-4">No districts found</div>
-              ) : (
-                Object.entries(groupedDistricts).map(([state, dists]) => (
-                  <div key={state} className="mb-2">
-                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wide bg-slate-50 px-2 py-1 rounded mb-1">
-                      {state}
-                    </div>
-                    <div className="space-y-0.5">
-                      {dists.map((d) => {
-                        const isSelected = filters.districts.includes(d);
-                        const stats = getDistrictStats(d);
-                        return (
-                          <button
-                            key={d}
-                            onClick={() => toggleDistrict(d)}
-                            className={`flex items-center gap-2 w-full px-2 py-1 text-[11px] rounded transition-colors ${isSelected ? 'bg-cyan-50 text-cyan-700 font-medium' : 'hover:bg-slate-100 text-slate-600'}`}
-                          >
-                            <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${isSelected ? 'bg-cyan-600 border-cyan-600' : 'border-slate-300'}`}>
-                              {isSelected && <Check className="w-2.5 h-2.5 text-white" />}
-                            </div>
-                            <span className="flex-1 text-left">{d}</span>
-                            <span className="text-slate-400 text-[10px]">{stats.count} proj</span>
-                            <span className="text-blue-700 text-[10px] font-medium">₹{stats.value.toFixed(0)}L</span>
-                            <span className="text-emerald-700 text-[10px] w-8 text-right">{stats.avgCompletion.toFixed(0)}%</span>
-                            {stats.delayed > 0 && <span className="text-amber-700 text-[10px]">{stats.delayed}d</span>}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+          <div className="overflow-y-auto p-1.5 flex-1">
+            {getCityPopupDistricts.length === 0 ? (
+              <div className="text-center text-[11px] text-slate-400 py-4">No cities found</div>
+            ) : (
+              <table className="w-full text-[10px]">
+                <thead className="sticky top-0 bg-slate-100 text-slate-500">
+                  <tr>
+                    <th className="px-1 py-0.5 text-left font-semibold w-5"></th>
+                    <th className="px-1 py-0.5 text-left font-semibold">City</th>
+                    <th className="px-1 py-0.5 text-right font-semibold">Proj</th>
+                    <th className="px-1 py-0.5 text-right font-semibold">₹L</th>
+                    <th className="px-1 py-0.5 text-right font-semibold">%</th>
+                    <th className="px-1 py-0.5 text-right font-semibold">Dly</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {getCityPopupDistricts.map((d, idx) => {
+                    const isSelected = filters.districts.includes(d);
+                    const stats = getDistrictStats(d);
+                    return (
+                      <tr
+                        key={d}
+                        onClick={() => toggleDistrict(d)}
+                        className={`cursor-pointer border-b border-slate-100 last:border-0 transition-colors ${isSelected ? 'bg-cyan-50' : idx % 2 === 0 ? 'bg-white hover:bg-slate-50' : 'bg-slate-50/50 hover:bg-slate-100'}`}
+                      >
+                        <td className="px-1 py-0.5">
+                          <div className={`w-3 h-3 rounded border flex items-center justify-center ${isSelected ? 'bg-cyan-600 border-cyan-600' : 'border-slate-300'}`}>
+                            {isSelected && <Check className="w-2 h-2 text-white" />}
+                          </div>
+                        </td>
+                        <td className={`px-1 py-0.5 font-medium ${isSelected ? 'text-cyan-700' : 'text-slate-600'}`}>{d}</td>
+                        <td className="px-1 py-0.5 text-right text-slate-600 tabular-nums">{stats.count}</td>
+                        <td className="px-1 py-0.5 text-right text-blue-700 font-medium tabular-nums">{stats.value.toFixed(0)}</td>
+                        <td className="px-1 py-0.5 text-right text-emerald-700 tabular-nums">{stats.avgCompletion.toFixed(0)}</td>
+                        <td className="px-1 py-0.5 text-right text-amber-700 tabular-nums">{stats.delayed}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
 
-            <div className="px-3 py-2 border-t border-slate-200 flex items-center justify-between">
-              <span className="text-[11px] text-slate-500">
-                {filters.districts.length} district{filters.districts.length !== 1 ? 's' : ''} selected
-              </span>
-              <button
-                onClick={() => setDistrictPopup(false)}
-                className="bg-cyan-700 text-white text-sm font-medium px-4 py-1.5 rounded hover:bg-cyan-800 transition-colors"
-              >
-                Done
-              </button>
-            </div>
+          <div className="px-2 py-1.5 border-t border-slate-200 flex items-center justify-between bg-slate-50 rounded-b-lg">
+            <span className="text-[10px] text-slate-500">
+              {(DISTRICTS[cityPopupState] || []).filter((d) => filters.districts.includes(d)).length} of {(DISTRICTS[cityPopupState] || []).length} selected
+            </span>
+            <button
+              onClick={() => setCityPopupState(null)}
+              className="bg-cyan-700 text-white text-[11px] font-medium px-3 py-1 rounded hover:bg-cyan-800 transition-colors"
+            >
+              Done
+            </button>
           </div>
         </div>
       )}
     </>
+  );
+}
+
+/* Inline subcategory pills with horizontal scroll arrows */
+function SubcategoryPills({
+  subs,
+  selected,
+  onToggle,
+}: {
+  subs: string[];
+  selected: string[];
+  onToggle: (sub: string) => void;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canLeft, setCanLeft] = useState(false);
+  const [canRight, setCanRight] = useState(false);
+
+  const updateArrows = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanLeft(el.scrollLeft > 4);
+    setCanRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+  };
+
+  useEffect(() => {
+    updateArrows();
+  }, [subs]);
+
+  const scroll = (dir: 'left' | 'right') => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir === 'left' ? -80 : 80, behavior: 'smooth' });
+    setTimeout(updateArrows, 200);
+  };
+
+  return (
+    <div className="flex items-center gap-0.5 mt-1">
+      {canLeft && (
+        <button onClick={() => scroll('left')} className="shrink-0 text-slate-400 hover:text-cyan-600 p-0.5">
+          <ChevronLeft className="w-3 h-3" />
+        </button>
+      )}
+      <div
+        ref={scrollRef}
+        onScroll={updateArrows}
+        className="flex gap-1 overflow-x-auto scrollbar-hide flex-1"
+        style={{ scrollbarWidth: 'none' }}
+      >
+        {subs.map((sub) => {
+          const isSel = selected.includes(sub);
+          return (
+            <button
+              key={sub}
+              onClick={() => onToggle(sub)}
+              className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded-full border transition-colors ${isSel ? 'bg-cyan-600 text-white border-cyan-600 font-medium' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-100'}`}
+            >
+              {sub}
+            </button>
+          );
+        })}
+      </div>
+      {canRight && (
+        <button onClick={() => scroll('right')} className="shrink-0 text-slate-400 hover:text-cyan-600 p-0.5">
+          <ChevronRight className="w-3 h-3" />
+        </button>
+      )}
+    </div>
   );
 }

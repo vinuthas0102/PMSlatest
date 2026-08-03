@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { MapPin } from 'lucide-react';
 import { STATE_PATHS, CONTEXT_PATHS, type StatePath } from '@/lib/indiaStatePaths';
 
 export interface StateStats {
@@ -12,6 +13,7 @@ interface IndiaMapProps {
   selectedStates: string[];
   onToggleState: (state: string) => void;
   getStateStats: (state: string) => StateStats;
+  onFilterCity?: (state: string) => void;
 }
 
 const VB_W = 600;
@@ -22,7 +24,7 @@ function stateAbbrev(name: string): string {
   return name.split(' ').map((w) => w[0]).join('').toUpperCase();
 }
 
-export function IndiaMap({ selectedStates, onToggleState, getStateStats }: IndiaMapProps) {
+export function IndiaMap({ selectedStates, onToggleState, getStateStats, onFilterCity }: IndiaMapProps) {
   const [hovered, setHovered] = useState<string | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
@@ -86,7 +88,6 @@ export function IndiaMap({ selectedStates, onToggleState, getStateStats }: India
   return (
     <div ref={containerRef} className="relative bg-gradient-to-b from-slate-50 to-slate-100 rounded-lg border border-slate-200 p-2">
       <svg viewBox={`-10 -10 ${VB_W + 20} ${VB_H + 20}`} className="w-full h-auto" style={{ maxHeight: '420px' }}>
-        {/* Soft drop shadow under the whole map */}
         <defs>
           <filter id="india-shadow" x="-10%" y="-10%" width="120%" height="120%">
             <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="#0f172a" floodOpacity="0.08" />
@@ -127,14 +128,29 @@ export function IndiaMap({ selectedStates, onToggleState, getStateStats }: India
         </div>
       )}
 
-      <div className="text-[10px] text-slate-400 text-center mt-1">
+      <div className="text-[10px] text-slate-400 text-center mt-0.5">
         Click states to multi-select · Hover for details
       </div>
-      <div className="flex items-center justify-center gap-3 mt-1 text-[10px]">
+      <div className="flex items-center justify-center gap-3 mt-0.5 text-[10px]">
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-cyan-600 inline-block" /> Selected</span>
-        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-sky-200 inline-block" /> Available</span>
-        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-slate-300 inline-block" /> Other</span>
+        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-sky-200 inline-block" /> Unselected</span>
       </div>
+
+      {/* Per-state Filter City action bar */}
+      {selectedStates.length > 0 && onFilterCity && (
+        <div className="mt-1.5 flex flex-wrap gap-1">
+          {selectedStates.map((s) => (
+            <button
+              key={s}
+              onClick={() => onFilterCity(s)}
+              className="flex items-center gap-1 text-[10px] font-medium text-cyan-700 hover:text-cyan-800 bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 px-1.5 py-0.5 rounded transition-colors"
+            >
+              <MapPin className="w-2.5 h-2.5" />
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
