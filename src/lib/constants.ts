@@ -1,5 +1,5 @@
 export const DEPT_ID = 'DEPT-PWD-KAR-2026';
-export const DEPT_NAME = 'Public Works Department - Infra Zone';
+export const DEPT_NAME = 'Engineering Projects (India) Ltd.';
 export const USER_NAME = 'R. Sharma';
 export const USER_ROLE = 'Executive Engineer';
 export const LOGIN_TIME = new Date().toLocaleString('en-IN', {

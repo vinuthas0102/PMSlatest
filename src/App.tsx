@@ -59,7 +59,6 @@ export default function App() {
 
   const [specModalItem, setSpecModalItem] = useState<{ item: BaseEntity; level: Level } | null>(null);
   const [subcategoryModal, setSubcategoryModal] = useState<string | null>(null);
-  const [interfaceMode, setInterfaceMode] = useState<'PMS' | 'CMS'>('PMS');
 
   // Get current level items
   const currentItems = useMemo<BaseEntity[]>(() => {
@@ -263,11 +262,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col">
-      <Header
-        levelLabel={`Dashboard - ${LEVEL_LABELS[navLevel]}`}
-        onToggleInterface={() => setInterfaceMode(interfaceMode === 'PMS' ? 'CMS' : 'PMS')}
-        interfaceMode={interfaceMode}
-      />
+      <Header levelLabel={`Dashboard - ${LEVEL_LABELS[navLevel]}`} />
 
       <StatusBar
         items={currentItems}
