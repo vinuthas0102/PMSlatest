@@ -6,6 +6,7 @@ interface ViewControlsProps {
   onViewTypeChange: (v: ViewType) => void;
   isFiltered: boolean;
   onOpenFilterDrawer: () => void;
+  onClearFilters: () => void;
   levelLabel: string;
 }
 
@@ -21,16 +22,29 @@ export function ViewControls({
   onViewTypeChange,
   isFiltered,
   onOpenFilterDrawer,
+  onClearFilters,
   levelLabel,
 }: ViewControlsProps) {
   return (
-    <div className="flex items-center justify-between px-3 py-1.5 bg-slate-50 border-b border-slate-200">
-      <button
-        onClick={onOpenFilterDrawer}
-        className="text-xs font-medium text-cyan-700 hover:text-cyan-800 hover:underline"
-      >
-        {levelLabel} ({isFiltered ? 'Filtered Data' : 'ALL Data'})
-      </button>
+    <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border-b border-slate-200">
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-bold text-slate-800 tracking-tight">
+          {levelLabel}
+        </span>
+        <span className="text-slate-300">|</span>
+        {isFiltered ? (
+          <button
+            onClick={onClearFilters}
+            className="text-xs font-semibold text-cyan-700 hover:text-cyan-900 underline decoration-cyan-400 decoration-2 underline-offset-2 transition-colors"
+          >
+            Filtered Data (click to show ALL)
+          </button>
+        ) : (
+          <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+            ALL Data
+          </span>
+        )}
+      </div>
 
       <div className="flex items-center gap-2">
         <div className="flex items-center bg-white border border-slate-200 rounded overflow-hidden">

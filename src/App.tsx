@@ -217,6 +217,12 @@ export default function App() {
     setAppliedFilters(DEFAULT_FILTERS);
   }, []);
 
+  const handleClearAllFilters = useCallback(() => {
+    setFilters(DEFAULT_FILTERS);
+    setAppliedFilters(DEFAULT_FILTERS);
+    setStatusFilter(null);
+  }, []);
+
   const isFiltered =
     appliedFilters.states.length > 0 ||
     appliedFilters.districts.length > 0 ||
@@ -275,6 +281,7 @@ export default function App() {
         onViewTypeChange={setViewType}
         isFiltered={isFiltered || !!statusFilter}
         onOpenFilterDrawer={() => setFilterDrawerOpen(true)}
+        onClearFilters={handleClearAllFilters}
         levelLabel={viewType === 'chart' ? 'Chart View' : viewType === 'tile' ? 'Tile View' : viewType === 'table' ? 'Table View' : 'Card View'}
       />
 
