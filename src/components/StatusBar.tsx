@@ -157,35 +157,41 @@ export function StatusBar({ items, activeFilter, onFilterChange }: StatusBarProp
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const total = items.length;
-  const completed = items.filter((i) => i.completed_pct >= 100).length;
-  const active = items.filter((i) => i.completed_pct < 100 && i.completed_pct > 0).length;
-  const inProgress = items.filter((i) => i.completed_pct > 0 && i.completed_pct < 100).length;
-  const delayed = items.filter((i) => i.delay_status !== 'On Time').length;
+  const completedItems = items.filter((i) => i.completed_pct >= 100);
+  const activeItems = items.filter((i) => i.completed_pct < 100 && i.completed_pct > 0);
+  const inProgressItems = items.filter((i) => i.completed_pct > 0 && i.completed_pct < 100);
+  const delayedItems = items.filter((i) => i.delay_status !== 'On Time');
+
+  const completed = completedItems.length;
+  const active = activeItems.length;
+  const inProgress = inProgressItems.length;
+  const delayed = delayedItems.length;
 
   const totalFinancial = items.reduce((s, i) => s + i.mbook_entry, 0);
   const avgCompletion = total > 0 ? items.reduce((s, i) => s + i.completed_pct, 0) / total : 0;
+  const avgOf = (arr: BaseEntity[]) => arr.length > 0 ? arr.reduce((s, i) => s + i.completed_pct, 0) / arr.length : 0;
 
   const stats: Record<string, { count: number; pct: number; value: number }> = {
     total: { count: total, pct: avgCompletion, value: totalFinancial },
     active: {
       count: active,
-      pct: avgCompletion,
-      value: items.filter((i) => i.completed_pct < 100 && i.completed_pct > 0).reduce((s, i) => s + i.mbook_entry, 0),
+      pct: avgOf(activeItems),
+      value: activeItems.reduce((s, i) => s + i.mbook_entry, 0),
     },
     completed: {
       count: completed,
-      pct: 100,
-      value: items.filter((i) => i.completed_pct >= 100).reduce((s, i) => s + i.mbook_entry, 0),
+      pct: completed > 0 ? 100 : 0,
+      value: completedItems.reduce((s, i) => s + i.mbook_entry, 0),
     },
     inprogress: {
       count: inProgress,
-      pct: avgCompletion,
-      value: items.filter((i) => i.completed_pct > 0 && i.completed_pct < 100).reduce((s, i) => s + i.mbook_entry, 0),
+      pct: avgOf(inProgressItems),
+      value: inProgressItems.reduce((s, i) => s + i.mbook_entry, 0),
     },
     delayed: {
       count: delayed,
-      pct: avgCompletion,
-      value: items.filter((i) => i.delay_status !== 'On Time').reduce((s, i) => s + i.mbook_entry, 0),
+      pct: avgOf(delayedItems),
+      value: delayedItems.reduce((s, i) => s + i.mbook_entry, 0),
     },
   };
 

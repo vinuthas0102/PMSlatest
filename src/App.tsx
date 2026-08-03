@@ -161,7 +161,7 @@ export default function App() {
       <Header levelLabel="Project Dashboard" />
 
       <StatusBar
-        items={currentItems}
+        items={filteredItems}
         activeFilter={statusFilter}
         onFilterChange={setStatusFilter}
       />
