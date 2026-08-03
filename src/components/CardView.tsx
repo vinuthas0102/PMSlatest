@@ -5,11 +5,9 @@ import { formatINRShort, delayStatusColor, delayStatusShort } from '@/lib/format
 interface CardViewProps {
   items: BaseEntity[];
   onShowDetails: (item: BaseEntity) => void;
-  onDrillDown: (item: BaseEntity) => void;
-  drillLabel: string;
 }
 
-export function CardView({ items, onShowDetails, onDrillDown, drillLabel }: CardViewProps) {
+export function CardView({ items, onShowDetails }: CardViewProps) {
   if (items.length === 0) {
     return <div className="p-4 text-center text-sm text-slate-500">No items match the current filters.</div>;
   }
@@ -68,12 +66,11 @@ export function CardView({ items, onShowDetails, onDrillDown, drillLabel }: Card
               >
                 <FileText className="w-3 h-3" /> Details
               </button>
-              <button
-                onClick={() => onDrillDown(item)}
-                className="flex items-center gap-1 text-[10px] font-medium text-white bg-slate-700 hover:bg-slate-800 px-1.5 py-1 rounded transition-colors flex-1 justify-center"
+              <span
+                className="flex items-center gap-1 text-[10px] font-medium text-slate-500 bg-slate-100 border border-slate-200 px-1.5 py-1 rounded flex-1 justify-center"
               >
-                {drillLabel} <ChevronRight className="w-3 h-3" />
-              </button>
+                Show CMS WOs <ChevronRight className="w-3 h-3" />
+              </span>
             </div>
           </div>
         );

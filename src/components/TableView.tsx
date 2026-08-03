@@ -6,14 +6,12 @@ import { formatINRShort, delayStatusColor, delayStatusShort } from '@/lib/format
 interface TableViewProps {
   items: BaseEntity[];
   onShowDetails: (item: BaseEntity) => void;
-  onDrillDown: (item: BaseEntity) => void;
-  drillLabel: string;
 }
 
 type SortKey = keyof BaseEntity;
 type SortDir = 'asc' | 'desc';
 
-export function TableView({ items, onShowDetails, onDrillDown, drillLabel }: TableViewProps) {
+export function TableView({ items, onShowDetails }: TableViewProps) {
   const [sortKey, setSortKey] = useState<SortKey>('seq_no');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
 
@@ -108,12 +106,11 @@ export function TableView({ items, onShowDetails, onDrillDown, drillLabel }: Tab
                     >
                       <FileText className="w-3 h-3" />
                     </button>
-                    <button
-                      onClick={() => onDrillDown(item)}
-                      className="flex items-center gap-1 text-[10px] font-medium text-white bg-slate-700 hover:bg-slate-800 px-1.5 py-0.5 rounded transition-colors"
+                    <span
+                      className="flex items-center gap-1 text-[10px] font-medium text-slate-500 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded"
                     >
-                      {drillLabel} <ChevronRight className="w-3 h-3" />
-                    </button>
+                      Show CMS WOs <ChevronRight className="w-3 h-3" />
+                    </span>
                   </div>
                 </td>
               </tr>

@@ -7,7 +7,6 @@ import type {
 import { Header } from '@/components/Header';
 import { StatusBar } from '@/components/StatusBar';
 import { ViewControls } from '@/components/ViewControls';
-import { BreadcrumbTiles } from '@/components/BreadcrumbTiles';
 import { ChartView } from '@/components/ChartView';
 import { TileView } from '@/components/TileView';
 import { TableView } from '@/components/TableView';
@@ -15,23 +14,6 @@ import { CardView } from '@/components/CardView';
 import { FilterDrawer } from '@/components/FilterDrawer';
 import { SpecModal } from '@/components/SpecModal';
 import { SubcategoryModal } from '@/components/SubcategoryModal';
-import { TrackingScreen } from '@/components/TrackingScreen';
-
-type NavLevel = 'project' | 'wo' | 'schedule' | 'tracking';
-
-const LEVEL_LABELS: Record<NavLevel, string> = {
-  project: 'Project Level',
-  wo: 'WO Level',
-  schedule: 'Schedule Level',
-  tracking: 'Tracking Level',
-};
-
-const DRILL_LABELS: Record<NavLevel, string> = {
-  project: 'Show WOs',
-  wo: 'Show Schedules',
-  schedule: 'Show Tracking',
-  tracking: '',
-};
 
 const DEFAULT_FILTERS: Filters = {
   states: [],
@@ -46,11 +28,6 @@ const DEFAULT_FILTERS: Filters = {
 export default function App() {
   const { data, loading, error } = useDashboardData();
 
-  const [navLevel, setNavLevel] = useState<NavLevel>('project');
-  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
-  const [activeWorkOrderId, setActiveWorkOrderId] = useState<string | null>(null);
-  const [activeScheduleId, setActiveScheduleId] = useState<string | null>(null);
-
   const [viewType, setViewType] = useState<ViewType>('chart');
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
@@ -60,18 +37,11 @@ export default function App() {
   const [specModalItem, setSpecModalItem] = useState<{ item: BaseEntity; level: Level } | null>(null);
   const [subcategoryModal, setSubcategoryModal] = useState<string | null>(null);
 
-  // Get current level items
+  // Project-level items only
   const currentItems = useMemo<BaseEntity[]>(() => {
     if (!data) return [];
-    if (navLevel === 'project') return data.projects;
-    if (navLevel === 'wo') {
-      return data.workOrders.filter((w) => w.project_id === activeProjectId);
-    }
-    if (navLevel === 'schedule') {
-      return data.schedules.filter((s) => s.work_order_id === activeWorkOrderId);
-    }
-    return [];
-  }, [data, navLevel, activeProjectId, activeWorkOrderId]);
+    return data.projects;
+  }, [data]);
 
   // Apply status DP filter
   const statusFilteredItems = useMemo(() => {
@@ -133,79 +103,9 @@ export default function App() {
     return result;
   }, [statusFilteredItems, appliedFilters]);
 
-  // Parent breadcrumb items
-  const parentItems = useMemo(() => {
-    if (!data) return [];
-    const parents: { label: string; item: BaseEntity; level: string }[] = [];
-    if (navLevel === 'wo' && activeProjectId) {
-      const p = data.projects.find((p) => p.id === activeProjectId);
-      if (p) parents.push({ label: 'Project', item: p, level: 'project' });
-    }
-    if (navLevel === 'schedule') {
-      if (activeProjectId) {
-        const p = data.projects.find((p) => p.id === activeProjectId);
-        if (p) parents.push({ label: 'Project', item: p, level: 'project' });
-      }
-      if (activeWorkOrderId) {
-        const w = data.workOrders.find((w) => w.id === activeWorkOrderId);
-        if (w) parents.push({ label: 'WO', item: w, level: 'wo' });
-      }
-    }
-    if (navLevel === 'tracking') {
-      if (activeProjectId) {
-        const p = data.projects.find((p) => p.id === activeProjectId);
-        if (p) parents.push({ label: 'Project', item: p, level: 'project' });
-      }
-      if (activeWorkOrderId) {
-        const w = data.workOrders.find((w) => w.id === activeWorkOrderId);
-        if (w) parents.push({ label: 'WO', item: w, level: 'wo' });
-      }
-      if (activeScheduleId) {
-        const s = data.schedules.find((s) => s.id === activeScheduleId);
-        if (s) parents.push({ label: 'Schedule', item: s, level: 'schedule' });
-      }
-    }
-    return parents;
-  }, [data, navLevel, activeProjectId, activeWorkOrderId, activeScheduleId]);
-
-  const handleDrillDown = useCallback((item: BaseEntity) => {
-    if (navLevel === 'project') {
-      setActiveProjectId(item.id);
-      setActiveWorkOrderId(null);
-      setActiveScheduleId(null);
-      setNavLevel('wo');
-    } else if (navLevel === 'wo') {
-      setActiveWorkOrderId(item.id);
-      setActiveScheduleId(null);
-      setNavLevel('schedule');
-    } else if (navLevel === 'schedule') {
-      setActiveScheduleId(item.id);
-      setNavLevel('tracking');
-    }
-    setStatusFilter(null);
-  }, [navLevel]);
-
-  const handleBack = useCallback((level: string) => {
-    if (level === 'project') {
-      setNavLevel('project');
-      setActiveProjectId(null);
-      setActiveWorkOrderId(null);
-      setActiveScheduleId(null);
-    } else if (level === 'wo') {
-      setNavLevel('wo');
-      setActiveWorkOrderId(null);
-      setActiveScheduleId(null);
-    } else if (level === 'schedule') {
-      setNavLevel('schedule');
-      setActiveScheduleId(null);
-    }
-    setStatusFilter(null);
+  const handleShowDetails = useCallback((item: BaseEntity) => {
+    setSpecModalItem({ item, level: 'project' });
   }, []);
-
-  const handleShowDetails = useCallback((item: BaseEntity, level?: string) => {
-    const lvl: Level = (level as Level) || navLevel;
-    setSpecModalItem({ item, level: lvl });
-  }, [navLevel]);
 
   const handleApplyFilters = useCallback(() => {
     setAppliedFilters(filters);
@@ -231,16 +131,6 @@ export default function App() {
     appliedFilters.delayStatuses.length > 0 ||
     Boolean(appliedFilters.startMonth) ||
     Boolean(appliedFilters.endMonth);
-
-  const trackingEntries = useMemo(() => {
-    if (!data || navLevel !== 'tracking' || !activeScheduleId) return [];
-    return data.trackingEntries.filter((t) => t.schedule_id === activeScheduleId);
-  }, [data, navLevel, activeScheduleId]);
-
-  const activeSchedule = useMemo(() => {
-    if (!data || !activeScheduleId) return null;
-    return data.schedules.find((s) => s.id === activeScheduleId);
-  }, [data, activeScheduleId]);
 
   const allSpecs: Spec[] = data?.specs ?? [];
 
@@ -268,7 +158,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col">
-      <Header levelLabel={`Dashboard - ${LEVEL_LABELS[navLevel]}`} />
+      <Header levelLabel="Project Dashboard" />
 
       <StatusBar
         items={currentItems}
@@ -285,54 +175,31 @@ export default function App() {
         levelLabel={viewType === 'chart' ? 'Chart View' : viewType === 'tile' ? 'Tile View' : viewType === 'table' ? 'Table View' : 'Card View'}
       />
 
-      <BreadcrumbTiles
-        parents={parentItems}
-        onBack={handleBack}
-        onShowDetails={(item, level) => handleShowDetails(item, level)}
-      />
-
       {/* Main Content */}
       <div className="flex-1">
-        {navLevel === 'tracking' ? (
-          <TrackingScreen
-            trackingEntries={trackingEntries}
-            specs={allSpecs}
-            scheduleSeqNo={activeSchedule?.seq_no ?? ''}
-            scheduleTitle={activeSchedule?.title ?? ''}
+        {viewType === 'chart' && (
+          <ChartView
+            items={filteredItems}
+            onCategoryClick={(cat) => setSubcategoryModal(cat)}
           />
-        ) : (
-          <>
-            {viewType === 'chart' && (
-              <ChartView
-                items={filteredItems}
-                onCategoryClick={(cat) => setSubcategoryModal(cat)}
-              />
-            )}
-            {viewType === 'tile' && (
-              <TileView
-                items={filteredItems}
-                onShowDetails={(item) => handleShowDetails(item)}
-                onDrillDown={handleDrillDown}
-                drillLabel={DRILL_LABELS[navLevel]}
-              />
-            )}
-            {viewType === 'table' && (
-              <TableView
-                items={filteredItems}
-                onShowDetails={(item) => handleShowDetails(item)}
-                onDrillDown={handleDrillDown}
-                drillLabel={DRILL_LABELS[navLevel]}
-              />
-            )}
-            {viewType === 'card' && (
-              <CardView
-                items={filteredItems}
-                onShowDetails={(item) => handleShowDetails(item)}
-                onDrillDown={handleDrillDown}
-                drillLabel={DRILL_LABELS[navLevel]}
-              />
-            )}
-          </>
+        )}
+        {viewType === 'tile' && (
+          <TileView
+            items={filteredItems}
+            onShowDetails={(item) => handleShowDetails(item)}
+          />
+        )}
+        {viewType === 'table' && (
+          <TableView
+            items={filteredItems}
+            onShowDetails={(item) => handleShowDetails(item)}
+          />
+        )}
+        {viewType === 'card' && (
+          <CardView
+            items={filteredItems}
+            onShowDetails={(item) => handleShowDetails(item)}
+          />
         )}
       </div>
 

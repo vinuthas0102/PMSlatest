@@ -5,8 +5,6 @@ import { formatINRShort, delayStatusColor, delayStatusShort } from '@/lib/format
 interface TileViewProps {
   items: BaseEntity[];
   onShowDetails: (item: BaseEntity) => void;
-  onDrillDown: (item: BaseEntity) => void;
-  drillLabel: string;
 }
 
 interface MiniColumnProps {
@@ -33,7 +31,7 @@ function MiniColumn({ label, value, max, color, textColor }: MiniColumnProps) {
   );
 }
 
-export function TileView({ items, onShowDetails, onDrillDown, drillLabel }: TileViewProps) {
+export function TileView({ items, onShowDetails }: TileViewProps) {
   if (items.length === 0) {
     return <div className="p-4 text-center text-sm text-slate-500">No items match the current filters.</div>;
   }
@@ -125,12 +123,11 @@ export function TileView({ items, onShowDetails, onDrillDown, drillLabel }: Tile
               >
                 <FileText className="w-3 h-3" /> Show Details
               </button>
-              <button
-                onClick={() => onDrillDown(item)}
-                className="flex items-center gap-1 text-[10px] font-medium text-white bg-slate-700 hover:bg-slate-800 px-2 py-1 rounded transition-colors"
+              <span
+                className="flex items-center gap-1 text-[10px] font-medium text-slate-500 bg-slate-100 border border-slate-200 px-2 py-1 rounded"
               >
-                {drillLabel} <ChevronRight className="w-3 h-3" />
-              </button>
+                Show CMS WOs <ChevronRight className="w-3 h-3" />
+              </span>
             </div>
           </div>
         );
