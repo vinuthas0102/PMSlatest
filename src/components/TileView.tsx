@@ -39,7 +39,7 @@ export function TileView({ items, onShowDetails, onDrillDown, drillLabel }: Tile
   }
 
   return (
-    <div className="flex flex-col gap-1.5 p-2">
+    <div className="flex flex-col gap-4 p-4">
       {items.map((item) => {
         const colors = delayStatusColor(item.delay_status);
         const balance = item.mbook_entry - item.paid_amount;
@@ -47,7 +47,7 @@ export function TileView({ items, onShowDetails, onDrillDown, drillLabel }: Tile
         const targetPct = Math.min(item.target_pct, 100);
 
         return (
-          <div key={item.id} className="mirror-card rounded p-2">
+          <div key={item.id} className="mirror-card rounded p-4">
             {/* Line 1: Header */}
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[10px] font-mono font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
@@ -69,7 +69,7 @@ export function TileView({ items, onShowDetails, onDrillDown, drillLabel }: Tile
             </div>
 
             {/* Line 2: Physical Progress + deviation badges */}
-            <div className="flex items-center gap-3 mt-1.5">
+            <div className="flex items-center gap-3 mt-3">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between text-[10px] text-slate-500 mb-0.5">
                   <span className="font-medium text-slate-600">Physical Progress</span>
@@ -107,7 +107,7 @@ export function TileView({ items, onShowDetails, onDrillDown, drillLabel }: Tile
             </div>
 
             {/* Line 3: Financial Mini Bar Charts (Vertical Columns) */}
-            <div className="mt-1.5 bg-slate-50/70 rounded px-3 py-1.5 border border-slate-100 flex items-center gap-4">
+            <div className="mt-3 bg-slate-50/70 rounded px-3 py-2 border border-slate-100 flex items-center gap-4">
               <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider shrink-0">Financial</span>
               <div className="flex items-end gap-3">
                 <MiniColumn label="MBook" value={item.mbook_entry} max={item.mbook_entry} color="bg-blue-600" textColor="text-blue-700" />
@@ -118,7 +118,7 @@ export function TileView({ items, onShowDetails, onDrillDown, drillLabel }: Tile
             </div>
 
             {/* Line 4: Action Bar */}
-            <div className="flex items-center gap-1.5 mt-1.5">
+            <div className="flex items-center gap-1.5 mt-3">
               <button
                 onClick={() => onShowDetails(item)}
                 className="flex items-center gap-1 text-[10px] font-medium text-cyan-700 hover:text-cyan-800 bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 px-2 py-1 rounded transition-colors"
