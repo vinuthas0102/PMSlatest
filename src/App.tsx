@@ -117,6 +117,16 @@ export default function App() {
     setAppliedFilters(DEFAULT_FILTERS);
   }, []);
 
+  const handleToggleChartSelection = useCallback((field: 'states' | 'categories' | 'delayStatuses', value: string) => {
+    setFilters((prev) => {
+      const arr = prev[field] as string[];
+      const next = arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value];
+      const updated = { ...prev, [field]: next } as Filters;
+      setAppliedFilters(updated);
+      return updated;
+    });
+  }, []);
+
   const handleClearAllFilters = useCallback(() => {
     setFilters(DEFAULT_FILTERS);
     setAppliedFilters(DEFAULT_FILTERS);
@@ -180,7 +190,10 @@ export default function App() {
         {viewType === 'chart' && (
           <ChartView
             items={filteredItems}
-            onCategoryClick={(cat) => setSubcategoryModal(cat)}
+            selectedStates={appliedFilters.states}
+            selectedCategories={appliedFilters.categories}
+            selectedDelayStatuses={appliedFilters.delayStatuses}
+            onToggleSelection={handleToggleChartSelection}
           />
         )}
         {viewType === 'tile' && (
