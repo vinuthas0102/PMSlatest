@@ -25,31 +25,6 @@ export function Header({ levelLabel, activeScreen, onScreenChange }: HeaderProps
         </div>
 
         <div className="flex items-center gap-4 shrink-0">
-          <div className="flex items-center gap-1 bg-blue-800/60 rounded-lg p-0.5 border border-blue-400/30">
-            <button
-              onClick={() => onScreenChange('dashboard')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                activeScreen === 'dashboard'
-                  ? 'bg-white text-blue-700 shadow-sm'
-                  : 'text-blue-100 hover:bg-blue-700/50'
-              }`}
-            >
-              <LayoutDashboard className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Dashboard</span>
-            </button>
-            <button
-              onClick={() => onScreenChange('maintenance')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                activeScreen === 'maintenance'
-                  ? 'bg-white text-blue-700 shadow-sm'
-                  : 'text-blue-100 hover:bg-blue-700/50'
-              }`}
-            >
-              <Wrench className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Maintenance</span>
-            </button>
-          </div>
-
           <div className="hidden lg:flex items-center gap-2 text-sm text-blue-100">
             <User className="w-4 h-4 text-cyan-300" />
             <span className="font-medium">{USER_NAME}</span>
@@ -58,6 +33,20 @@ export function Header({ levelLabel, activeScreen, onScreenChange }: HeaderProps
             <Clock className="w-4 h-4 text-blue-200" />
             <span>{LOGIN_TIME}</span>
           </div>
+          <button
+            onClick={() => onScreenChange(activeScreen === 'dashboard' ? 'maintenance' : 'dashboard')}
+            title={activeScreen === 'dashboard' ? 'Switch to Maintenance' : 'Switch to Dashboard'}
+            aria-label={activeScreen === 'dashboard' ? 'Switch to Maintenance' : 'Switch to Dashboard'}
+            className={`flex items-center justify-center w-9 h-9 rounded-lg border transition-all ${
+              activeScreen === 'maintenance'
+                ? 'bg-white text-blue-700 border-white shadow-sm'
+                : 'bg-blue-800/60 text-blue-100 border-blue-400/30 hover:bg-blue-700/50'
+            }`}
+          >
+            {activeScreen === 'maintenance'
+              ? <LayoutDashboard className="w-4 h-4" />
+              : <Wrench className="w-4 h-4" />}
+          </button>
         </div>
       </div>
     </header>
