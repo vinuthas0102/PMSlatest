@@ -182,6 +182,7 @@ export function FilterDrawer({ open, onClose, filters, onFiltersChange, onApply,
                   onToggleState={toggleState}
                   getStateStats={getStateStats}
                   onFilterCity={(s) => setCityPopupState(s)}
+                  selectedCityCountFor={(s) => (DISTRICTS[s] || []).filter((d) => filters.districts.includes(d)).length}
                 />
               ) : (
                 <div className="bg-slate-50 rounded border border-slate-200 overflow-x-auto max-h-[220px] overflow-y-auto">

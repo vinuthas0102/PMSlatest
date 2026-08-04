@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { MapPin } from 'lucide-react';
+import { MapPin, ChevronRight } from 'lucide-react';
 import { STATE_PATHS, CONTEXT_PATHS, type StatePath } from '@/lib/indiaStatePaths';
 
 export interface StateStats {
@@ -14,6 +14,7 @@ interface IndiaMapProps {
   onToggleState: (state: string) => void;
   getStateStats: (state: string) => StateStats;
   onFilterCity?: (state: string) => void;
+  selectedCityCountFor?: (state: string) => number;
 }
 
 const VB_W = 600;
@@ -24,7 +25,7 @@ function stateAbbrev(name: string): string {
   return name.split(' ').map((w) => w[0]).join('').toUpperCase();
 }
 
-export function IndiaMap({ selectedStates, onToggleState, getStateStats, onFilterCity }: IndiaMapProps) {
+export function IndiaMap({ selectedStates, onToggleState, getStateStats, onFilterCity, selectedCityCountFor }: IndiaMapProps) {
   const [hovered, setHovered] = useState<string | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
@@ -136,19 +137,40 @@ export function IndiaMap({ selectedStates, onToggleState, getStateStats, onFilte
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-sky-200 inline-block" /> Unselected</span>
       </div>
 
-      {/* Per-state Filter City action bar */}
+      {/* Drill-down: pick cities within a selected state */}
       {selectedStates.length > 0 && onFilterCity && (
-        <div className="mt-1.5 flex flex-wrap gap-1">
-          {selectedStates.map((s) => (
-            <button
-              key={s}
-              onClick={() => onFilterCity(s)}
-              className="flex items-center gap-1 text-[10px] font-medium text-cyan-700 hover:text-cyan-800 bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 px-1.5 py-0.5 rounded transition-colors"
-            >
-              <MapPin className="w-2.5 h-2.5" />
-              {s}
-            </button>
-          ))}
+        <div className="mt-2 bg-slate-50 rounded-lg border border-slate-200 p-2">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <MapPin className="w-3.5 h-3.5 text-cyan-600" />
+            <span className="text-[11px] font-bold text-slate-700">Drill down by city</span>
+            <span className="text-[10px] text-slate-400">— tap a state to choose its cities</span>
+          </div>
+          <div className="space-y-1">
+            {selectedStates.map((s) => {
+              const cityCount = selectedCityCountFor ? selectedCityCountFor(s) : 0;
+              const hasCities = cityCount > 0;
+              return (
+                <button
+                  key={s}
+                  onClick={() => onFilterCity(s)}
+                  className={`group flex items-center justify-between w-full px-2 py-1.5 rounded-md border transition-all ${hasCities ? 'bg-cyan-50 border-cyan-300 hover:border-cyan-400' : 'bg-white border-slate-200 hover:border-cyan-300 hover:bg-cyan-50/50'}`}
+                >
+                  <span className="flex items-center gap-1.5">
+                    <span className={`text-[11px] font-semibold ${hasCities ? 'text-cyan-700' : 'text-slate-700'}`}>{s}</span>
+                    {hasCities && (
+                      <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-cyan-600 text-white">
+                        {cityCount} {cityCount === 1 ? 'city' : 'cities'}
+                      </span>
+                    )}
+                  </span>
+                  <span className={`flex items-center gap-1 text-[10px] font-medium ${hasCities ? 'text-cyan-700' : 'text-slate-400 group-hover:text-cyan-600'}`}>
+                    {hasCities ? 'Edit cities' : 'Pick cities'}
+                    <ChevronRight className="w-3 h-3" />
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
