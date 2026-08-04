@@ -58,39 +58,9 @@ export default function App() {
     return data.projects;
   }, [data]);
 
-  // Apply status DP filter
-  const statusFilteredItems = useMemo(() => {
-    if (!statusFilter) return currentItems;
-    const statusMap: Record<string, DelayStatus | null> = {
-      total: null,
-      active: null,
-      completed: null,
-      inprogress: null,
-      delayed: null,
-      'On Time': 'On Time',
-      'Delayed - Warning': 'Delayed - Warning',
-      'Delayed - Serious': 'Delayed - Serious',
-      'Delayed - Critical': 'Delayed - Critical',
-    };
-    const mappedStatus = statusMap[statusFilter];
-    if (mappedStatus) {
-      return currentItems.filter((i) => i.delay_status === mappedStatus);
-    }
-    if (statusFilter === 'completed') {
-      return currentItems.filter((i) => i.completed_pct >= 100);
-    }
-    if (statusFilter === 'active' || statusFilter === 'inprogress') {
-      return currentItems.filter((i) => i.completed_pct > 0 && i.completed_pct < 100);
-    }
-    if (statusFilter === 'delayed') {
-      return currentItems.filter((i) => i.delay_status !== 'On Time');
-    }
-    return currentItems;
-  }, [currentItems, statusFilter]);
-
-  // Apply drawer filters
-  const filteredItems = useMemo(() => {
-    let result = statusFilteredItems;
+  // Apply drawer filters to the full set (for StatusBar cards — always shows overall totals)
+  const drawerFilteredItems = useMemo(() => {
+    let result = currentItems;
     const f = appliedFilters;
     if (f.states.length > 0) {
       result = result.filter((i) => f.states.includes(i.state));
@@ -116,7 +86,31 @@ export default function App() {
       result = result.filter((i) => i.start_date && new Date(i.start_date) <= endDate);
     }
     return result;
-  }, [statusFilteredItems, appliedFilters]);
+  }, [currentItems, appliedFilters]);
+
+  // Apply status DP filter on top of drawer filters (for main content views)
+  const filteredItems = useMemo(() => {
+    if (!statusFilter) return drawerFilteredItems;
+    if (statusFilter === 'completed') {
+      return drawerFilteredItems.filter((i) => i.completed_pct >= 100);
+    }
+    if (statusFilter === 'active' || statusFilter === 'inprogress') {
+      return drawerFilteredItems.filter((i) => i.completed_pct > 0 && i.completed_pct < 100);
+    }
+    if (statusFilter === 'delayed') {
+      return drawerFilteredItems.filter((i) => i.delay_status !== 'On Time');
+    }
+    const delayStatusMap: Record<string, DelayStatus> = {
+      'On Time': 'On Time',
+      'Delayed - Warning': 'Delayed - Warning',
+      'Delayed - Serious': 'Delayed - Serious',
+      'Delayed - Critical': 'Delayed - Critical',
+    };
+    if (delayStatusMap[statusFilter]) {
+      return drawerFilteredItems.filter((i) => i.delay_status === delayStatusMap[statusFilter]);
+    }
+    return drawerFilteredItems;
+  }, [drawerFilteredItems, statusFilter]);
 
   const handleShowDetails = useCallback((item: BaseEntity) => {
     if (activeScreen === 'maintenance') {
@@ -251,7 +245,7 @@ export default function App() {
       <Header levelLabel={levelLabel} activeScreen={activeScreen} onScreenChange={handleScreenChange} />
 
       <StatusBar
-        items={filteredItems}
+        items={drawerFilteredItems}
         activeFilter={statusFilter}
         onFilterChange={setStatusFilter}
       />
