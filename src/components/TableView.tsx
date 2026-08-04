@@ -39,7 +39,7 @@ export function TableView({ items, onShowDetails, onCreateNew }: TableViewProps)
 
   const columns: { key: SortKey; label: string; align?: 'left' | 'right' }[] = [
     { key: 'seq_no', label: 'Seq #' },
-    { key: 'title', label: 'Title' },
+    { key: 'title', label: 'Project Name' },
     { key: 'state', label: 'State' },
     { key: 'district', label: 'District' },
     { key: 'category', label: 'Category' },
@@ -103,13 +103,22 @@ export function TableView({ items, onShowDetails, onCreateNew }: TableViewProps)
                 <td className="px-2 py-1.5 text-slate-600 whitespace-nowrap">{item.category}</td>
                 <td className="px-2 py-1.5 whitespace-nowrap">
                   <div className="flex items-center justify-end gap-1.5">
-                    <div className="w-16 h-2 bg-slate-200 rounded-full overflow-hidden">
+                    <div className="w-16 h-2 bg-slate-200 rounded-full overflow-hidden relative">
                       <div
                         className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-blue-600"
                         style={{ width: `${item.completed_pct}%` }}
                       />
+                      {item.target_pct > 0 && (
+                        <div
+                          className="absolute top-0 bottom-0 w-0.5 bg-slate-500"
+                          style={{ left: `${Math.min(item.target_pct, 100)}%` }}
+                        />
+                      )}
                     </div>
                     <span className="text-slate-700 font-medium tabular-nums">{item.completed_pct.toFixed(0)}%</span>
+                    {item.target_pct > 0 && (
+                      <span className="text-slate-400 text-[10px] tabular-nums">/ {item.target_pct.toFixed(0)}%</span>
+                    )}
                   </div>
                 </td>
                 <td className="px-2 py-1.5 whitespace-nowrap">

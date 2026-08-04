@@ -103,7 +103,10 @@ export function TileView({ items, onShowDetails, onCreateNew }: TileViewProps) {
             <div className="bg-slate-50/80 rounded px-3 py-2 border border-slate-200">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[9px] font-semibold text-slate-500 uppercase tracking-wider">Financial Progress</span>
-                <span className="text-[9px] font-semibold text-slate-400">MBook: {formatINRShort(item.mbook_entry)}</span>
+                <span className="text-[9px] font-semibold text-slate-400">
+                  {item.mbook_entry > 0 ? ((item.paid_amount / item.mbook_entry) * 100).toFixed(0) : 0}% <span className="text-slate-400">/ target {item.target_pct.toFixed(0)}%</span>
+                  <span className="ml-2 text-slate-400">MBook: {formatINRShort(item.mbook_entry)}</span>
+                </span>
               </div>
               {/* Stacked bar */}
               <div className="flex h-4 rounded-full overflow-hidden border border-slate-200 bg-slate-100">

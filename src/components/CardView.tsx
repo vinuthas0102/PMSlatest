@@ -68,19 +68,38 @@ export function CardView({ items, onShowDetails, onCreateNew }: CardViewProps) {
             {/* Physical Progress */}
             <div>
               <div className="flex items-center justify-between text-[10px] text-slate-500 mb-0.5">
-                <span>Progress</span>
+                <span className="inline-flex items-center gap-1">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-cyan-500" />
+                  <span className="font-semibold text-slate-600">Physical Progress</span>
+                </span>
                 <span className="font-semibold text-slate-700">{item.completed_pct.toFixed(0)}%</span>
               </div>
-              <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-2 bg-slate-100 rounded-full overflow-hidden relative">
                 <div
                   className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-blue-600"
                   style={{ width: `${item.completed_pct}%` }}
                 />
+                {item.target_pct > 0 && (
+                  <div
+                    className="absolute top-0 bottom-0 w-0.5 bg-slate-500"
+                    style={{ left: `${Math.min(item.target_pct, 100)}%` }}
+                  />
+                )}
               </div>
+              {item.target_pct > 0 && (
+                <div className="text-right text-[9px] text-slate-400 mt-0.5">Target: {item.target_pct.toFixed(0)}%</div>
+              )}
             </div>
 
             {/* Financial: single stacked bar */}
             <div className="bg-slate-50/80 rounded px-2 py-1.5 border border-slate-200">
+              <div className="flex items-center justify-between text-[10px] text-slate-500 mb-0.5">
+                <span className="inline-flex items-center gap-1">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <span className="font-semibold text-slate-600">Financial Progress</span>
+                </span>
+                <span className="font-semibold text-slate-700">{item.mbook_entry > 0 ? ((item.paid_amount / item.mbook_entry) * 100).toFixed(0) : 0}%</span>
+              </div>
               <div className="flex h-3 rounded-full overflow-hidden border border-slate-200 bg-slate-100">
                 {paidPct > 0 && (
                   <div className="bg-emerald-500 transition-all duration-500" style={{ width: `${paidPct}%` }} />
@@ -106,6 +125,7 @@ export function CardView({ items, onShowDetails, onCreateNew }: CardViewProps) {
                   <span className="font-semibold text-rose-600">{formatINRShort(balance)}</span>
                 </span>
               </div>
+              <div className="text-right text-[9px] text-slate-400 mt-0.5">Target: {formatINRShort(item.mbook_entry)}</div>
             </div>
 
             {/* Actions */}
