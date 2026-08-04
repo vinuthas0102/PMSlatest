@@ -98,7 +98,12 @@ export function CardView({ items, onShowDetails, onCreateNew }: CardViewProps) {
                   <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
                   <span className="font-semibold text-slate-600">Financial Progress</span>
                 </span>
-                <span className="font-semibold text-slate-700">{item.mbook_entry > 0 ? ((item.paid_amount / item.mbook_entry) * 100).toFixed(0) : 0}%</span>
+                <span className="font-semibold text-slate-700">
+                  {item.mbook_entry > 0 ? ((item.paid_amount / item.mbook_entry) * 100).toFixed(0) : 0}%
+                  {item.target_pct > 0 && (
+                    <span className="text-slate-400 font-normal ml-1">/ target {item.target_pct.toFixed(0)}%</span>
+                  )}
+                </span>
               </div>
               <div className="flex h-3 rounded-full overflow-hidden border border-slate-200 bg-slate-100">
                 {paidPct > 0 && (
