@@ -10,7 +10,7 @@ import type {
   AuditLogEntry,
 } from '@/types';
 
-const LOADING_KEY = 'pms_data_v5';
+const LOADING_KEY = 'pms_data_v6';
 
 const SPECS_PAGE_SIZE = 1000;
 
