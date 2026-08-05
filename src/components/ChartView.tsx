@@ -563,7 +563,7 @@ export function ChartView({
         <ChartCard title="Financial Progress (%)" chartType={chart3Type} onChartTypeChange={setChart3Type} subtitle={`Total Project Value: ${formatINR(totalProjectValue)}`}>
           {chart3Type === 'bar' ? renderBar(financialData, false, true) : renderPie(financialData, false, true)}
         </ChartCard>
-        <ChartCard title="Delivery Status" chartType={chart2Type} onChartTypeChange={setChart2Type} selectedCount={selectedDelayStatuses.length}>
+        <ChartCard title="Schedule Status" chartType={chart2Type} onChartTypeChange={setChart2Type} selectedCount={selectedDelayStatuses.length}>
           {chart2Type === 'bar' ? renderBar(deliveryData) : renderPie(deliveryData)}
         </ChartCard>
         <ChartCard title="Category-wise" chartType={chart5Type} onChartTypeChange={setChart5Type} selectedCount={selectedCategories.length}>

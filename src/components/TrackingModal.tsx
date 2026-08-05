@@ -22,7 +22,7 @@ interface TrackingModalProps {
 const TABS: { key: TrackingType; label: string; icon: typeof Clock; color: string }[] = [
   { key: 'delay', label: 'Track Delay', icon: Clock, color: 'text-rose-600' },
   { key: 'quantity', label: 'Quantity Deviation', icon: Ruler, color: 'text-orange-600' },
-  { key: 'delivery', label: 'Delivery Deviation', icon: Truck, color: 'text-amber-600' },
+  { key: 'delivery', label: 'Schedule Deviation', icon: Truck, color: 'text-amber-600' },
   { key: 'spec', label: 'Spec Deviation', icon: FileText, color: 'text-cyan-600' },
   { key: 'price', label: 'Price Escalation', icon: TrendingUp, color: 'text-emerald-600' },
 ];

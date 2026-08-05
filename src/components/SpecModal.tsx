@@ -27,7 +27,7 @@ const DEVIATION_TABS: { key: TrackingType; label: string; icon: typeof Clock; co
   { key: 'quantity', label: 'Qty Deviations', icon: Ruler, color: 'text-orange-600' },
   { key: 'price', label: 'Price Escalations', icon: TrendingUp, color: 'text-emerald-600' },
   { key: 'delay', label: 'Delay / Extension', icon: Clock, color: 'text-rose-600' },
-  { key: 'delivery', label: 'Delivery Deviations', icon: Truck, color: 'text-amber-600' },
+  { key: 'delivery', label: 'Schedule Deviations', icon: Truck, color: 'text-amber-600' },
 ];
 
 function formatTimestamp(iso: string): string {
