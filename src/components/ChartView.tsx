@@ -501,23 +501,21 @@ export function ChartView({
         </div>
       )}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 p-3">
-        {/* Row 1 */}
         <ChartCard title="Region-wise" chartType={chart4Type} onChartTypeChange={setChart4Type} selectedCount={selectedStates.length}>
           {chart4Type === 'bar' ? renderBar(regionData) : renderPie(regionData)}
-        </ChartCard>
-        <ChartCard title="Project Status" chartType={chart1Type} onChartTypeChange={setChart1Type}>
-          {chart1Type === 'bar' ? renderBar(physicalData) : renderPie(physicalData)}
         </ChartCard>
         <ChartCard title="Delivery Status" chartType={chart2Type} onChartTypeChange={setChart2Type} selectedCount={selectedDelayStatuses.length}>
           {chart2Type === 'bar' ? renderBar(deliveryData) : renderPie(deliveryData)}
         </ChartCard>
-
-        {/* Row 2 */}
         <ChartCard title="Physical Progress" chartType={chart6Type} onChartTypeChange={setChart6Type}>
           {renderPhysicalStatusChart()}
         </ChartCard>
+
         <ChartCard title="Financial Progress (₹)" chartType={chart3Type} onChartTypeChange={setChart3Type}>
           {chart3Type === 'bar' ? renderBar(financialData, true) : renderPie(financialData, true)}
+        </ChartCard>
+        <ChartCard title="Project Status" chartType={chart1Type} onChartTypeChange={setChart1Type}>
+          {chart1Type === 'bar' ? renderBar(physicalData) : renderPie(physicalData)}
         </ChartCard>
         <ChartCard title="Category-wise" chartType={chart5Type} onChartTypeChange={setChart5Type} selectedCount={selectedCategories.length}>
           {chart5Type === 'bar' ? renderBar(categoryData) : renderPie(categoryData)}
