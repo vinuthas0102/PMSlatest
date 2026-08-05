@@ -19,6 +19,7 @@ const EMPTY_FORM: ProjectFormData = {
   subcategory: '',
   start_date: '',
   duration_days: '',
+  project_value: '',
   mbook_entry: '',
   manager: '',
   remarks: '',
@@ -40,6 +41,7 @@ export function ProjectFormModal({ project, mode, onClose, onSave }: ProjectForm
         subcategory: project.subcategory,
         start_date: project.start_date ?? '',
         duration_days: project.duration_days != null ? String(project.duration_days) : '',
+        project_value: String(project.project_value),
         mbook_entry: String(project.mbook_entry),
         manager: project.manager,
         remarks: project.remarks ?? '',
@@ -235,9 +237,23 @@ export function ProjectFormModal({ project, mode, onClose, onSave }: ProjectForm
               />
             </div>
 
+            {/* Total Project Value (₹ Lakhs) */}
+            <div>
+              <label className={labelClass}>Total Project Value (₹ Lakhs)</label>
+              <input
+                type="number"
+                value={form.project_value}
+                onChange={(e) => update('project_value', e.target.value)}
+                className={inputClass}
+                placeholder="e.g. 1000"
+                min="0"
+                step="0.1"
+              />
+            </div>
+
             {/* Project Budgeted Value (₹ Lakhs) */}
             <div>
-              <label className={labelClass}>Budgeted Value (₹ Lakhs)</label>
+              <label className={labelClass}>Budgeted Value (MBook ₹ Lakhs)</label>
               <input
                 type="number"
                 value={form.mbook_entry}

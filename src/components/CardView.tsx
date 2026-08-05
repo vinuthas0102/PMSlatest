@@ -32,9 +32,9 @@ export function CardView({ items, onShowDetails, onCreateNew, onTrackUpdate }: C
         const colors = delayStatusColor(item.delay_status);
         const balance = Math.max(0, item.mbook_entry - item.paid_amount);
         const billedNotPaid = Math.max(0, item.billed_amount - item.paid_amount);
-        const mbook = Math.max(1, item.mbook_entry);
-        const paidPct = Math.min(100, (item.paid_amount / mbook) * 100);
-        const billedNotPaidPct = Math.min(100 - paidPct, (billedNotPaid / mbook) * 100);
+        const base = Math.max(1, item.project_value);
+        const paidPct = Math.min(100, (item.paid_amount / base) * 100);
+        const billedNotPaidPct = Math.min(100 - paidPct, (billedNotPaid / base) * 100);
         const remPct = Math.max(0, 100 - paidPct - billedNotPaidPct);
 
         return (
@@ -100,7 +100,7 @@ export function CardView({ items, onShowDetails, onCreateNew, onTrackUpdate }: C
                   <span className="font-semibold text-slate-600">Financial Progress</span>
                 </span>
                 <span className="font-semibold text-slate-700">
-                  {item.mbook_entry > 0 ? ((item.paid_amount / item.mbook_entry) * 100).toFixed(0) : 0}%
+                  {item.project_value > 0 ? ((item.paid_amount / item.project_value) * 100).toFixed(0) : 0}%
                   {item.target_pct > 0 && (
                     <span className="text-slate-400 font-normal ml-1">/ target {item.target_pct.toFixed(0)}%</span>
                   )}
@@ -131,7 +131,10 @@ export function CardView({ items, onShowDetails, onCreateNew, onTrackUpdate }: C
                   <span className="font-semibold text-rose-600">{formatINRShort(balance)}</span>
                 </span>
               </div>
-              <div className="text-right text-[9px] text-slate-400 mt-0.5">Target: {formatINRShort(item.mbook_entry)}</div>
+              <div className="flex items-center justify-between mt-0.5 text-[9px] text-slate-400">
+                <span>Project: {formatINRShort(item.project_value)}</span>
+                <span>MBook: {formatINRShort(item.mbook_entry)}</span>
+              </div>
             </div>
 
             {/* Actions */}

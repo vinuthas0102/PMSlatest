@@ -20,6 +20,7 @@ export interface BaseEntity {
   qty_deviations: number;
   spec_deviations: number;
   extension_days: number;
+  project_value: number;
   mbook_entry: number;
   billed_amount: number;
   paid_amount: number;
@@ -43,6 +44,7 @@ export interface ProjectFormData {
   subcategory: string;
   start_date: string;
   duration_days: string;
+  project_value: string;
   mbook_entry: string;
   manager: string;
   remarks: string;

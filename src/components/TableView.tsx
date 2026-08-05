@@ -46,6 +46,7 @@ export function TableView({ items, onShowDetails, onCreateNew, onTrackUpdate }: 
     { key: 'category', label: 'Category' },
     { key: 'completed_pct', label: 'Comp %', align: 'right' },
     { key: 'delay_status', label: 'Status' },
+    { key: 'project_value', label: 'Project ₹', align: 'right' },
     { key: 'mbook_entry', label: 'MBook ₹', align: 'right' },
     { key: 'billed_amount', label: 'Billed ₹', align: 'right' },
     { key: 'paid_amount', label: 'Paid ₹', align: 'right' },
@@ -127,6 +128,7 @@ export function TableView({ items, onShowDetails, onCreateNew, onTrackUpdate }: 
                     {delayStatusShort(item.delay_status)}
                   </span>
                 </td>
+                <td className="px-2 py-1.5 text-indigo-700 font-semibold whitespace-nowrap text-right tabular-nums">{formatINRShort(item.project_value)}</td>
                 <td className="px-2 py-1.5 text-blue-700 font-semibold whitespace-nowrap text-right tabular-nums">{formatINRShort(item.mbook_entry)}</td>
                 <td className="px-2 py-1.5 text-cyan-700 font-semibold whitespace-nowrap text-right tabular-nums">{formatINRShort(item.billed_amount)}</td>
                 <td className="px-2 py-1.5 text-emerald-700 font-semibold whitespace-nowrap text-right tabular-nums">{formatINRShort(item.paid_amount)}</td>

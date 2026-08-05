@@ -34,10 +34,10 @@ export function TileView({ items, onShowDetails, onCreateNew, onTrackUpdate }: T
         const progressPct = Math.min(item.completed_pct, 100);
         const targetPct = Math.min(item.target_pct, 100);
 
-        // Stacked bar segment widths (relative to Mbook)
-        const mbook = Math.max(1, item.mbook_entry);
-        const paidPct = Math.min(100, (item.paid_amount / mbook) * 100);
-        const billedNotPaidPct = Math.min(100 - paidPct, (billedNotPaid / mbook) * 100);
+        // Stacked bar segment widths (relative to project value)
+        const base = Math.max(1, item.project_value);
+        const paidPct = Math.min(100, (item.paid_amount / base) * 100);
+        const billedNotPaidPct = Math.min(100 - paidPct, (billedNotPaid / base) * 100);
         const remPct = Math.max(0, 100 - paidPct - billedNotPaidPct);
 
         return (
@@ -105,7 +105,8 @@ export function TileView({ items, onShowDetails, onCreateNew, onTrackUpdate }: T
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[9px] font-semibold text-slate-500 uppercase tracking-wider">Financial Progress</span>
                 <span className="text-[9px] font-semibold text-slate-400">
-                  {item.mbook_entry > 0 ? ((item.paid_amount / item.mbook_entry) * 100).toFixed(0) : 0}% <span className="text-slate-400">/ target {item.target_pct.toFixed(0)}%</span>
+                  {item.project_value > 0 ? ((item.paid_amount / item.project_value) * 100).toFixed(0) : 0}% <span className="text-slate-400">/ target {item.target_pct.toFixed(0)}%</span>
+                  <span className="ml-2 text-slate-400">Project: {formatINRShort(item.project_value)}</span>
                   <span className="ml-2 text-slate-400">MBook: {formatINRShort(item.mbook_entry)}</span>
                 </span>
               </div>

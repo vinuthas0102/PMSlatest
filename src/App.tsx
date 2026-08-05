@@ -187,6 +187,7 @@ export default function App() {
         start_date: formData.start_date || null,
         duration_days: formData.duration_days ? parseInt(formData.duration_days, 10) : null,
         mbook_entry: formData.mbook_entry ? parseFloat(formData.mbook_entry) : 0,
+        project_value: formData.project_value ? parseFloat(formData.project_value) : 0,
         manager: formData.manager,
         remarks: formData.remarks || null,
       };
