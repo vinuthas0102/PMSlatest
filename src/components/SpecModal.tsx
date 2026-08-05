@@ -116,6 +116,7 @@ export function SpecModal({ item, level, trackingUpdates, onClose }: SpecModalPr
     { type: 'quantity', label: 'Qty Deviations', count: updatesByType.quantity.length, value: updatesByType.quantity[0]?.deviation_value ?? '0', valueClass: 'text-orange-700', icon: Ruler },
     { type: 'price', label: 'Price Escalations', count: updatesByType.price.length, value: updatesByType.price[0]?.deviation_value ?? '0', valueClass: 'text-emerald-700', icon: TrendingUp },
     { type: 'delay', label: 'Extension / Delay', count: updatesByType.delay.length, value: updatesByType.delay[0]?.deviation_value ?? '0', valueClass: 'text-rose-700', icon: Clock },
+    { type: 'delivery', label: 'Schedule Deviation', count: updatesByType.delivery.length, value: updatesByType.delivery[0]?.deviation_value ?? '0', valueClass: 'text-amber-700', icon: Truck },
   ];
 
   return (
