@@ -11,7 +11,7 @@ import type {
   TrackingUpdate,
 } from '@/types';
 
-const LOADING_KEY = 'pms_data_v6';
+const LOADING_KEY = 'pms_data_v7';
 
 const SPECS_PAGE_SIZE = 1000;
 

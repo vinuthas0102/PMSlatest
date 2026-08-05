@@ -164,7 +164,7 @@ export default function App() {
         console.error('Tracking update insert failed', insertError);
         return { success: false, error: 'Could not save the tracking update. Please try again.' };
       }
-      sessionStorage.removeItem('pms_data_v6');
+      sessionStorage.removeItem('pms_data_v7');
       await reload();
       return { success: true };
     } catch (e) {
@@ -232,7 +232,7 @@ export default function App() {
       }
 
       // Clear cache and reload
-      sessionStorage.removeItem('pms_data_v6');
+      sessionStorage.removeItem('pms_data_v7');
       await reload();
       return { success: true };
     } catch (e) {

@@ -272,11 +272,13 @@ export function ChartView({
   }, [items, selectedDelayStatuses]);
 
   const financialData = useMemo<ChartPoint[]>(() => {
+    const projectValue = items.reduce((s, i) => s + i.project_value, 0);
     const mbook = items.reduce((s, i) => s + i.mbook_entry, 0);
     const billed = items.reduce((s, i) => s + i.billed_amount, 0);
     const paid = items.reduce((s, i) => s + i.paid_amount, 0);
-    const pct = (v: number) => (mbook > 0 ? (v / mbook) * 100 : 0);
+    const pct = (v: number) => (projectValue > 0 ? (v / projectValue) * 100 : 0);
     return [
+      makePoint('Project Value', pct(projectValue), '#4f46e5', items, '%', undefined, undefined, false, false, projectValue),
       makePoint('Total Mbook', pct(mbook), '#0891b2', items, '%', undefined, undefined, false, false, mbook),
       makePoint('Billed', pct(billed), '#1e40af', items, '%', undefined, undefined, false, false, billed),
       makePoint('Paid', pct(paid), '#059669', items, '%', undefined, undefined, false, false, paid),
