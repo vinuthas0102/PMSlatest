@@ -316,6 +316,7 @@ export default function App() {
         {(!isMaintenance ? viewType === 'tile' : viewType === 'tile') && (
           <TileView
             items={filteredItems}
+            trackingUpdates={allTrackingUpdates}
             onShowDetails={(item) => handleShowDetails(item)}
             onCreateNew={isMaintenance ? () => setProjectFormModal({ project: null, mode: 'create' }) : undefined}
             onTrackUpdate={isMaintenance ? (item) => setTrackingModalItem(item) : undefined}

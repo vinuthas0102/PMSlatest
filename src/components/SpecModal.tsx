@@ -134,11 +134,11 @@ export function SpecModal({ item, level, specs, trackingUpdates, onClose }: Spec
 
   const totalDeviationCount = projectUpdates.length;
 
-  const deviationRows: { type: TrackingType; label: string; count: number; valueClass: string; icon: typeof AlertTriangle }[] = [
-    { type: 'spec', label: 'Spec Deviations', count: item.spec_deviations, valueClass: 'text-amber-700', icon: FileText },
-    { type: 'quantity', label: 'Qty Deviations', count: item.qty_deviations, valueClass: 'text-orange-700', icon: Ruler },
-    { type: 'price', label: 'Price Escalations', count: updatesByType.price.length, valueClass: 'text-emerald-700', icon: TrendingUp },
-    { type: 'delay', label: 'Extension / Delay', count: updatesByType.delay.length, valueClass: 'text-rose-700', icon: Clock },
+  const deviationRows: { type: TrackingType; label: string; count: number; value: string; valueClass: string; icon: typeof AlertTriangle }[] = [
+    { type: 'spec', label: 'Spec Deviations', count: updatesByType.spec.length, value: updatesByType.spec[0]?.deviation_value ?? '0', valueClass: 'text-amber-700', icon: FileText },
+    { type: 'quantity', label: 'Qty Deviations', count: updatesByType.quantity.length, value: updatesByType.quantity[0]?.deviation_value ?? '0', valueClass: 'text-orange-700', icon: Ruler },
+    { type: 'price', label: 'Price Escalations', count: updatesByType.price.length, value: updatesByType.price[0]?.deviation_value ?? '0', valueClass: 'text-emerald-700', icon: TrendingUp },
+    { type: 'delay', label: 'Extension / Delay', count: updatesByType.delay.length, value: updatesByType.delay[0]?.deviation_value ?? '0', valueClass: 'text-rose-700', icon: Clock },
   ];
 
   return (
@@ -248,8 +248,13 @@ export function SpecModal({ item, level, specs, trackingUpdates, onClose }: Spec
                         {dr.label}
                       </span>
                       <span className={`text-xs font-bold tabular-nums ${dr.valueClass}`}>
-                        {dr.count}
+                        {dr.value}
                       </span>
+                      {dr.count > 0 && (
+                        <span className="ml-1.5 text-[9px] font-medium text-slate-400">
+                          {dr.count} {dr.count === 1 ? 'log' : 'logs'}
+                        </span>
+                      )}
                     </button>
                     {isExpanded && hasEntries && (
                       <div className="mt-1 mb-2 space-y-2 pl-4">

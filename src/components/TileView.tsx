@@ -1,15 +1,21 @@
 import { FileText, ChevronRight, MapPin, AlertTriangle, Ruler, CalendarClock, FilePlus, ClipboardList } from 'lucide-react';
-import type { BaseEntity } from '@/types';
+import type { BaseEntity, TrackingUpdate, TrackingType } from '@/types';
 import { formatINRShort, delayStatusColor, delayStatusShort } from '@/lib/format';
 
 interface TileViewProps {
   items: BaseEntity[];
+  trackingUpdates?: TrackingUpdate[];
   onShowDetails: (item: BaseEntity) => void;
   onCreateNew?: () => void;
   onTrackUpdate?: (item: BaseEntity) => void;
 }
 
-export function TileView({ items, onShowDetails, onCreateNew, onTrackUpdate }: TileViewProps) {
+function latestDeviationValue(updates: TrackingUpdate[], projectId: string, type: TrackingType): string | null {
+  const match = updates.find((u) => u.project_id === projectId && u.tracking_type === type);
+  return match ? match.deviation_value : null;
+}
+
+export function TileView({ items, trackingUpdates = [], onShowDetails, onCreateNew, onTrackUpdate }: TileViewProps) {
   return (
     <div className="flex flex-col gap-4 p-4">
       {onCreateNew && (
@@ -82,16 +88,16 @@ export function TileView({ items, onShowDetails, onCreateNew, onTrackUpdate }: T
                 </div>
               </div>
               <div className="flex items-center gap-1.5 text-[10px] shrink-0">
-                {item.spec_deviations > 0 && (
+                {(() => { const v = latestDeviationValue(trackingUpdates, item.id, 'spec'); return (item.spec_deviations > 0 || v) && (
                   <span className="flex items-center gap-0.5 text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-300 font-medium">
-                    <AlertTriangle className="w-2.5 h-2.5" /> {item.spec_deviations} Spec
+                    <AlertTriangle className="w-2.5 h-2.5" /> {v ?? `${item.spec_deviations}`} Spec
                   </span>
-                )}
-                {item.qty_deviations > 0 && (
+                ); })()}
+                {(() => { const v = latestDeviationValue(trackingUpdates, item.id, 'quantity'); return (item.qty_deviations > 0 || v) && (
                   <span className="flex items-center gap-0.5 text-orange-700 bg-orange-100 px-1.5 py-0.5 rounded border border-orange-300 font-medium">
-                    <Ruler className="w-2.5 h-2.5" /> {item.qty_deviations} Qty
+                    <Ruler className="w-2.5 h-2.5" /> {v ?? `${item.qty_deviations}`} Qty
                   </span>
-                )}
+                ); })()}
                 {item.extension_days > 0 && (
                   <span className="flex items-center gap-0.5 text-red-700 bg-red-100 px-1.5 py-0.5 rounded border border-red-300 font-medium">
                     <CalendarClock className="w-2.5 h-2.5" /> {item.extension_days}d Ext
