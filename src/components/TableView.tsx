@@ -135,7 +135,7 @@ export function TableView({ items, onShowDetails, onCreateNew, onTrackUpdate }: 
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => onShowDetails(item)}
-                      title="View project details"
+                      title={onTrackUpdate ? 'Edit project details' : 'View project details'}
                       className="flex items-center gap-1 text-[10px] font-medium text-cyan-700 hover:text-white hover:bg-cyan-600 bg-cyan-50 border border-cyan-200 px-1.5 py-0.5 rounded transition-colors"
                     >
                       <FileText className="w-3 h-3" />

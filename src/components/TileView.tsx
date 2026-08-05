@@ -161,7 +161,7 @@ export function TileView({ items, onShowDetails, onCreateNew, onTrackUpdate }: T
                 onClick={() => onShowDetails(item)}
                 className="flex items-center gap-1 text-[10px] font-medium text-cyan-700 hover:text-white hover:bg-cyan-600 bg-cyan-50 border border-cyan-200 px-2.5 py-1 rounded transition-colors"
               >
-                <FileText className="w-3 h-3" /> Show Details
+                <FileText className="w-3 h-3" /> {onTrackUpdate ? 'Edit Details' : 'Show Details'}
               </button>
               {onTrackUpdate && (
                 <button
