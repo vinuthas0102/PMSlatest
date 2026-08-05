@@ -135,6 +135,7 @@ export function TableView({ items, onShowDetails, onCreateNew, onTrackUpdate }: 
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => onShowDetails(item)}
+                      title="View project details"
                       className="flex items-center gap-1 text-[10px] font-medium text-cyan-700 hover:text-white hover:bg-cyan-600 bg-cyan-50 border border-cyan-200 px-1.5 py-0.5 rounded transition-colors"
                     >
                       <FileText className="w-3 h-3" />
@@ -142,12 +143,13 @@ export function TableView({ items, onShowDetails, onCreateNew, onTrackUpdate }: 
                     {onTrackUpdate && (
                       <button
                         onClick={() => onTrackUpdate(item)}
+                        title="Add tracking update"
                         className="flex items-center gap-1 text-[10px] font-medium text-amber-700 hover:text-white hover:bg-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded transition-colors"
                       >
                         <ClipboardList className="w-3 h-3" />
                       </button>
                     )}
-                    <span className="flex items-center gap-1 text-[10px] font-medium text-slate-500 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded">
+                    <span title="View work orders" className="flex items-center gap-1 text-[10px] font-medium text-slate-500 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded">
                       CMS WOs <ChevronRight className="w-3 h-3" />
                     </span>
                   </div>
