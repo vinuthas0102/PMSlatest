@@ -453,12 +453,51 @@ export function ChartView({
             );
           }}
         />
-        <Legend wrapperStyle={{ fontSize: 10 }} />
+        <Legend
+          wrapperStyle={{ fontSize: 10 }}
+          content={() => (
+            <div className="flex items-center justify-center gap-4 mt-1">
+              <span className="flex items-center gap-1 text-[10px] text-slate-600">
+                <span className="inline-block w-3 h-3 rounded-sm bg-[#0891b2]" /> Actual
+              </span>
+              <span className="flex items-center gap-1 text-[10px] text-slate-600">
+                <span className="inline-block w-3 h-3 rounded-sm bg-[#d97706]" /> Gap
+              </span>
+              <span className="flex items-center gap-1 text-[10px] text-slate-600">
+                <svg width="16" height="10" className="inline-block"><line x1="1" y1="5" x2="15" y2="5" stroke="#1e40af" strokeWidth="2.5" strokeLinecap="round" /></svg>
+                Target
+              </span>
+            </div>
+          )}
+        />
         <Bar dataKey="actual" name="Actual" stackId="p" fill="#0891b2" radius={[0, 0, 0, 0]} maxBarSize={42} />
         <Bar dataKey="gapBar" name="Gap" stackId="p" fill="#d97706" radius={[4, 4, 0, 0]} maxBarSize={42}>
           <LabelList dataKey="gap" position="top" formatter={(v: any) => `${v >= 0 ? '+' : ''}${Number(v).toFixed(1)}%`} style={{ fontSize: 9, fontWeight: 600, fill: '#92400e' }} />
         </Bar>
-        <Bar dataKey="target" name="Target" fill="none" stroke="#1e40af" strokeWidth={1.5} strokeDasharray="4 3" maxBarSize={42} />
+        <Bar
+          dataKey="target"
+          name="Target"
+          stackId="invisible"
+          fill="transparent"
+          maxBarSize={42}
+          shape={(props: any) => {
+            const { x, width, y } = props;
+            if (y == null || isNaN(y)) return null;
+            const cx = x + width / 2;
+            const hw = Math.max(6, width * 0.45);
+            return (
+              <line
+                x1={cx - hw}
+                x2={cx + hw}
+                y1={y}
+                y2={y}
+                stroke="#1e40af"
+                strokeWidth={2.5}
+                strokeLinecap="round"
+              />
+            );
+          }}
+        />
       </BarChart>
     </ResponsiveContainer>
   );
