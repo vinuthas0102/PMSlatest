@@ -239,6 +239,9 @@ export function ChartView({
         return { name: state, target, actual, gap: target - actual, count: arr.length };
       })
       .sort((a, b) => b.gap - a.gap);
+    if (selectedStates.length > 0) {
+      return entries;
+    }
     const overallTarget = items.reduce((s, i) => s + (i.target_pct || 0), 0) / Math.max(items.length, 1);
     const overallActual = items.reduce((s, i) => s + (i.completed_pct || 0), 0) / Math.max(items.length, 1);
     const overall = { name: 'All Regions', target: overallTarget, actual: overallActual, gap: overallTarget - overallActual, count: items.length };
