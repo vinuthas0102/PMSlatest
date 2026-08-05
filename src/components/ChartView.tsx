@@ -513,18 +513,14 @@ export function ChartView({
         <ChartCard title="Region-wise" chartType={chart4Type} onChartTypeChange={setChart4Type} selectedCount={selectedStates.length}>
           {chart4Type === 'bar' ? renderBar(regionData) : renderPie(regionData)}
         </ChartCard>
-        <ChartCard title="Delivery Status" chartType={chart2Type} onChartTypeChange={setChart2Type} selectedCount={selectedDelayStatuses.length}>
-          {chart2Type === 'bar' ? renderBar(deliveryData) : renderPie(deliveryData)}
-        </ChartCard>
         <ChartCard title="Physical Progress" chartType={chart6Type} onChartTypeChange={setChart6Type}>
           {renderPhysicalStatusChart()}
         </ChartCard>
-
         <ChartCard title="Financial Progress (%)" chartType={chart3Type} onChartTypeChange={setChart3Type}>
           {chart3Type === 'bar' ? renderBar(financialData, false, true) : renderPie(financialData, false, true)}
         </ChartCard>
-        <ChartCard title="Project Status" chartType={chart1Type} onChartTypeChange={setChart1Type}>
-          {chart1Type === 'bar' ? renderBar(physicalData) : renderPie(physicalData)}
+        <ChartCard title="Delivery Status" chartType={chart2Type} onChartTypeChange={setChart2Type} selectedCount={selectedDelayStatuses.length}>
+          {chart2Type === 'bar' ? renderBar(deliveryData) : renderPie(deliveryData)}
         </ChartCard>
         <ChartCard title="Category-wise" chartType={chart5Type} onChartTypeChange={setChart5Type} selectedCount={selectedCategories.length}>
           {chart5Type === 'bar' ? renderBar(categoryData) : renderPie(categoryData)}
@@ -546,6 +542,9 @@ export function ChartView({
           </div>
           <div className="flex-1 min-h-[300px]">{renderTimelineChart()}</div>
         </div>
+        <ChartCard title="Project Status" chartType={chart1Type} onChartTypeChange={setChart1Type}>
+          {chart1Type === 'bar' ? renderBar(physicalData) : renderPie(physicalData)}
+        </ChartCard>
       </div>
     </div>
   );
