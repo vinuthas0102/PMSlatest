@@ -105,10 +105,23 @@ export interface Filters {
   endMonth: string;
 }
 
+export type TrackingType = 'delay' | 'quantity' | 'delivery' | 'spec' | 'price';
+
+export interface TrackingUpdate {
+  id: string;
+  project_id: string;
+  tracking_type: TrackingType;
+  deviation_value: string;
+  officer_name: string;
+  remarks: string;
+  created_at: string;
+}
+
 export interface DashboardData {
   projects: Project[];
   workOrders: WorkOrder[];
   schedules: Schedule[];
   trackingEntries: TrackingEntry[];
   specs: Spec[];
+  trackingUpdates: TrackingUpdate[];
 }

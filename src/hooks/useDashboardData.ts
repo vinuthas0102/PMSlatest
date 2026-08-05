@@ -8,6 +8,7 @@ import type {
   TrackingEntry,
   Spec,
   AuditLogEntry,
+  TrackingUpdate,
 } from '@/types';
 
 const LOADING_KEY = 'pms_data_v6';
@@ -48,18 +49,20 @@ export function useDashboardData() {
         return;
       }
 
-      const [projRes, woRes, schedRes, trkRes, allSpecs] = await Promise.all([
+      const [projRes, woRes, schedRes, trkRes, allSpecs, trackingUpdatesRes] = await Promise.all([
         supabase.from('projects').select('*').order('seq_no'),
         supabase.from('work_orders').select('*').order('seq_no'),
         supabase.from('schedules').select('*').order('seq_no'),
         supabase.from('tracking_entries').select('*').order('seq_no'),
         fetchAllSpecs(),
+        supabase.from('project_tracking_updates').select('*').order('created_at', { ascending: false }),
       ]);
 
       if (projRes.error) throw projRes.error;
       if (woRes.error) throw woRes.error;
       if (schedRes.error) throw schedRes.error;
       if (trkRes.error) throw trkRes.error;
+      if (trackingUpdatesRes.error) throw trackingUpdatesRes.error;
 
       const dashboardData: DashboardData = {
         projects: (projRes.data as Project[]) ?? [],
@@ -67,6 +70,7 @@ export function useDashboardData() {
         schedules: (schedRes.data as Schedule[]) ?? [],
         trackingEntries: (trkRes.data as TrackingEntry[]) ?? [],
         specs: allSpecs,
+        trackingUpdates: (trackingUpdatesRes.data as TrackingUpdate[]) ?? [],
       };
       sessionStorage.setItem(LOADING_KEY, JSON.stringify(dashboardData));
       setData(dashboardData);

@@ -1,4 +1,4 @@
-import { FileText, ChevronRight, MapPin, FilePlus } from 'lucide-react';
+import { FileText, ChevronRight, MapPin, FilePlus, ClipboardList } from 'lucide-react';
 import type { BaseEntity } from '@/types';
 import { formatINRShort, delayStatusColor, delayStatusShort } from '@/lib/format';
 
@@ -6,9 +6,10 @@ interface CardViewProps {
   items: BaseEntity[];
   onShowDetails: (item: BaseEntity) => void;
   onCreateNew?: () => void;
+  onTrackUpdate?: (item: BaseEntity) => void;
 }
 
-export function CardView({ items, onShowDetails, onCreateNew }: CardViewProps) {
+export function CardView({ items, onShowDetails, onCreateNew, onTrackUpdate }: CardViewProps) {
   return (
     <div className="p-2">
       {onCreateNew && (
@@ -141,6 +142,14 @@ export function CardView({ items, onShowDetails, onCreateNew }: CardViewProps) {
               >
                 <FileText className="w-3 h-3" /> Details
               </button>
+              {onTrackUpdate && (
+                <button
+                  onClick={() => onTrackUpdate(item)}
+                  className="flex items-center gap-1 text-[10px] font-medium text-amber-700 hover:text-white hover:bg-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-1 rounded transition-colors flex-1 justify-center"
+                >
+                  <ClipboardList className="w-3 h-3" /> Tracking
+                </button>
+              )}
               <span className="flex items-center gap-1 text-[10px] font-medium text-slate-500 bg-slate-100 border border-slate-200 px-1.5 py-1 rounded flex-1 justify-center">
                 CMS WOs <ChevronRight className="w-3 h-3" />
               </span>

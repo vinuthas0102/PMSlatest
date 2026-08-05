@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import type {
   BaseEntity, ViewType, Filters, Level, DelayStatus, Spec,
-  Project, ProjectFormData,
+  Project, ProjectFormData, TrackingType, TrackingUpdate,
 } from '@/types';
 import { Header, type AppScreen } from '@/components/Header';
 import { StatusBar } from '@/components/StatusBar';
@@ -17,6 +17,7 @@ import { FilterDrawer } from '@/components/FilterDrawer';
 import { SpecModal } from '@/components/SpecModal';
 import { SubcategoryModal } from '@/components/SubcategoryModal';
 import { ProjectFormModal } from '@/components/ProjectFormModal';
+import { TrackingModal } from '@/components/TrackingModal';
 
 const DEFAULT_FILTERS: Filters = {
   states: [],
@@ -41,6 +42,7 @@ export default function App() {
   const [specModalItem, setSpecModalItem] = useState<{ item: BaseEntity; level: Level } | null>(null);
   const [subcategoryModal, setSubcategoryModal] = useState<string | null>(null);
   const [projectFormModal, setProjectFormModal] = useState<{ project: Project | null; mode: 'edit' | 'create' } | null>(null);
+  const [trackingModalItem, setTrackingModalItem] = useState<BaseEntity | null>(null);
 
   // When switching to maintenance screen, default to tile view
   const handleScreenChange = useCallback((s: AppScreen) => {
@@ -147,6 +149,30 @@ export default function App() {
   }, []);
 
   // Save project (create or update)
+  const handleSaveTrackingUpdate = useCallback(async (entry: {
+    project_id: string;
+    tracking_type: TrackingType;
+    deviation_value: string;
+    officer_name: string;
+    remarks: string;
+  }): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const { error: insertError } = await supabase
+        .from('project_tracking_updates')
+        .insert(entry);
+      if (insertError) {
+        console.error('Tracking update insert failed', insertError);
+        return { success: false, error: 'Could not save the tracking update. Please try again.' };
+      }
+      sessionStorage.removeItem('pms_data_v6');
+      await reload();
+      return { success: true };
+    } catch (e) {
+      console.error('Tracking update save failed', e);
+      return { success: false, error: 'Something went wrong while saving. Please try again.' };
+    }
+  }, [reload]);
+
   const handleSaveProject = useCallback(async (id: string | null, formData: ProjectFormData): Promise<{ success: boolean; error?: string }> => {
     try {
       // `title` is deliberately NOT part of the shared payload: the edit form
@@ -224,6 +250,7 @@ export default function App() {
     Boolean(appliedFilters.endMonth);
 
   const allSpecs: Spec[] = data?.specs ?? [];
+  const allTrackingUpdates: TrackingUpdate[] = data?.trackingUpdates ?? [];
 
   const isMaintenance = activeScreen === 'maintenance';
 
@@ -290,6 +317,7 @@ export default function App() {
             items={filteredItems}
             onShowDetails={(item) => handleShowDetails(item)}
             onCreateNew={isMaintenance ? () => setProjectFormModal({ project: null, mode: 'create' }) : undefined}
+            onTrackUpdate={isMaintenance ? (item) => setTrackingModalItem(item) : undefined}
           />
         )}
         {(!isMaintenance ? viewType === 'table' : viewType === 'table') && (
@@ -297,6 +325,7 @@ export default function App() {
             items={filteredItems}
             onShowDetails={(item) => handleShowDetails(item)}
             onCreateNew={isMaintenance ? () => setProjectFormModal({ project: null, mode: 'create' }) : undefined}
+            onTrackUpdate={isMaintenance ? (item) => setTrackingModalItem(item) : undefined}
           />
         )}
         {(!isMaintenance ? viewType === 'card' : viewType === 'card') && (
@@ -304,6 +333,7 @@ export default function App() {
             items={filteredItems}
             onShowDetails={(item) => handleShowDetails(item)}
             onCreateNew={isMaintenance ? () => setProjectFormModal({ project: null, mode: 'create' }) : undefined}
+            onTrackUpdate={isMaintenance ? (item) => setTrackingModalItem(item) : undefined}
           />
         )}
       </div>
@@ -333,6 +363,15 @@ export default function App() {
           mode={projectFormModal.mode}
           onClose={() => setProjectFormModal(null)}
           onSave={handleSaveProject}
+        />
+      )}
+
+      {trackingModalItem && isMaintenance && (
+        <TrackingModal
+          item={trackingModalItem}
+          updates={allTrackingUpdates}
+          onClose={() => setTrackingModalItem(null)}
+          onSave={handleSaveTrackingUpdate}
         />
       )}
 
