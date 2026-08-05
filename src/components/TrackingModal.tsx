@@ -27,13 +27,7 @@ const TABS: { key: TrackingType; label: string; icon: typeof Clock; color: strin
   { key: 'price', label: 'Price Escalation', icon: TrendingUp, color: 'text-emerald-600' },
 ];
 
-const DEVIATION_OPTIONS = [
-  { value: '0-20%', label: '0-20% (Minor)' },
-  { value: '20-40%', label: '20-40% (Moderate)' },
-  { value: '40-60%', label: '40-60% (Significant)' },
-  { value: '60-80%', label: '60-80% (Major)' },
-  { value: '80-100%', label: '80-100% (Severe)' },
-];
+
 
 function formatTimestamp(iso: string): string {
   const d = new Date(iso);
@@ -49,7 +43,7 @@ function formatTimestamp(iso: string): string {
 export function TrackingModal({ item, updates, onClose, onSave }: TrackingModalProps) {
   const [activeTab, setActiveTab] = useState<TrackingType>('delay');
   const [delayStatus, setDelayStatus] = useState<string>(item.delay_status);
-  const [deviationValue, setDeviationValue] = useState<string>('0-20%');
+  const [deviationPct, setDeviationPct] = useState<number>(0);
   const [officerName, setOfficerName] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -92,7 +86,7 @@ export function TrackingModal({ item, updates, onClose, onSave }: TrackingModalP
     setSaving(true);
     setError(null);
 
-    const dv = activeTab === 'delay' ? delayStatus : deviationValue;
+    const dv = activeTab === 'delay' ? delayStatus : `${deviationPct}%`;
 
     const result = await onSave({
       project_id: item.id,
@@ -235,29 +229,29 @@ export function TrackingModal({ item, updates, onClose, onSave }: TrackingModalP
                     })}
                   </div>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-slate-500">Selected range</span>
-                      <span className="font-bold text-slate-700">{deviationValue}</span>
+                      <span className="text-slate-500">Deviation</span>
+                      <span className="font-bold text-cyan-700 text-sm tabular-nums">{deviationPct}%</span>
                     </div>
-                    <div className="grid grid-cols-1 gap-1.5">
-                      {DEVIATION_OPTIONS.map((opt) => {
-                        const selected = deviationValue === opt.value;
-                        return (
-                          <button
-                            key={opt.value}
-                            onClick={() => setDeviationValue(opt.value)}
-                            className={`flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                              selected
-                                ? 'bg-cyan-50 text-cyan-800 border-cyan-300 ring-1 ring-cyan-200'
-                                : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
-                            }`}
-                          >
-                            <span>{opt.label}</span>
-                            {selected && <span className="w-2 h-2 rounded-full bg-cyan-500" />}
-                          </button>
-                        );
-                      })}
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={deviationPct}
+                      onChange={(e) => setDeviationPct(parseInt(e.target.value, 10))}
+                      className="w-full h-2 rounded-full appearance-none cursor-pointer bg-slate-200 accent-cyan-600"
+                      style={{
+                        background: `linear-gradient(to right, #0891b2 ${deviationPct}%, #e2e8f0 ${deviationPct}%)`,
+                      }}
+                    />
+                    <div className="flex justify-between text-[10px] text-slate-400">
+                      <span>0%</span>
+                      <span>25%</span>
+                      <span>50%</span>
+                      <span>75%</span>
+                      <span>100%</span>
                     </div>
                   </div>
                 )}
