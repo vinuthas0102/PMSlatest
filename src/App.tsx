@@ -3,7 +3,7 @@ import { Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import type {
-  BaseEntity, ViewType, Filters, Level, DelayStatus, Spec,
+  BaseEntity, ViewType, Filters, Level, DelayStatus,
   Project, ProjectFormData, TrackingType, TrackingUpdate,
 } from '@/types';
 import { Header, type AppScreen } from '@/components/Header';
@@ -250,7 +250,6 @@ export default function App() {
     Boolean(appliedFilters.startMonth) ||
     Boolean(appliedFilters.endMonth);
 
-  const allSpecs: Spec[] = data?.specs ?? [];
   const allTrackingUpdates: TrackingUpdate[] = data?.trackingUpdates ?? [];
 
   const isMaintenance = activeScreen === 'maintenance';
@@ -354,7 +353,6 @@ export default function App() {
         <SpecModal
           item={specModalItem.item}
           level={specModalItem.level}
-          specs={allSpecs}
           trackingUpdates={allTrackingUpdates}
           onClose={() => setSpecModalItem(null)}
         />

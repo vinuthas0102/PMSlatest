@@ -1,16 +1,15 @@
-import { useState, useMemo, Fragment } from 'react';
+import { useState, useMemo } from 'react';
 import {
-  X, Search, Paperclip, FileText, FileCheck,
+  X, FileText, FileCheck,
   MapPin, Calendar, AlertTriangle, Ruler, CalendarClock,
   ChevronDown, ChevronRight, Clock, Truck, TrendingUp, User,
 } from 'lucide-react';
-import type { BaseEntity, Spec, Level, TrackingUpdate, TrackingType } from '@/types';
+import type { BaseEntity, Level, TrackingUpdate, TrackingType } from '@/types';
 import { formatINR, formatDateShort, delayStatusColor, delayStatusShort } from '@/lib/format';
 
 interface SpecModalProps {
   item: BaseEntity;
   level: Level;
-  specs: Spec[];
   trackingUpdates: TrackingUpdate[];
   onClose: () => void;
 }
@@ -86,12 +85,10 @@ function UpdateCard({ u, icon: Icon, color }: { u: TrackingUpdate; icon: typeof 
   );
 }
 
-export function SpecModal({ item, level, specs, trackingUpdates, onClose }: SpecModalProps) {
-  const [specFilter, setSpecFilter] = useState('');
+export function SpecModal({ item, level, trackingUpdates, onClose }: SpecModalProps) {
   const [expandedDeviation, setExpandedDeviation] = useState<TrackingType | null>(null);
   const [activeHistoryTab, setActiveHistoryTab] = useState<TrackingType>('spec');
   const [showHistory, setShowHistory] = useState(false);
-  const [expandedSpecDeviation, setExpandedSpecDeviation] = useState<string | null>(null);
   const colors = delayStatusColor(item.delay_status);
   const balance = Math.max(0, item.mbook_entry - item.paid_amount);
 
@@ -109,26 +106,6 @@ export function SpecModal({ item, level, specs, trackingUpdates, onClose }: Spec
     }
     return map;
   }, [projectUpdates]);
-
-  const levelSpecs = useMemo(() => {
-    return specs.filter((s) => s.level === level && s.parent_id === item.id);
-  }, [specs, level, item.id]);
-
-  const filteredSpecs = useMemo(() => {
-    const q = specFilter.toLowerCase();
-    return levelSpecs.filter(
-      (s) => s.spec_code.toLowerCase().includes(q) || s.description.toLowerCase().includes(q)
-    );
-  }, [levelSpecs, specFilter]);
-
-  const totals = useMemo(() => {
-    return {
-      estQty: filteredSpecs.reduce((s, sp) => s + sp.estimated_qty, 0),
-      execQty: filteredSpecs.reduce((s, sp) => s + sp.executed_qty, 0),
-      amount: filteredSpecs.reduce((s, sp) => s + sp.amount, 0),
-      attachments: filteredSpecs.filter((s) => s.has_attachment).length,
-    };
-  }, [filteredSpecs]);
 
   const progressPct = item.target_pct > 0 ? Math.min(100, (item.completed_pct / item.target_pct) * 100) : 0;
 
@@ -218,6 +195,7 @@ export function SpecModal({ item, level, specs, trackingUpdates, onClose }: Spec
             {/* Financials */}
             <div>
               <SectionTitle icon={FileText}>Financials</SectionTitle>
+              <MetaRow label="Total Project Value" value={formatINR(item.project_value)} valueClass="text-indigo-700" />
               <MetaRow label="MBook Entry" value={formatINR(item.mbook_entry)} valueClass="text-blue-700" />
               <MetaRow label="Billed Amount" value={formatINR(item.billed_amount)} valueClass="text-cyan-700" />
               <MetaRow label="Paid Amount" value={formatINR(item.paid_amount)} valueClass="text-emerald-700" />
@@ -326,147 +304,14 @@ export function SpecModal({ item, level, specs, trackingUpdates, onClose }: Spec
           </div>
         )}
 
-        {/* Scrollable body */}
+        {/* Scrollable body — deviation history only */}
         <div className="min-h-0 flex-1 overflow-y-auto">
-          {/* Totals banner */}
-          {filteredSpecs.length > 0 && (
-            <div className="flex items-center justify-between bg-gradient-to-r from-cyan-50 to-blue-50 border-b border-cyan-200 px-5 py-2.5">
-              <div className="flex items-center gap-2">
-                <FileCheck className="h-4 w-4 text-cyan-600" />
-                <span className="text-xs font-bold text-slate-700">Specification Items</span>
-                <span className="rounded-full bg-cyan-100 px-2 py-0.5 text-[11px] font-bold text-cyan-700 ring-1 ring-cyan-200">
-                  {filteredSpecs.length}
-                </span>
-              </div>
-              <div className="flex items-center gap-4 text-[11px]">
-                <span className="text-slate-500">Est. Qty: <span className="font-bold text-slate-700 tabular-nums">{totals.estQty.toFixed(0)}</span></span>
-                <span className="text-slate-500">Exec. Qty: <span className="font-bold text-slate-700 tabular-nums">{totals.execQty.toFixed(0)}</span></span>
-                <span className="text-slate-500">Total Amount: <span className="font-bold text-blue-700 tabular-nums">{formatINR(totals.amount)}</span></span>
-              </div>
+          {totalDeviationCount === 0 && (
+            <div className="flex flex-col items-center justify-center h-full px-5 py-10 text-center">
+              <FileCheck className="h-10 w-10 text-slate-300 mb-3" />
+              <p className="text-sm font-medium text-slate-400">No deviations recorded for this {LEVEL_LABELS[level].toLowerCase()}.</p>
             </div>
           )}
-
-          {/* Search bar */}
-          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white px-5 py-2">
-            <div className="flex items-center gap-2 rounded-lg bg-slate-100 px-2.5 py-1 ring-1 ring-slate-200">
-              <Search className="h-3.5 w-3.5 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Filter specs..."
-                value={specFilter}
-                onChange={(e) => setSpecFilter(e.target.value)}
-                className="w-40 bg-transparent text-xs text-slate-700 outline-none placeholder:text-slate-400"
-              />
-            </div>
-            {updatesByType.quantity.length > 0 && (
-              <span className="text-[10px] text-slate-400">
-                {updatesByType.quantity.length} qty deviation {updatesByType.quantity.length === 1 ? 'log' : 'logs'} from maintenance
-              </span>
-            )}
-          </div>
-
-          {/* Specs table */}
-          <div className="overflow-x-auto">
-            <table className="min-w-[960px] border-collapse text-xs">
-              <thead className="bg-slate-200">
-                <tr>
-                  <th className="px-4 py-2.5 text-left font-bold text-slate-700" style={{ width: '110px' }}>Spec Code</th>
-                  <th className="px-4 py-2.5 text-left font-bold text-slate-700">Description</th>
-                  <th className="px-4 py-2.5 text-left font-bold text-slate-700" style={{ width: '60px' }}>Unit</th>
-                  <th className="px-4 py-2.5 text-right font-bold text-slate-700" style={{ width: '80px' }}>Est. Qty</th>
-                  <th className="px-4 py-2.5 text-right font-bold text-slate-700" style={{ width: '80px' }}>Exec. Qty</th>
-                  <th className="px-4 py-2.5 text-right font-bold text-slate-700" style={{ width: '90px' }}>Rate</th>
-                  <th className="px-4 py-2.5 text-right font-bold text-slate-700" style={{ width: '110px' }}>Amount</th>
-                  <th className="px-4 py-2.5 text-center font-bold text-slate-700" style={{ width: '90px' }}>Attachment</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredSpecs.map((spec, idx) => {
-                  const ratio = spec.estimated_qty > 0 ? Math.min(100, (spec.executed_qty / spec.estimated_qty) * 100) : 0;
-                  const hasDeviation = spec.executed_qty !== spec.estimated_qty;
-                  const showQtyLog = hasDeviation && updatesByType.quantity.length > 0;
-                  const isQtyExpanded = expandedSpecDeviation === spec.id;
-                  return (
-                    <Fragment key={spec.id}>
-                      <tr
-                        className={`border-b border-slate-200 transition-colors hover:bg-cyan-50/50 ${idx % 2 === 1 ? 'bg-slate-50' : 'bg-white'}`}
-                      >
-                        <td className="whitespace-nowrap px-4 py-2 font-mono font-medium text-slate-700">{spec.spec_code}</td>
-                        <td className="px-4 py-2 text-slate-700">
-                          <div className="line-clamp-2">{spec.description}</div>
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-2 text-slate-500">{spec.unit}</td>
-                        <td className="whitespace-nowrap px-4 py-2 text-right tabular-nums text-slate-600">{spec.estimated_qty.toFixed(0)}</td>
-                        <td className="whitespace-nowrap px-4 py-2 text-right tabular-nums">
-                          <span className={hasDeviation ? 'text-orange-700 font-semibold' : 'text-slate-600'}>
-                            {spec.executed_qty.toFixed(0)}
-                          </span>
-                          {spec.estimated_qty > 0 && (
-                            <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-slate-200">
-                              <div className="h-full rounded-full bg-cyan-500" style={{ width: `${ratio}%` }} />
-                            </div>
-                          )}
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-2 text-right tabular-nums text-slate-600">₹{spec.rate.toFixed(0)}</td>
-                        <td className="whitespace-nowrap px-4 py-2 text-right font-bold tabular-nums text-blue-700">{formatINR(spec.amount)}</td>
-                        <td className="px-4 py-2 text-center">
-                          {spec.has_attachment ? (
-                            <Paperclip className="mx-auto h-4 w-4 text-cyan-600" />
-                          ) : (
-                            <span className="text-slate-300">—</span>
-                          )}
-                        </td>
-                      </tr>
-                      {showQtyLog && (
-                        <tr className={`border-b border-slate-200 ${idx % 2 === 1 ? 'bg-slate-50' : 'bg-white'}`}>
-                          <td colSpan={8} className="px-4 py-0">
-                            <button
-                              onClick={() => setExpandedSpecDeviation(isQtyExpanded ? null : spec.id)}
-                              className="flex items-center gap-1.5 py-1.5 text-[10px] font-bold text-orange-600 hover:text-orange-700 transition-colors"
-                            >
-                              {isQtyExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-                              <Ruler className="w-3 h-3" />
-                              Qty deviation log ({updatesByType.quantity.length} {updatesByType.quantity.length === 1 ? 'entry' : 'entries'})
-                            </button>
-                          </td>
-                        </tr>
-                      )}
-                      {isQtyExpanded && showQtyLog && (
-                        <tr className={idx % 2 === 1 ? 'bg-slate-50' : 'bg-white'}>
-                          <td colSpan={8} className="px-8 pb-3">
-                            <div className="space-y-2">
-                              {updatesByType.quantity.map((u) => (
-                                <UpdateCard key={u.id} u={u} icon={Ruler} color="text-orange-600" />
-                              ))}
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </Fragment>
-                  );
-                })}
-                {filteredSpecs.length === 0 && (
-                  <tr>
-                    <td colSpan={8} className="px-4 py-10 text-center text-sm text-slate-400">
-                      No specs match the current filter.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-              {filteredSpecs.length > 0 && (
-                <tfoot className="bg-slate-200">
-                  <tr className="border-t-2 border-slate-300">
-                    <td className="px-4 py-2.5 font-bold text-slate-700" colSpan={3}>Totals ({filteredSpecs.length} items)</td>
-                    <td className="px-4 py-2.5 text-right font-bold tabular-nums text-slate-700">{totals.estQty.toFixed(0)}</td>
-                    <td className="px-4 py-2.5 text-right font-bold tabular-nums text-slate-700">{totals.execQty.toFixed(0)}</td>
-                    <td className="px-4 py-2.5"></td>
-                    <td className="px-4 py-2.5 text-right font-bold tabular-nums text-blue-700">{formatINR(totals.amount)}</td>
-                    <td className="px-4 py-2.5 text-center text-slate-500">{totals.attachments}</td>
-                  </tr>
-                </tfoot>
-              )}
-            </table>
-          </div>
         </div>
       </div>
     </div>
