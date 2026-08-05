@@ -149,8 +149,10 @@ export default function App() {
   // Save project (create or update)
   const handleSaveProject = useCallback(async (id: string | null, formData: ProjectFormData): Promise<{ success: boolean; error?: string }> => {
     try {
+      // `title` is deliberately NOT part of the shared payload: the edit form
+      // presents the project name as read-only, and that is now enforced by the
+      // database, which no longer grants the client UPDATE on that column.
       const payload = {
-        title: formData.title,
         description: formData.description || null,
         state: formData.state,
         district: formData.district,
@@ -169,7 +171,10 @@ export default function App() {
           .from('projects')
           .update(payload)
           .eq('id', id);
-        if (updateError) return { success: false, error: updateError.message };
+        if (updateError) {
+          console.error('Project update failed', updateError);
+          return { success: false, error: 'Could not save your changes. Please check the values and try again.' };
+        }
       } else {
         // Create new - compute next seq_no
         const maxSeq = data?.projects.reduce((max, p) => {
@@ -179,24 +184,33 @@ export default function App() {
         const nextSeqNo = `${maxSeq + 1}.0.0`;
         const nextCode = `PRJ-${String(maxSeq + 1).padStart(3, '0')}`;
 
+        // delay_status is intentionally omitted: it is a derived status column
+        // the client is not permitted to write. New rows take its default.
         const insertPayload = {
           ...payload,
+          title: formData.title,
           seq_no: nextSeqNo,
           code: nextCode,
-          delay_status: 'On Time' as const,
         };
         const { error: insertError } = await supabase
           .from('projects')
           .insert(insertPayload);
-        if (insertError) return { success: false, error: insertError.message };
+        if (insertError) {
+          console.error('Project insert failed', insertError);
+          return {
+            success: false,
+            error: 'Could not create the project. Please check the values and try again.',
+          };
+        }
       }
 
       // Clear cache and reload
-      sessionStorage.removeItem('pms_data_v5');
+      sessionStorage.removeItem('pms_data_v6');
       await reload();
       return { success: true };
     } catch (e) {
-      return { success: false, error: e instanceof Error ? e.message : 'Unknown error' };
+      console.error('Project save failed', e);
+      return { success: false, error: 'Something went wrong while saving. Please try again.' };
     }
   }, [data, reload]);
 

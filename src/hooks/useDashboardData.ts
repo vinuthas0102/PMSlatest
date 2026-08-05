@@ -71,7 +71,10 @@ export function useDashboardData() {
       sessionStorage.setItem(LOADING_KEY, JSON.stringify(dashboardData));
       setData(dashboardData);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load data');
+      // Never surface the underlying database error to the interface: its text
+      // discloses table names, column names, constraints and policy behaviour.
+      console.error('Dashboard data load failed', e);
+      setError('We could not load the dashboard data. Please try again.');
     } finally {
       setLoading(false);
     }
