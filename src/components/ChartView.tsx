@@ -291,9 +291,7 @@ export function ChartView({
       byState.set(i.state, arr);
     });
     const entries = Array.from(byState.entries()).sort((a, b) => b[1].length - a[1].length);
-    const top5 = entries.slice(0, 5);
-    const others = entries.slice(5);
-    const data: ChartPoint[] = top5.map(([state, arr], idx) =>
+    const data: ChartPoint[] = entries.map(([state, arr], idx) =>
       makePoint(
         state,
         arr.length,
@@ -306,10 +304,6 @@ export function ChartView({
         selectedStates.length > 0,
       ),
     );
-    if (others.length) {
-      const otherItems = others.flatMap(([, arr]) => arr);
-      data.push(makePoint('Others', otherItems.length, '#94a3b8', otherItems));
-    }
     return data;
   }, [items, selectedStates]);
 
