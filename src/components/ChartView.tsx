@@ -211,6 +211,7 @@ export function ChartView({
   const [chart3Type, setChart3Type] = useState<ChartType>('bar');
   const [chart4Type, setChart4Type] = useState<ChartType>('bar');
   const [chart5Type, setChart5Type] = useState<ChartType>('bar');
+  const [chart6Type, setChart6Type] = useState<ChartType>('bar');
   const [timelineMode, setTimelineMode] = useState<'yearly' | 'monthly'>('monthly');
 
   const physicalData = useMemo<ChartPoint[]>(() => {
@@ -222,6 +223,26 @@ export function ChartView({
       makePoint('Active', active.length, '#0891b2', active),
       makePoint('Completed', completed.length, '#059669', completed),
     ];
+  }, [items]);
+
+  const physicalStatusData = useMemo(() => {
+    const byState = new Map<string, BaseEntity[]>();
+    items.forEach((i) => {
+      const arr = byState.get(i.state) || [];
+      arr.push(i);
+      byState.set(i.state, arr);
+    });
+    const entries = Array.from(byState.entries())
+      .map(([state, arr]) => {
+        const target = arr.reduce((s, i) => s + (i.target_pct || 0), 0) / arr.length;
+        const actual = arr.reduce((s, i) => s + (i.completed_pct || 0), 0) / arr.length;
+        return { name: state, target, actual, gap: target - actual, count: arr.length };
+      })
+      .sort((a, b) => b.gap - a.gap);
+    const overallTarget = items.reduce((s, i) => s + (i.target_pct || 0), 0) / Math.max(items.length, 1);
+    const overallActual = items.reduce((s, i) => s + (i.completed_pct || 0), 0) / Math.max(items.length, 1);
+    const overall = { name: 'All Regions', target: overallTarget, actual: overallActual, gap: overallTarget - overallActual, count: items.length };
+    return [overall, ...entries];
   }, [items]);
 
   const deliveryData = useMemo<ChartPoint[]>(() => {
@@ -394,6 +415,40 @@ export function ChartView({
     </ResponsiveContainer>
   );
 
+  const renderPhysicalStatusChart = () => (
+    <ResponsiveContainer width="100%" height={CHART_H}>
+      <BarChart data={physicalStatusData} margin={{ top: 20, right: 10, left: 0, bottom: 10 }} barGap={2} barCategoryGap="22%">
+        <CartesianGrid strokeDasharray="3 3" className="stroke-slate-100" vertical={false} />
+        <XAxis dataKey="name" tick={{ fontSize: 10 }} axisLine={{ stroke: '#cbd5e1' }} angle={-25} textAnchor="end" height={60} interval={0} />
+        <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
+        <Tooltip
+          cursor={{ fill: 'rgba(8,145,178,0.05)' }}
+          content={({ active, payload, label }: any) => {
+            if (!active || !payload || !payload.length) return null;
+            const p = payload[0].payload as { name: string; target: number; actual: number; gap: number; count: number };
+            return (
+              <div className="bg-white/95 backdrop-blur rounded-lg shadow-lg border border-slate-200 px-3 py-2 text-xs min-w-[170px]">
+                <div className="font-semibold text-slate-800 mb-1">{p.name}</div>
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-1.5 text-slate-600"><span className="w-2 h-2 rounded-sm" style={{ background: '#1e40af' }} />Target: {p.target.toFixed(1)}%</div>
+                  <div className="flex items-center gap-1.5 text-slate-600"><span className="w-2 h-2 rounded-sm" style={{ background: '#0891b2' }} />Actual: {p.actual.toFixed(1)}%</div>
+                  <div className={`flex items-center gap-1.5 font-medium ${p.gap > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                    <span className="w-2 h-2 rounded-sm" style={{ background: p.gap > 0 ? '#d97706' : '#059669' }} />
+                    Gap: {p.gap >= 0 ? '+' : ''}{p.gap.toFixed(1)}%
+                  </div>
+                </div>
+                <div className="pt-1.5 mt-1.5 border-t border-slate-100 font-medium text-slate-500">Projects: {p.count}</div>
+              </div>
+            );
+          }}
+        />
+        <Legend wrapperStyle={{ fontSize: 10 }} />
+        <Bar dataKey="target" name="Target" fill="#1e40af" radius={[4, 4, 0, 0]} maxBarSize={28} />
+        <Bar dataKey="actual" name="Actual" fill="#0891b2" radius={[4, 4, 0, 0]} maxBarSize={28} />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+
   const renderTimelineChart = () => (
     <ResponsiveContainer width="100%" height={CHART_H}>
       <ComposedChart data={timelineData} margin={{ top: 20, right: 10, left: 0, bottom: 10 }}>
@@ -453,11 +508,14 @@ export function ChartView({
         <ChartCard title="Project Status" chartType={chart1Type} onChartTypeChange={setChart1Type}>
           {chart1Type === 'bar' ? renderBar(physicalData) : renderPie(physicalData)}
         </ChartCard>
-        <ChartCard title="Delivery Status" chartType={chart2Type} onChartTypeChange={setChart2Type} selectedCount={selectedDelayStatuses.length}>
+        <ChartCard title="Physical Progress" chartType={chart2Type} onChartTypeChange={setChart2Type} selectedCount={selectedDelayStatuses.length}>
           {chart2Type === 'bar' ? renderBar(deliveryData) : renderPie(deliveryData)}
         </ChartCard>
 
         {/* Row 2 */}
+        <ChartCard title="Physical Status (Actual vs Target)" chartType={chart6Type} onChartTypeChange={setChart6Type}>
+          {renderPhysicalStatusChart()}
+        </ChartCard>
         <ChartCard title="Financial Progress (₹)" chartType={chart3Type} onChartTypeChange={setChart3Type}>
           {chart3Type === 'bar' ? renderBar(financialData, true) : renderPie(financialData, true)}
         </ChartCard>
