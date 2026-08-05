@@ -1,11 +1,11 @@
 import { useState, useMemo } from 'react';
 import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis,
-  CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart, Line,
+  CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart, Line, LabelList,
 } from 'recharts';
 import { BarChart3, PieChart as PieIcon, Check, X, Filter } from 'lucide-react';
 import type { BaseEntity, DelayStatus } from '@/types';
-import { formatINRShort, CATEGORIES, delayStatusShort, DELAY_STATUSES } from '@/lib/format';
+import { formatINR, formatINRShort, CATEGORIES, delayStatusShort, DELAY_STATUSES } from '@/lib/format';
 
 type FilterField = 'states' | 'categories' | 'delayStatuses';
 
@@ -163,19 +163,24 @@ function ChartCard({
   chartType,
   onChartTypeChange,
   selectedCount,
+  subtitle,
   children,
 }: {
   title: string;
   chartType: ChartType;
   onChartTypeChange: (t: ChartType) => void;
   selectedCount?: number;
+  subtitle?: string;
   children: React.ReactNode;
 }) {
   return (
     <div className="mirror-card rounded p-3 flex flex-col">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5">
-          <h3 className="text-sm font-semibold text-slate-700">{title}</h3>
+          <div>
+            <h3 className="text-sm font-semibold text-slate-700">{title}</h3>
+            {subtitle && <p className="text-[10px] text-slate-500 font-medium mt-0.5">{subtitle}</p>}
+          </div>
           {selectedCount !== undefined && selectedCount > 0 && (
             <span className="text-[10px] font-bold bg-cyan-600 text-white px-1.5 py-0.5 rounded-full">
               {selectedCount}
@@ -241,7 +246,7 @@ export function ChartView({
       .map(([state, arr]) => {
         const target = arr.reduce((s, i) => s + (i.target_pct || 0), 0) / arr.length;
         const actual = arr.reduce((s, i) => s + (i.completed_pct || 0), 0) / arr.length;
-        return { name: state, target, actual, gap: target - actual, count: arr.length };
+        return { name: state, target, actual, gap: target - actual, gapBar: Math.max(0, target - actual), count: arr.length };
       })
       .sort((a, b) => b.gap - a.gap);
     if (selectedStates.length > 0) {
@@ -249,7 +254,7 @@ export function ChartView({
     }
     const overallTarget = items.reduce((s, i) => s + (i.target_pct || 0), 0) / Math.max(items.length, 1);
     const overallActual = items.reduce((s, i) => s + (i.completed_pct || 0), 0) / Math.max(items.length, 1);
-    const overall = { name: 'All Regions', target: overallTarget, actual: overallActual, gap: overallTarget - overallActual, count: items.length };
+    const overall = { name: 'All Regions', target: overallTarget, actual: overallActual, gap: overallTarget - overallActual, gapBar: Math.max(0, overallTarget - overallActual), count: items.length };
     return [overall, ...entries];
   }, [items]);
 
@@ -278,12 +283,16 @@ export function ChartView({
     const paid = items.reduce((s, i) => s + i.paid_amount, 0);
     const pct = (v: number) => (projectValue > 0 ? (v / projectValue) * 100 : 0);
     return [
-      makePoint('Project Value', pct(projectValue), '#4f46e5', items, '%', undefined, undefined, false, false, projectValue),
       makePoint('Total Mbook', pct(mbook), '#0891b2', items, '%', undefined, undefined, false, false, mbook),
       makePoint('Billed', pct(billed), '#1e40af', items, '%', undefined, undefined, false, false, billed),
       makePoint('Paid', pct(paid), '#059669', items, '%', undefined, undefined, false, false, paid),
     ];
   }, [items]);
+
+  const totalProjectValue = useMemo(
+    () => items.reduce((s, i) => s + i.project_value, 0),
+    [items],
+  );
 
   const regionData = useMemo<ChartPoint[]>(() => {
     const byState = new Map<string, BaseEntity[]>();
@@ -422,7 +431,7 @@ export function ChartView({
 
   const renderPhysicalStatusChart = () => (
     <ResponsiveContainer width="100%" height={CHART_H}>
-      <BarChart data={physicalStatusData} margin={{ top: 20, right: 10, left: 0, bottom: 10 }} barGap={2} barCategoryGap="22%">
+      <BarChart data={physicalStatusData} margin={{ top: 30, right: 10, left: 0, bottom: 10 }} barCategoryGap="22%">
         <CartesianGrid strokeDasharray="3 3" className="stroke-slate-100" vertical={false} />
         <XAxis dataKey="name" tick={{ fontSize: 10 }} axisLine={{ stroke: '#cbd5e1' }} angle={-25} textAnchor="end" height={60} interval={0} />
         <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
@@ -435,12 +444,9 @@ export function ChartView({
               <div className="bg-white/95 backdrop-blur rounded-lg shadow-lg border border-slate-200 px-3 py-2 text-xs min-w-[170px]">
                 <div className="font-semibold text-slate-800 mb-1">{p.name}</div>
                 <div className="space-y-0.5">
-                  <div className="flex items-center gap-1.5 text-slate-600"><span className="w-2 h-2 rounded-sm" style={{ background: '#1e40af' }} />Target: {p.target.toFixed(1)}%</div>
                   <div className="flex items-center gap-1.5 text-slate-600"><span className="w-2 h-2 rounded-sm" style={{ background: '#0891b2' }} />Actual: {p.actual.toFixed(1)}%</div>
-                  <div className={`flex items-center gap-1.5 font-medium ${p.gap > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
-                    <span className="w-2 h-2 rounded-sm" style={{ background: p.gap > 0 ? '#d97706' : '#059669' }} />
-                    Gap: {p.gap >= 0 ? '+' : ''}{p.gap.toFixed(1)}%
-                  </div>
+                  <div className="flex items-center gap-1.5 text-slate-600"><span className="w-2 h-2 rounded-sm" style={{ background: '#d97706' }} />Gap: {p.gap >= 0 ? '+' : ''}{p.gap.toFixed(1)}%</div>
+                  <div className="flex items-center gap-1.5 text-slate-600"><span className="w-2 h-2 rounded-sm" style={{ background: '#1e40af' }} />Target: {p.target.toFixed(1)}%</div>
                 </div>
                 <div className="pt-1.5 mt-1.5 border-t border-slate-100 font-medium text-slate-500">Projects: {p.count}</div>
               </div>
@@ -448,8 +454,11 @@ export function ChartView({
           }}
         />
         <Legend wrapperStyle={{ fontSize: 10 }} />
-        <Bar dataKey="target" name="Target" fill="#1e40af" radius={[4, 4, 0, 0]} maxBarSize={28} />
-        <Bar dataKey="actual" name="Actual" fill="#0891b2" radius={[4, 4, 0, 0]} maxBarSize={28} />
+        <Bar dataKey="actual" name="Actual" stackId="p" fill="#0891b2" radius={[0, 0, 0, 0]} maxBarSize={42} />
+        <Bar dataKey="gapBar" name="Gap" stackId="p" fill="#d97706" radius={[4, 4, 0, 0]} maxBarSize={42}>
+          <LabelList dataKey="gap" position="top" formatter={(v: any) => `${v >= 0 ? '+' : ''}${Number(v).toFixed(1)}%`} style={{ fontSize: 9, fontWeight: 600, fill: '#92400e' }} />
+        </Bar>
+        <Bar dataKey="target" name="Target" fill="none" stroke="#1e40af" strokeWidth={1.5} strokeDasharray="4 3" maxBarSize={42} />
       </BarChart>
     </ResponsiveContainer>
   );
@@ -512,7 +521,7 @@ export function ChartView({
         <ChartCard title="Physical Progress" chartType={chart6Type} onChartTypeChange={setChart6Type}>
           {renderPhysicalStatusChart()}
         </ChartCard>
-        <ChartCard title="Financial Progress (%)" chartType={chart3Type} onChartTypeChange={setChart3Type}>
+        <ChartCard title="Financial Progress (%)" chartType={chart3Type} onChartTypeChange={setChart3Type} subtitle={`Total Project Value: ${formatINR(totalProjectValue)}`}>
           {chart3Type === 'bar' ? renderBar(financialData, false, true) : renderPie(financialData, false, true)}
         </ChartCard>
         <ChartCard title="Delivery Status" chartType={chart2Type} onChartTypeChange={setChart2Type} selectedCount={selectedDelayStatuses.length}>
