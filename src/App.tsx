@@ -354,6 +354,7 @@ export default function App() {
           item={specModalItem.item}
           level={specModalItem.level}
           specs={allSpecs}
+          trackingUpdates={allTrackingUpdates}
           onClose={() => setSpecModalItem(null)}
         />
       )}

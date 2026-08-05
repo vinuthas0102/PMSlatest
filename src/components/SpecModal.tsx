@@ -1,15 +1,17 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, Fragment } from 'react';
 import {
   X, Search, Paperclip, FileText, FileCheck,
   MapPin, Calendar, AlertTriangle, Ruler, CalendarClock,
+  ChevronDown, ChevronRight, Clock, Truck, TrendingUp, User,
 } from 'lucide-react';
-import type { BaseEntity, Spec, Level } from '@/types';
+import type { BaseEntity, Spec, Level, TrackingUpdate, TrackingType } from '@/types';
 import { formatINR, formatDateShort, delayStatusColor, delayStatusShort } from '@/lib/format';
 
 interface SpecModalProps {
   item: BaseEntity;
   level: Level;
   specs: Spec[];
+  trackingUpdates: TrackingUpdate[];
   onClose: () => void;
 }
 
@@ -19,6 +21,25 @@ const LEVEL_LABELS: Record<Level, string> = {
   schedule: 'Schedule',
   tracking: 'Tracking',
 };
+
+const DEVIATION_TABS: { key: TrackingType; label: string; icon: typeof Clock; color: string }[] = [
+  { key: 'spec', label: 'Spec Deviations', icon: FileText, color: 'text-cyan-600' },
+  { key: 'quantity', label: 'Qty Deviations', icon: Ruler, color: 'text-orange-600' },
+  { key: 'price', label: 'Price Escalations', icon: TrendingUp, color: 'text-emerald-600' },
+  { key: 'delay', label: 'Delay / Extension', icon: Clock, color: 'text-rose-600' },
+  { key: 'delivery', label: 'Delivery Deviations', icon: Truck, color: 'text-amber-600' },
+];
+
+function formatTimestamp(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
 
 function MetaRow({ label, value, valueClass = 'text-slate-800' }: { label: string; value: string; valueClass?: string }) {
   return (
@@ -38,10 +59,56 @@ function SectionTitle({ icon: Icon, children }: { icon: typeof MapPin; children:
   );
 }
 
-export function SpecModal({ item, level, specs, onClose }: SpecModalProps) {
+function UpdateCard({ u, icon: Icon, color }: { u: TrackingUpdate; icon: typeof Clock; color: string }) {
+  return (
+    <div className="bg-white rounded-lg border border-slate-200 p-3 shadow-sm">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-1.5">
+          <Icon className={`w-3.5 h-3.5 ${color}`} />
+          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-700">
+            {u.deviation_value}
+          </span>
+        </div>
+        <div className="flex items-center gap-1 text-[10px] text-slate-400">
+          <CalendarClock className="w-3 h-3" />
+          {formatTimestamp(u.created_at)}
+        </div>
+      </div>
+      <div className="flex items-center gap-1 text-[10px] text-slate-500 mb-2">
+        <User className="w-3 h-3" />
+        <span className="font-medium text-slate-600">{u.officer_name || 'Unknown'}</span>
+      </div>
+      <div
+        className="text-xs text-slate-700 prose-sm max-w-none [&_b]:font-bold [&_i]:italic [&_u]:underline"
+        dangerouslySetInnerHTML={{ __html: u.remarks }}
+      />
+    </div>
+  );
+}
+
+export function SpecModal({ item, level, specs, trackingUpdates, onClose }: SpecModalProps) {
   const [specFilter, setSpecFilter] = useState('');
+  const [expandedDeviation, setExpandedDeviation] = useState<TrackingType | null>(null);
+  const [activeHistoryTab, setActiveHistoryTab] = useState<TrackingType>('spec');
+  const [showHistory, setShowHistory] = useState(false);
+  const [expandedSpecDeviation, setExpandedSpecDeviation] = useState<string | null>(null);
   const colors = delayStatusColor(item.delay_status);
   const balance = Math.max(0, item.mbook_entry - item.paid_amount);
+
+  const projectUpdates = useMemo(
+    () => trackingUpdates.filter((u) => u.project_id === item.id),
+    [trackingUpdates, item.id]
+  );
+
+  const updatesByType = useMemo(() => {
+    const map: Record<TrackingType, TrackingUpdate[]> = {
+      spec: [], quantity: [], price: [], delay: [], delivery: [],
+    };
+    for (const u of projectUpdates) {
+      map[u.tracking_type].push(u);
+    }
+    return map;
+  }, [projectUpdates]);
 
   const levelSpecs = useMemo(() => {
     return specs.filter((s) => s.level === level && s.parent_id === item.id);
@@ -64,6 +131,15 @@ export function SpecModal({ item, level, specs, onClose }: SpecModalProps) {
   }, [filteredSpecs]);
 
   const progressPct = item.target_pct > 0 ? Math.min(100, (item.completed_pct / item.target_pct) * 100) : 0;
+
+  const totalDeviationCount = projectUpdates.length;
+
+  const deviationRows: { type: TrackingType; label: string; count: number; valueClass: string; icon: typeof AlertTriangle }[] = [
+    { type: 'spec', label: 'Spec Deviations', count: item.spec_deviations, valueClass: 'text-amber-700', icon: FileText },
+    { type: 'quantity', label: 'Qty Deviations', count: item.qty_deviations, valueClass: 'text-orange-700', icon: Ruler },
+    { type: 'price', label: 'Price Escalations', count: updatesByType.price.length, valueClass: 'text-emerald-700', icon: TrendingUp },
+    { type: 'delay', label: 'Extension / Delay', count: updatesByType.delay.length, valueClass: 'text-rose-700', icon: Clock },
+  ];
 
   return (
     <div
@@ -148,15 +224,102 @@ export function SpecModal({ item, level, specs, onClose }: SpecModalProps) {
               <MetaRow label="Balance" value={formatINR(balance)} valueClass="text-rose-600" />
             </div>
 
-            {/* Deviations */}
+            {/* Deviations — expandable */}
             <div>
               <SectionTitle icon={AlertTriangle}>Deviations</SectionTitle>
-              <MetaRow label="Spec Deviations" value={`${item.spec_deviations}`} valueClass="text-amber-700" />
-              <MetaRow label="Qty Deviations" value={`${item.qty_deviations}`} valueClass="text-orange-700" />
-              <MetaRow label="Extension Days" value={`${item.extension_days}d`} valueClass="text-rose-700" />
+              {deviationRows.map((dr) => {
+                const entries = updatesByType[dr.type];
+                const isExpanded = expandedDeviation === dr.type;
+                const hasEntries = entries.length > 0;
+                return (
+                  <div key={dr.type}>
+                    <button
+                      onClick={() => hasEntries ? setExpandedDeviation(isExpanded ? null : dr.type) : undefined}
+                      disabled={!hasEntries}
+                      className={`flex w-full items-center justify-between py-1.5 border-b border-slate-100 last:border-0 ${hasEntries ? 'cursor-pointer hover:bg-slate-100/60' : 'cursor-default'}`}
+                    >
+                      <span className="flex items-center gap-1 text-[11px] font-medium text-slate-500">
+                        {hasEntries && isExpanded
+                          ? <ChevronDown className="w-3 h-3 text-slate-400" />
+                          : hasEntries
+                            ? <ChevronRight className="w-3 h-3 text-slate-400" />
+                            : <span className="w-3" />
+                        }
+                        {dr.label}
+                      </span>
+                      <span className={`text-xs font-bold tabular-nums ${dr.valueClass}`}>
+                        {dr.count}
+                      </span>
+                    </button>
+                    {isExpanded && hasEntries && (
+                      <div className="mt-1 mb-2 space-y-2 pl-4">
+                        {entries.map((u) => {
+                          const tabMeta = DEVIATION_TABS.find((t) => t.key === dr.type);
+                          return <UpdateCard key={u.id} u={u} icon={tabMeta?.icon ?? FileText} color={tabMeta?.color ?? 'text-slate-400'} />;
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
+
+          {/* Deviation history toggle */}
+          {totalDeviationCount > 0 && (
+            <div className="mt-3 pt-3 border-t border-slate-200">
+              <button
+                onClick={() => setShowHistory(!showHistory)}
+                className="flex items-center gap-1.5 text-[11px] font-bold text-cyan-700 hover:text-cyan-800 transition-colors"
+              >
+                {showHistory ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                <AlertTriangle className="w-3.5 h-3.5" />
+                Deviation History ({totalDeviationCount} {totalDeviationCount === 1 ? 'entry' : 'entries'})
+              </button>
+            </div>
+          )}
         </div>
+
+        {/* Deviation history panel */}
+        {showHistory && totalDeviationCount > 0 && (
+          <div className="shrink-0 border-b border-slate-200 bg-white px-5 py-3">
+            <div className="flex items-center gap-1 mb-3 overflow-x-auto">
+              {DEVIATION_TABS.map((tab) => {
+                const count = updatesByType[tab.key].length;
+                if (count === 0) return null;
+                const Icon = tab.icon;
+                const isActive = activeHistoryTab === tab.key;
+                return (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveHistoryTab(tab.key)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                      isActive
+                        ? 'bg-slate-100 text-slate-800 shadow-sm ring-1 ring-slate-200'
+                        : 'text-slate-500 hover:bg-slate-50'
+                    }`}
+                  >
+                    <Icon className={`w-3.5 h-3.5 ${isActive ? tab.color : 'text-slate-400'}`} />
+                    {tab.label}
+                    <span className="ml-0.5 rounded-full bg-slate-200 px-1.5 py-0.5 text-[9px] font-bold text-slate-600">
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="max-h-48 overflow-y-auto space-y-2">
+              {updatesByType[activeHistoryTab].length > 0 ? (
+                updatesByType[activeHistoryTab].map((u) => {
+                  const tabMeta = DEVIATION_TABS.find((t) => t.key === activeHistoryTab);
+                  return <UpdateCard key={u.id} u={u} icon={tabMeta?.icon ?? FileText} color={tabMeta?.color ?? 'text-slate-400'} />;
+                })
+              ) : (
+                <p className="text-xs text-slate-400 text-center py-4">No entries for this category.</p>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Scrollable body */}
         <div className="min-h-0 flex-1 overflow-y-auto">
@@ -190,6 +353,11 @@ export function SpecModal({ item, level, specs, onClose }: SpecModalProps) {
                 className="w-40 bg-transparent text-xs text-slate-700 outline-none placeholder:text-slate-400"
               />
             </div>
+            {updatesByType.quantity.length > 0 && (
+              <span className="text-[10px] text-slate-400">
+                {updatesByType.quantity.length} qty deviation {updatesByType.quantity.length === 1 ? 'log' : 'logs'} from maintenance
+              </span>
+            )}
           </div>
 
           {/* Specs table */}
@@ -211,37 +379,65 @@ export function SpecModal({ item, level, specs, onClose }: SpecModalProps) {
                 {filteredSpecs.map((spec, idx) => {
                   const ratio = spec.estimated_qty > 0 ? Math.min(100, (spec.executed_qty / spec.estimated_qty) * 100) : 0;
                   const hasDeviation = spec.executed_qty !== spec.estimated_qty;
+                  const showQtyLog = hasDeviation && updatesByType.quantity.length > 0;
+                  const isQtyExpanded = expandedSpecDeviation === spec.id;
                   return (
-                    <tr
-                      key={spec.id}
-                      className={`border-b border-slate-200 transition-colors hover:bg-cyan-50/50 ${idx % 2 === 1 ? 'bg-slate-50' : 'bg-white'}`}
-                    >
-                      <td className="whitespace-nowrap px-4 py-2 font-mono font-medium text-slate-700">{spec.spec_code}</td>
-                      <td className="px-4 py-2 text-slate-700">
-                        <div className="line-clamp-2">{spec.description}</div>
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-2 text-slate-500">{spec.unit}</td>
-                      <td className="whitespace-nowrap px-4 py-2 text-right tabular-nums text-slate-600">{spec.estimated_qty.toFixed(0)}</td>
-                      <td className="whitespace-nowrap px-4 py-2 text-right tabular-nums">
-                        <span className={hasDeviation ? 'text-orange-700 font-semibold' : 'text-slate-600'}>
-                          {spec.executed_qty.toFixed(0)}
-                        </span>
-                        {spec.estimated_qty > 0 && (
-                          <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-slate-200">
-                            <div className="h-full rounded-full bg-cyan-500" style={{ width: `${ratio}%` }} />
-                          </div>
-                        )}
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-2 text-right tabular-nums text-slate-600">₹{spec.rate.toFixed(0)}</td>
-                      <td className="whitespace-nowrap px-4 py-2 text-right font-bold tabular-nums text-blue-700">{formatINR(spec.amount)}</td>
-                      <td className="px-4 py-2 text-center">
-                        {spec.has_attachment ? (
-                          <Paperclip className="mx-auto h-4 w-4 text-cyan-600" />
-                        ) : (
-                          <span className="text-slate-300">—</span>
-                        )}
-                      </td>
-                    </tr>
+                    <Fragment key={spec.id}>
+                      <tr
+                        className={`border-b border-slate-200 transition-colors hover:bg-cyan-50/50 ${idx % 2 === 1 ? 'bg-slate-50' : 'bg-white'}`}
+                      >
+                        <td className="whitespace-nowrap px-4 py-2 font-mono font-medium text-slate-700">{spec.spec_code}</td>
+                        <td className="px-4 py-2 text-slate-700">
+                          <div className="line-clamp-2">{spec.description}</div>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-2 text-slate-500">{spec.unit}</td>
+                        <td className="whitespace-nowrap px-4 py-2 text-right tabular-nums text-slate-600">{spec.estimated_qty.toFixed(0)}</td>
+                        <td className="whitespace-nowrap px-4 py-2 text-right tabular-nums">
+                          <span className={hasDeviation ? 'text-orange-700 font-semibold' : 'text-slate-600'}>
+                            {spec.executed_qty.toFixed(0)}
+                          </span>
+                          {spec.estimated_qty > 0 && (
+                            <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-slate-200">
+                              <div className="h-full rounded-full bg-cyan-500" style={{ width: `${ratio}%` }} />
+                            </div>
+                          )}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-2 text-right tabular-nums text-slate-600">₹{spec.rate.toFixed(0)}</td>
+                        <td className="whitespace-nowrap px-4 py-2 text-right font-bold tabular-nums text-blue-700">{formatINR(spec.amount)}</td>
+                        <td className="px-4 py-2 text-center">
+                          {spec.has_attachment ? (
+                            <Paperclip className="mx-auto h-4 w-4 text-cyan-600" />
+                          ) : (
+                            <span className="text-slate-300">—</span>
+                          )}
+                        </td>
+                      </tr>
+                      {showQtyLog && (
+                        <tr className={`border-b border-slate-200 ${idx % 2 === 1 ? 'bg-slate-50' : 'bg-white'}`}>
+                          <td colSpan={8} className="px-4 py-0">
+                            <button
+                              onClick={() => setExpandedSpecDeviation(isQtyExpanded ? null : spec.id)}
+                              className="flex items-center gap-1.5 py-1.5 text-[10px] font-bold text-orange-600 hover:text-orange-700 transition-colors"
+                            >
+                              {isQtyExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                              <Ruler className="w-3 h-3" />
+                              Qty deviation log ({updatesByType.quantity.length} {updatesByType.quantity.length === 1 ? 'entry' : 'entries'})
+                            </button>
+                          </td>
+                        </tr>
+                      )}
+                      {isQtyExpanded && showQtyLog && (
+                        <tr className={idx % 2 === 1 ? 'bg-slate-50' : 'bg-white'}>
+                          <td colSpan={8} className="px-8 pb-3">
+                            <div className="space-y-2">
+                              {updatesByType.quantity.map((u) => (
+                                <UpdateCard key={u.id} u={u} icon={Ruler} color="text-orange-600" />
+                              ))}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
                   );
                 })}
                 {filteredSpecs.length === 0 && (
