@@ -508,12 +508,12 @@ export function ChartView({
         <ChartCard title="Project Status" chartType={chart1Type} onChartTypeChange={setChart1Type}>
           {chart1Type === 'bar' ? renderBar(physicalData) : renderPie(physicalData)}
         </ChartCard>
-        <ChartCard title="Physical Progress" chartType={chart2Type} onChartTypeChange={setChart2Type} selectedCount={selectedDelayStatuses.length}>
+        <ChartCard title="Delivery Status" chartType={chart2Type} onChartTypeChange={setChart2Type} selectedCount={selectedDelayStatuses.length}>
           {chart2Type === 'bar' ? renderBar(deliveryData) : renderPie(deliveryData)}
         </ChartCard>
 
         {/* Row 2 */}
-        <ChartCard title="Physical Status (Actual vs Target)" chartType={chart6Type} onChartTypeChange={setChart6Type}>
+        <ChartCard title="Physical Progress" chartType={chart6Type} onChartTypeChange={setChart6Type}>
           {renderPhysicalStatusChart()}
         </ChartCard>
         <ChartCard title="Financial Progress (₹)" chartType={chart3Type} onChartTypeChange={setChart3Type}>
