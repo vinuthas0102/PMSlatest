@@ -41,6 +41,7 @@ interface ChartPoint {
   value: number;
   color: string;
   unit?: string;
+  rawValue?: number;
   count: number;
   statuses: StatusInfo;
   filterField?: FilterField;
@@ -68,12 +69,14 @@ function makePoint(
   filterValue?: string,
   selected?: boolean,
   anySelected?: boolean,
+  rawValue?: number,
 ): ChartPoint {
   return {
     name,
     value,
     color,
     unit,
+    rawValue,
     count: subset.length,
     statuses: computeStatuses(subset),
     filterField,
@@ -95,13 +98,15 @@ function StatusTooltip({
   if (!active || !payload || !payload.length) return null;
   const p = payload[0].payload as ChartPoint;
   const isMoney = p.unit === '₹';
-  const display = isMoney ? formatINRShort(p.value) : p.value;
+  const isPercent = p.unit === '%';
+  const display = isMoney ? formatINRShort(p.value) : isPercent ? `${p.value.toFixed(1)}%` : p.value;
   const canSelect = !!p.filterField && !!p.filterValue;
   return (
     <div className="bg-white/95 backdrop-blur rounded-lg shadow-lg border border-slate-200 px-3 py-2 text-xs min-w-[160px]">
       <div className="font-semibold text-slate-800 mb-0.5">{p.name}</div>
       <div className="text-slate-600 mb-1.5">
-        {display} {isMoney ? '' : 'projects'}
+        {display} {isMoney || isPercent ? '' : 'projects'}
+        {isPercent && p.rawValue != null && <span className="text-slate-400 ml-1">({formatINRShort(p.rawValue)})</span>}
       </div>
       <div className="pt-1.5 border-t border-slate-100 space-y-1">
         <div className="font-medium text-slate-500">Projects: {p.count}</div>
@@ -270,10 +275,11 @@ export function ChartView({
     const mbook = items.reduce((s, i) => s + i.mbook_entry, 0);
     const billed = items.reduce((s, i) => s + i.billed_amount, 0);
     const paid = items.reduce((s, i) => s + i.paid_amount, 0);
+    const pct = (v: number) => (mbook > 0 ? (v / mbook) * 100 : 0);
     return [
-      makePoint('Total Mbook', mbook, '#0891b2', items, '₹'),
-      makePoint('Billed', billed, '#1e40af', items, '₹'),
-      makePoint('Paid', paid, '#059669', items, '₹'),
+      makePoint('Total Mbook', pct(mbook), '#0891b2', items, '%', undefined, undefined, false, false, mbook),
+      makePoint('Billed', pct(billed), '#1e40af', items, '%', undefined, undefined, false, false, billed),
+      makePoint('Paid', pct(paid), '#059669', items, '%', undefined, undefined, false, false, paid),
     ];
   }, [items]);
 
@@ -353,12 +359,12 @@ export function ChartView({
     return d.color;
   };
 
-  const renderBar = (data: ChartPoint[], money = false) => (
+  const renderBar = (data: ChartPoint[], money = false, percent = false) => (
     <ResponsiveContainer width="100%" height={CHART_H}>
       <BarChart data={data} margin={{ top: 20, right: 10, left: 0, bottom: 20 }}>
         <CartesianGrid strokeDasharray="3 3" className="stroke-slate-100" vertical={false} />
         <XAxis dataKey="name" tick={{ fontSize: 10, fontWeight: 600 }} angle={-15} textAnchor="end" height={50} axisLine={{ stroke: '#cbd5e1' }} />
-        <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => (money ? formatINRShort(v) : v)} axisLine={false} tickLine={false} />
+        <YAxis domain={percent ? [0, 100] : undefined} tick={{ fontSize: 10 }} tickFormatter={(v) => (money ? formatINRShort(v) : percent ? `${v}%` : v)} axisLine={false} tickLine={false} />
         <Tooltip cursor={{ fill: 'rgba(8,145,178,0.05)' }} content={<StatusTooltip onToggle={onToggleSelection} />} />
         <Bar
           dataKey="value"
@@ -385,7 +391,7 @@ export function ChartView({
     </ResponsiveContainer>
   );
 
-  const renderPie = (data: ChartPoint[], money = false) => (
+  const renderPie = (data: ChartPoint[], money = false, percent = false) => (
     <ResponsiveContainer width="100%" height={CHART_H}>
       <PieChart>
         <Pie
@@ -396,7 +402,7 @@ export function ChartView({
           cy="50%"
           outerRadius={90}
           innerRadius={45}
-          label={(e: any) => (money ? `${e.name}` : `${e.name}: ${e.value}`)}
+          label={(e: any) => (money ? `${e.name}` : percent ? `${e.name}: ${e.value.toFixed(0)}%` : `${e.name}: ${e.value}`)}
           cursor={data.some((d) => d.filterField) ? 'pointer' : undefined}
           onClick={(_: any, idx: number) => {
             const d = data[idx];
@@ -514,8 +520,8 @@ export function ChartView({
           {renderPhysicalStatusChart()}
         </ChartCard>
 
-        <ChartCard title="Financial Progress (₹)" chartType={chart3Type} onChartTypeChange={setChart3Type}>
-          {chart3Type === 'bar' ? renderBar(financialData, true) : renderPie(financialData, true)}
+        <ChartCard title="Financial Progress (%)" chartType={chart3Type} onChartTypeChange={setChart3Type}>
+          {chart3Type === 'bar' ? renderBar(financialData, false, true) : renderPie(financialData, false, true)}
         </ChartCard>
         <ChartCard title="Project Status" chartType={chart1Type} onChartTypeChange={setChart1Type}>
           {chart1Type === 'bar' ? renderBar(physicalData) : renderPie(physicalData)}
