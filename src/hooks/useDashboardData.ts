@@ -16,7 +16,7 @@ import type {
   Amendment,
 } from '@/types';
 
-const LOADING_KEY = 'pms_data_v8';
+const LOADING_KEY = 'pms_data_v9';
 
 const SPECS_PAGE_SIZE = 1000;
 

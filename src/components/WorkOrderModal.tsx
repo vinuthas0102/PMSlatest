@@ -158,9 +158,9 @@ export function WorkOrderModal({
       end_date: selectedWO.end_date,
       status: 'draft' as const,
     };
-    const { error: saveError } = woDetail
-      ? await supabase.from('work_order_details').update(payload).eq('id', woDetail.id)
-      : await supabase.from('work_order_details').insert(payload);
+    const { error: saveError } = await supabase
+      .from('work_order_details')
+      .upsert(payload, { onConflict: 'work_order_id' });
     if (saveError) setError('Could not save the work order header.');
     else await onReload();
   };
@@ -226,7 +226,7 @@ export function WorkOrderModal({
           wo_value: Number(revisedValue),
           nodal_officer: woDetail?.nodal_officer ?? nodalOfficer,
           status: 'draft',
-        });
+        }, { onConflict: 'work_order_id' });
       }
       setEscalationOpen(false);
       setError('WO value escalation request recorded in the audit trail.');
