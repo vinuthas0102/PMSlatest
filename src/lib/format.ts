@@ -18,6 +18,11 @@ export function formatPct(pct: number): string {
   return `${pct.toFixed(1)}%`;
 }
 
+export function calculateAllocationPct(workOrderValue: number, projectValue: number): number {
+  if (projectValue <= 0) return 0;
+  return (workOrderValue / projectValue) * 100;
+}
+
 export function formatDate(date: string | null): string {
   if (!date) return '-';
   const d = new Date(date);

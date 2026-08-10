@@ -11,7 +11,7 @@ import type {
 import { useAuth } from '@/auth/AuthContext';
 import { supabase } from '@/lib/supabase';
 import {
-  formatINR, formatINRShort, formatDateShort, delayStatusColor, delayStatusShort,
+  calculateAllocationPct, formatINR, formatINRShort, formatDateShort, delayStatusColor, delayStatusShort,
   DELAY_STATUSES, STATES, DISTRICTS, CATEGORIES, SUBCATEGORIES,
 } from '@/lib/format';
 import { StatusBar } from '@/components/StatusBar';
@@ -166,6 +166,8 @@ export function ProjectDetailModal({
           {tab === 'header' && (
             <HeaderTab
               project={project}
+              workOrders={workOrders}
+              details={details}
               canEdit={canEdit}
               isFinalized={isFinalized}
               initialEditing={canMaintain}
@@ -195,9 +197,11 @@ export function ProjectDetailModal({
 /* ─── Header Tab ─── */
 
 function HeaderTab({
-  project, canEdit, isFinalized, initialEditing = false, trackingUpdates, onSaveProject, onClose,
+  project, workOrders, details, canEdit, isFinalized, initialEditing = false, trackingUpdates, onSaveProject, onClose,
 }: {
   project: Project;
+  workOrders: WorkOrder[];
+  details: WorkOrderDetail[];
   canEdit: boolean;
   isFinalized: boolean;
   initialEditing?: boolean;
@@ -233,6 +237,11 @@ function HeaderTab({
   const districts = form.state ? DISTRICTS[form.state] || [] : [];
   const subcategories = form.category ? SUBCATEGORIES[form.category] || [] : [];
   const allocationTotal = useMemo(() => ['drawing_pct', 'supply_pct', 'civil_pct', 'manpower_pct', 'others_pct'].reduce((sum, key) => sum + (Number(form[key as keyof ProjectFormData]) || 0), 0), [form]);
+  const agencyValueTotal = useMemo(() => workOrders.filter((wo) => wo.project_id === project.id).reduce((sum, wo) => {
+    const value = details.find((detail) => detail.work_order_id === wo.id)?.wo_value ?? wo.project_value;
+    return sum + (Number(value) || 0);
+  }, 0), [details, project.id, workOrders]);
+  const agencyAllocationTotal = calculateAllocationPct(agencyValueTotal, Number(form.project_value) || Number(project.project_value) || 0);
 
   const inputClass = 'w-full text-xs border border-slate-300 rounded px-2 py-1.5 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-200 transition-colors disabled:bg-slate-100 disabled:text-slate-400';
   const labelClass = 'text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1 block';
@@ -240,6 +249,7 @@ function HeaderTab({
   const handleSubmit = async (status: ProjectStatus) => {
     if (!form.title.trim()) return setError('Project name is required.');
     if (Math.abs(allocationTotal - 100) > 0.01) return setError('Scope allocation must total exactly 100%.');
+    if (status === 'finalized' && Math.abs(agencyAllocationTotal - 100) > 0.01) return setError(`Agency WO values must cover 100% of the project value before finalizing. Current total: ${agencyAllocationTotal.toFixed(1)}%.`);
     if (isFinalized) return setError('This project is finalized and locked. Submit an amendment request to change it.');
     setSaving(true); setError(null);
     const result = await onSaveProject(project.id, form, status);
@@ -384,6 +394,9 @@ function HeaderTab({
             ))}
           </div>
         </section>
+        <div className={`rounded-lg border px-3 py-2 text-xs ${Math.abs(agencyAllocationTotal - 100) < 0.01 ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
+          Agency WO values cover <b>{agencyAllocationTotal.toFixed(1)}%</b> of the project value. Finalization requires 100%.
+        </div>
         <div>
           <label className={labelClass}>Remarks</label>
           <textarea value={form.remarks} disabled={isFinalized} onChange={(e) => update('remarks', e.target.value)} rows={2} className={inputClass} />
@@ -574,6 +587,13 @@ function AgencyTab({
 
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
 
+  const allocationRows = useMemo(() => projectWOs.map((wo) => {
+    const detail = details.find((entry) => entry.work_order_id === wo.id);
+    const value = Number(detail?.wo_value ?? wo.project_value) || 0;
+    return { wo, agencyName: detail?.agency_name ?? '-', value, pct: calculateAllocationPct(value, Number(project.project_value) || 0) };
+  }), [details, project.project_value, projectWOs]);
+  const allocationTotal = allocationRows.reduce((sum, row) => sum + row.pct, 0);
+
   const filteredWOs = useMemo(() => {
     if (!statusFilter) return projectWOs;
     if (statusFilter === 'completed') return projectWOs.filter((w) => w.completed_pct >= 100);
@@ -616,6 +636,21 @@ function AgencyTab({
         </div>
       </div>
 
+      <div className="mx-4 mt-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+        <div className="mb-2 flex items-center justify-between">
+          <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Agency Allocation</h3>
+          <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${Math.abs(allocationTotal - 100) < 0.01 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800'}`}>{allocationTotal.toFixed(1)}% / 100%</span>
+        </div>
+        <div className="space-y-1.5">
+          {allocationRows.map(({ wo, agencyName, value, pct }) => (
+            <div key={wo.id} className="flex items-center justify-between text-xs">
+              <span className="min-w-0 truncate text-slate-600">{agencyName} · {wo.title}</span>
+              <span className="ml-3 shrink-0 font-bold tabular-nums text-cyan-700">{formatINRShort(value)} · {pct.toFixed(1)}%</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* WO Charts */}
       <WOChartView workOrders={projectWOs} />
 
@@ -624,9 +659,9 @@ function AgencyTab({
 
       {/* WO Views */}
       <div className="flex-1">
-        {woViewType === 'tile' && <WOTileView workOrders={filteredWOs} details={details} onSelect={(wo) => setSelectedWO(wo)} />}
-        {woViewType === 'table' && <WOTableView workOrders={filteredWOs} details={details} onSelect={(wo) => setSelectedWO(wo)} />}
-        {woViewType === 'card' && <WOCardView workOrders={filteredWOs} details={details} onSelect={(wo) => setSelectedWO(wo)} />}
+        {woViewType === 'tile' && <WOTileView workOrders={filteredWOs} details={details} projectValue={project.project_value} onSelect={(wo) => setSelectedWO(wo)} />}
+        {woViewType === 'table' && <WOTableView workOrders={filteredWOs} details={details} projectValue={project.project_value} onSelect={(wo) => setSelectedWO(wo)} />}
+        {woViewType === 'card' && <WOCardView workOrders={filteredWOs} details={details} projectValue={project.project_value} onSelect={(wo) => setSelectedWO(wo)} />}
       </div>
 
       {/* WorkOrderModal for selected WO */}
@@ -667,20 +702,22 @@ function safeNum(v: number | null | undefined): number {
   return typeof v === 'number' && !isNaN(v) ? v : 0;
 }
 
-function WOTileView({ workOrders, details, onSelect }: { workOrders: WorkOrder[]; details: WorkOrderDetail[]; onSelect: (wo: WorkOrder) => void }) {
+function WOTileView({ workOrders, details, onSelect, projectValue }: { workOrders: WorkOrder[]; details: WorkOrderDetail[]; onSelect: (wo: WorkOrder) => void; projectValue?: number }) {
   if (workOrders.length === 0) return <div className="text-center text-sm text-slate-500 py-6">No work orders found.</div>;
   return (
     <div className="flex flex-col gap-3 p-4">
       {workOrders.map((wo) => {
         const colors = delayStatusColor(wo.delay_status);
         const agencyName = getAgencyName(wo.id, details);
+        const woValue = details.find((detail) => detail.work_order_id === wo.id)?.wo_value ?? wo.project_value;
+        const allocationPct = calculateAllocationPct(Number(woValue) || 0, Number(projectValue) || 0);
         return (
           <div key={wo.id} className={`mirror-card rounded-r-lg rounded-l-sm p-4 flex flex-col gap-2 border-l-4 ${colors.borderAccent}`}>
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[10px] font-mono font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">Seq # {wo.seq_no}</span>
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${colors.bg} ${colors.text} ${colors.border}`}>{delayStatusShort(wo.delay_status)}</span>
               <span className="text-sm font-semibold text-slate-800 truncate flex-1 min-w-0">{wo.title}</span>
-              <span className="text-[10px] text-slate-500 font-medium">{agencyName}</span>
+              <span className="text-[10px] text-slate-500 font-medium">{agencyName} · {allocationPct.toFixed(1)}%</span>
             </div>
             <div className="flex items-center gap-3">
               <div className="flex-1 min-w-0">
@@ -695,7 +732,7 @@ function WOTileView({ workOrders, details, onSelect }: { workOrders: WorkOrder[]
               </div>
             </div>
             <div className="flex items-center gap-3 text-[10px] text-slate-500">
-              <span>WO Value: <span className="font-semibold text-indigo-700">{formatINRShort(safeNum(wo.project_value))}</span></span>
+              <span>WO Value: <span className="font-semibold text-indigo-700">{formatINRShort(Number(woValue) || 0)}</span></span>
               <span>Paid: <span className="font-semibold text-emerald-700">{formatINRShort(safeNum(wo.paid_amount))}</span></span>
               <span>Billed: <span className="font-semibold text-cyan-700">{formatINRShort(safeNum(wo.billed_amount))}</span></span>
             </div>
@@ -709,7 +746,7 @@ function WOTileView({ workOrders, details, onSelect }: { workOrders: WorkOrder[]
   );
 }
 
-function WOTableView({ workOrders, details, onSelect }: { workOrders: WorkOrder[]; details: WorkOrderDetail[]; onSelect: (wo: WorkOrder) => void }) {
+function WOTableView({ workOrders, details, onSelect, projectValue }: { workOrders: WorkOrder[]; details: WorkOrderDetail[]; onSelect: (wo: WorkOrder) => void; projectValue?: number }) {
   if (workOrders.length === 0) return <div className="text-center text-sm text-slate-500 py-6">No work orders found.</div>;
   return (
     <div className="p-2 overflow-x-auto">
@@ -719,6 +756,7 @@ function WOTableView({ workOrders, details, onSelect }: { workOrders: WorkOrder[
             <th className="px-2 py-2 font-bold text-slate-700 text-left">Seq #</th>
             <th className="px-2 py-2 font-bold text-slate-700 text-left">WO Name</th>
             <th className="px-2 py-2 font-bold text-slate-700 text-left">Agency</th>
+            <th className="px-2 py-2 font-bold text-slate-700 text-right">Allocation</th>
             <th className="px-2 py-2 font-bold text-slate-700 text-right">Comp %</th>
             <th className="px-2 py-2 font-bold text-slate-700 text-left">Status</th>
             <th className="px-2 py-2 font-bold text-slate-700 text-right">WO Value</th>
@@ -729,16 +767,19 @@ function WOTableView({ workOrders, details, onSelect }: { workOrders: WorkOrder[
         <tbody>
           {workOrders.map((wo, idx) => {
             const colors = delayStatusColor(wo.delay_status);
+            const woValue = details.find((detail) => detail.work_order_id === wo.id)?.wo_value ?? wo.project_value;
+            const allocationPct = calculateAllocationPct(Number(woValue) || 0, Number(projectValue) || 0);
             return (
               <tr key={wo.id} className={`border-b border-slate-200 hover:bg-cyan-50/40 transition-colors ${idx % 2 === 1 ? 'bg-slate-50' : 'bg-white'}`}>
                 <td className="px-2 py-1.5 font-mono font-bold text-slate-500 whitespace-nowrap">{wo.seq_no}</td>
                 <td className="px-2 py-1.5 text-slate-800 font-medium max-w-[200px] truncate">{wo.title}</td>
                 <td className="px-2 py-1.5 text-slate-600 whitespace-nowrap">{getAgencyName(wo.id, details)}</td>
+                <td className="px-2 py-1.5 text-right tabular-nums font-semibold text-cyan-700">{allocationPct.toFixed(1)}%</td>
                 <td className="px-2 py-1.5 text-right tabular-nums">{safeNum(wo.completed_pct).toFixed(0)}%</td>
                 <td className="px-2 py-1.5 whitespace-nowrap">
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${colors.bg} ${colors.text} ${colors.border}`}>{delayStatusShort(wo.delay_status)}</span>
                 </td>
-                <td className="px-2 py-1.5 text-indigo-700 font-semibold text-right tabular-nums whitespace-nowrap">{formatINRShort(safeNum(wo.project_value))}</td>
+                <td className="px-2 py-1.5 text-indigo-700 font-semibold text-right tabular-nums whitespace-nowrap">{formatINRShort(Number(woValue) || 0)}</td>
                 <td className="px-2 py-1.5 text-emerald-700 font-semibold text-right tabular-nums whitespace-nowrap">{formatINRShort(safeNum(wo.paid_amount))}</td>
                 <td className="px-2 py-1.5 whitespace-nowrap">
                   <button onClick={() => onSelect(wo)} className="flex items-center gap-1 text-[10px] font-medium text-cyan-700 hover:text-white hover:bg-cyan-600 bg-cyan-50 border border-cyan-200 px-1.5 py-0.5 rounded transition-colors">
@@ -754,12 +795,14 @@ function WOTableView({ workOrders, details, onSelect }: { workOrders: WorkOrder[
   );
 }
 
-function WOCardView({ workOrders, details, onSelect }: { workOrders: WorkOrder[]; details: WorkOrderDetail[]; onSelect: (wo: WorkOrder) => void }) {
+function WOCardView({ workOrders, details, onSelect, projectValue }: { workOrders: WorkOrder[]; details: WorkOrderDetail[]; onSelect: (wo: WorkOrder) => void; projectValue?: number }) {
   if (workOrders.length === 0) return <div className="text-center text-sm text-slate-500 py-6">No work orders found.</div>;
   return (
     <div className="p-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
       {workOrders.map((wo) => {
         const colors = delayStatusColor(wo.delay_status);
+        const woValue = details.find((detail) => detail.work_order_id === wo.id)?.wo_value ?? wo.project_value;
+        const allocationPct = calculateAllocationPct(Number(woValue) || 0, Number(projectValue) || 0);
         return (
           <div key={wo.id} className={`mirror-card rounded-r-lg rounded-l-sm p-3 flex flex-col gap-2 border-l-4 ${colors.borderAccent}`}>
             <div className="flex items-center gap-1.5">
@@ -767,7 +810,7 @@ function WOCardView({ workOrders, details, onSelect }: { workOrders: WorkOrder[]
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${colors.bg} ${colors.text} ${colors.border}`}>{delayStatusShort(wo.delay_status)}</span>
             </div>
             <h3 className="text-xs font-semibold text-slate-800 leading-tight line-clamp-2">{wo.title}</h3>
-            <div className="text-[10px] text-slate-500 font-medium">{getAgencyName(wo.id, details)}</div>
+            <div className="text-[10px] text-slate-500 font-medium">{getAgencyName(wo.id, details)} · {allocationPct.toFixed(1)}%</div>
             <div>
               <div className="flex items-center justify-between text-[10px] text-slate-500 mb-0.5">
                 <span className="font-semibold text-slate-600">Progress</span>

@@ -6,7 +6,7 @@ import {
 import type { Project, WorkOrder, WorkOrderDetail, WOSection, PaymentEntry, TrackingUpdate, TrackingType } from '@/types';
 import { useAuth } from '@/auth/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { delayStatusColor, delayStatusShort, DELAY_STATUSES } from '@/lib/format';
+import { calculateAllocationPct, delayStatusColor, delayStatusShort, DELAY_STATUSES } from '@/lib/format';
 
 interface WorkOrderModalProps {
   project: Project;
@@ -90,6 +90,13 @@ export function WorkOrderModal({
   const woPayments = payments.filter((p) => p.work_order_id === selectedWO?.id);
   const currentPaid = woPayments.length ? Math.max(...woPayments.map((p) => p.cumulative_paid)) : selectedWO?.paid_amount ?? 0;
   const approvedValue = Number(woDetail?.wo_value ?? selectedWO?.project_value ?? 0);
+  const projectValue = Number(project.project_value) || 0;
+  const allocationPct = calculateAllocationPct(Number(woValue) || 0, projectValue);
+  const projectWOValue = projectWOs.reduce((sum, wo) => {
+    const value = details.find((detail) => detail.work_order_id === wo.id)?.wo_value ?? wo.project_value;
+    return sum + (Number(value) || 0);
+  }, 0);
+  const allocationTotalPct = calculateAllocationPct(projectWOValue, projectValue);
   const exceptions = useMemo(() => trackingUpdates.filter((u) => u.project_id === project.id), [trackingUpdates, project.id]);
   const tabExceptions = useMemo(() => exceptions.filter((e) => e.tracking_type === exceptionTab), [exceptions, exceptionTab]);
   const tabMeta = EXCEPTION_TABS.find((t) => t.key === exceptionTab);
@@ -352,6 +359,13 @@ export function WorkOrderModal({
                       className="mt-1 w-full rounded border border-slate-300 p-2 text-xs"
                     />
                   </label>
+                  <div className="rounded-lg border border-cyan-100 bg-cyan-50 px-3 py-2">
+                    <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wide text-slate-500">
+                      <span>Project Allocation</span>
+                      <span className="text-sm tabular-nums text-cyan-700">{allocationPct.toFixed(1)}%</span>
+                    </div>
+                    <div className="mt-1 text-[10px] text-slate-500">₹{approvedValue.toFixed(2)} of ₹{projectValue.toFixed(2)} project value</div>
+                  </div>
                   <label className="text-[10px] font-bold uppercase text-slate-500">
                     Assigned Nodal Officer
                     <input
@@ -361,6 +375,9 @@ export function WorkOrderModal({
                       className="mt-1 w-full rounded border border-slate-300 p-2 text-xs"
                     />
                   </label>
+                </div>
+                <div className={`mt-3 rounded-lg border px-3 py-2 text-xs ${Math.abs(allocationTotalPct - 100) < 0.01 ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
+                  All agency WOs currently cover <b>{allocationTotalPct.toFixed(1)}%</b> of the project value.
                 </div>
                 {permissions.canManageWorkOrders && (
                   <button
