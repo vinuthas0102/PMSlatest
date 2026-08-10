@@ -717,7 +717,7 @@ function WOTileView({ workOrders, details, onSelect, projectValue }: { workOrder
               <span className="text-[10px] font-mono font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">Seq # {wo.seq_no}</span>
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${colors.bg} ${colors.text} ${colors.border}`}>{delayStatusShort(wo.delay_status)}</span>
               <span className="text-sm font-semibold text-slate-800 truncate flex-1 min-w-0">{wo.title}</span>
-              <span className="text-[10px] text-slate-500 font-medium">{agencyName} · {allocationPct.toFixed(1)}%</span>
+              <span className="shrink-0 rounded-full bg-cyan-100 px-2 py-0.5 text-[10px] font-bold text-cyan-700 tabular-nums">{allocationPct.toFixed(1)}% WO</span>
             </div>
             <div className="flex items-center gap-3">
               <div className="flex-1 min-w-0">
@@ -732,6 +732,7 @@ function WOTileView({ workOrders, details, onSelect, projectValue }: { workOrder
               </div>
             </div>
             <div className="flex items-center gap-3 text-[10px] text-slate-500">
+              <span>Agency: <span className="font-semibold text-slate-700">{agencyName}</span></span>
               <span>WO Value: <span className="font-semibold text-indigo-700">{formatINRShort(Number(woValue) || 0)}</span></span>
               <span>Paid: <span className="font-semibold text-emerald-700">{formatINRShort(safeNum(wo.paid_amount))}</span></span>
               <span>Billed: <span className="font-semibold text-cyan-700">{formatINRShort(safeNum(wo.billed_amount))}</span></span>
@@ -756,7 +757,7 @@ function WOTableView({ workOrders, details, onSelect, projectValue }: { workOrde
             <th className="px-2 py-2 font-bold text-slate-700 text-left">Seq #</th>
             <th className="px-2 py-2 font-bold text-slate-700 text-left">WO Name</th>
             <th className="px-2 py-2 font-bold text-slate-700 text-left">Agency</th>
-            <th className="px-2 py-2 font-bold text-slate-700 text-right">Allocation</th>
+            <th className="px-2 py-2 font-bold text-slate-700 text-right">WO %</th>
             <th className="px-2 py-2 font-bold text-slate-700 text-right">Comp %</th>
             <th className="px-2 py-2 font-bold text-slate-700 text-left">Status</th>
             <th className="px-2 py-2 font-bold text-slate-700 text-right">WO Value</th>
@@ -774,7 +775,7 @@ function WOTableView({ workOrders, details, onSelect, projectValue }: { workOrde
                 <td className="px-2 py-1.5 font-mono font-bold text-slate-500 whitespace-nowrap">{wo.seq_no}</td>
                 <td className="px-2 py-1.5 text-slate-800 font-medium max-w-[200px] truncate">{wo.title}</td>
                 <td className="px-2 py-1.5 text-slate-600 whitespace-nowrap">{getAgencyName(wo.id, details)}</td>
-                <td className="px-2 py-1.5 text-right tabular-nums font-semibold text-cyan-700">{allocationPct.toFixed(1)}%</td>
+                <td className="px-2 py-1.5 text-right tabular-nums"><span className="rounded-full bg-cyan-100 px-1.5 py-0.5 text-[10px] font-bold text-cyan-700">{allocationPct.toFixed(1)}%</span></td>
                 <td className="px-2 py-1.5 text-right tabular-nums">{safeNum(wo.completed_pct).toFixed(0)}%</td>
                 <td className="px-2 py-1.5 whitespace-nowrap">
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${colors.bg} ${colors.text} ${colors.border}`}>{delayStatusShort(wo.delay_status)}</span>
@@ -810,7 +811,10 @@ function WOCardView({ workOrders, details, onSelect, projectValue }: { workOrder
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${colors.bg} ${colors.text} ${colors.border}`}>{delayStatusShort(wo.delay_status)}</span>
             </div>
             <h3 className="text-xs font-semibold text-slate-800 leading-tight line-clamp-2">{wo.title}</h3>
-            <div className="text-[10px] text-slate-500 font-medium">{getAgencyName(wo.id, details)} · {allocationPct.toFixed(1)}%</div>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-slate-500 font-medium truncate">{getAgencyName(wo.id, details)}</span>
+              <span className="shrink-0 rounded-full bg-cyan-100 px-2 py-0.5 text-[10px] font-bold text-cyan-700 tabular-nums">{allocationPct.toFixed(1)}%</span>
+            </div>
             <div>
               <div className="flex items-center justify-between text-[10px] text-slate-500 mb-0.5">
                 <span className="font-semibold text-slate-600">Progress</span>
@@ -822,7 +826,7 @@ function WOCardView({ workOrders, details, onSelect, projectValue }: { workOrder
               </div>
             </div>
             <div className="flex items-center justify-between text-[10px] text-slate-500">
-              <span>WO: <span className="font-semibold text-indigo-700">{formatINRShort(safeNum(wo.project_value))}</span></span>
+              <span>WO: <span className="font-semibold text-indigo-700">{formatINRShort(Number(woValue) || 0)}</span></span>
               <span>Paid: <span className="font-semibold text-emerald-700">{formatINRShort(safeNum(wo.paid_amount))}</span></span>
             </div>
             <button onClick={() => onSelect(wo)} className="flex items-center gap-1 text-[10px] font-medium text-cyan-700 hover:text-white hover:bg-cyan-600 bg-cyan-50 border border-cyan-200 px-1.5 py-1 rounded transition-colors justify-center">
