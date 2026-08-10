@@ -1,18 +1,15 @@
-import { User, Clock, Wrench, LayoutDashboard, LogOut, ChevronDown } from 'lucide-react';
+import { User, Clock, LogOut, ChevronDown, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { DEPT_NAME } from '@/lib/constants';
 import { useAuth } from '@/auth/AuthContext';
 import epiLogo from './logo.png';
 
-export type AppScreen = 'dashboard' | 'maintenance';
-
 interface HeaderProps {
   levelLabel: string;
-  activeScreen: AppScreen;
-  onScreenChange: (s: AppScreen) => void;
+  onCreateProject?: () => void;
 }
 
-export function Header({ levelLabel, activeScreen, onScreenChange }: HeaderProps) {
+export function Header({ levelLabel, onCreateProject }: HeaderProps) {
   const { user, permissions, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -38,20 +35,15 @@ export function Header({ levelLabel, activeScreen, onScreenChange }: HeaderProps
         </div>
 
         <div className="flex items-center gap-4 shrink-0">
-          {permissions.canViewMaintenance && (
+          {permissions.canCreateProject && onCreateProject && (
             <button
-              onClick={() => onScreenChange(activeScreen === 'dashboard' ? 'maintenance' : 'dashboard')}
-              title={activeScreen === 'dashboard' ? 'Switch to Maintenance' : 'Switch to Dashboard'}
-              aria-label={activeScreen === 'dashboard' ? 'Switch to Maintenance' : 'Switch to Dashboard'}
-              className={`flex items-center justify-center w-9 h-9 rounded-lg border transition-all ${
-                activeScreen === 'maintenance'
-                  ? 'bg-white text-blue-700 border-white shadow-sm'
-                  : 'bg-blue-800/60 text-blue-100 border-blue-400/30 hover:bg-blue-700/50'
-              }`}
+              onClick={onCreateProject}
+              title="Create New Project"
+              aria-label="Create New Project"
+              className="flex items-center gap-1.5 rounded-lg bg-cyan-500 px-3 py-2 text-xs font-bold text-white shadow-sm transition-all hover:bg-cyan-400"
             >
-              {activeScreen === 'maintenance'
-                ? <LayoutDashboard className="w-4 h-4" />
-                : <Wrench className="w-4 h-4" />}
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">New Project</span>
             </button>
           )}
 

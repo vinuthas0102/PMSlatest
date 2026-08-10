@@ -4,10 +4,10 @@ import { supabase } from '@/lib/supabase';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useAuth } from '@/auth/AuthContext';
 import type {
-  BaseEntity, ViewType, Filters, Level, DelayStatus,
+  BaseEntity, ViewType, Filters, DelayStatus,
   Project, ProjectFormData, TrackingType, TrackingUpdate,
 } from '@/types';
-import { Header, type AppScreen } from '@/components/Header';
+import { Header } from '@/components/Header';
 import { StatusBar } from '@/components/StatusBar';
 import { ViewControls } from '@/components/ViewControls';
 import { ChartView } from '@/components/ChartView';
@@ -15,10 +15,8 @@ import { TileView } from '@/components/TileView';
 import { TableView } from '@/components/TableView';
 import { CardView } from '@/components/CardView';
 import { FilterDrawer } from '@/components/FilterDrawer';
-import { SpecModal } from '@/components/SpecModal';
-import { SubcategoryModal } from '@/components/SubcategoryModal';
+import { ProjectDetailModal } from '@/components/ProjectDetailModal';
 import { ProjectFormModal } from '@/components/ProjectFormModal';
-import { WorkOrderModal } from '@/components/WorkOrderModal';
 import { LandingPage } from '@/components/LandingPage';
 import { DPRPanel } from '@/components/DPRPanel';
 
@@ -33,13 +31,12 @@ const DEFAULT_FILTERS: Filters = {
 };
 
 export default function App() {
-  const { user, permissions } = useAuth();
+  const { user } = useAuth();
 
   if (!user) {
     return <LandingPage />;
   }
 
-  // Site Engineer only sees the DPR panel (Phase 6), but for now show a placeholder
   if (user.role === 'site') {
     return <DPRPanel name={user.name} />;
   }
@@ -47,35 +44,18 @@ export default function App() {
   return <DashboardApp />;
 }
 
-
-
 function DashboardApp() {
   const { permissions } = useAuth();
   const { data, loading, error, reload } = useDashboardData();
 
-  const [activeScreen, setActiveScreen] = useState<AppScreen>('dashboard');
   const [viewType, setViewType] = useState<ViewType>('chart');
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState<Filters>(DEFAULT_FILTERS);
 
-  const [specModalItem, setSpecModalItem] = useState<{ item: BaseEntity; level: Level } | null>(null);
-  const [subcategoryModal, setSubcategoryModal] = useState<string | null>(null);
-  const [projectFormModal, setProjectFormModal] = useState<{ project: Project | null; mode: 'edit' | 'create' } | null>(null);
-  const [workOrderProject, setWorkOrderProject] = useState<Project | null>(null);
-
-  // Determine the effective screen based on permissions
-  const effectiveScreen: AppScreen = permissions.canViewMaintenance ? activeScreen : 'dashboard';
-
-  const handleScreenChange = useCallback((s: AppScreen) => {
-    setActiveScreen(s);
-    if (s === 'maintenance') {
-      setViewType('tile');
-    } else {
-      setViewType('chart');
-    }
-  }, []);
+  const [detailProject, setDetailProject] = useState<Project | null>(null);
+  const [createProjectModal, setCreateProjectModal] = useState(false);
 
   const currentItems = useMemo<BaseEntity[]>(() => {
     if (!data) return [];
@@ -135,12 +115,8 @@ function DashboardApp() {
   }, [drawerFilteredItems, statusFilter]);
 
   const handleShowDetails = useCallback((item: BaseEntity) => {
-    if (effectiveScreen === 'maintenance') {
-      setProjectFormModal({ project: item as Project, mode: 'edit' });
-    } else {
-      setSpecModalItem({ item, level: 'project' });
-    }
-  }, [effectiveScreen]);
+    setDetailProject(item as Project);
+  }, []);
 
   const handleApplyFilters = useCallback(() => {
     setAppliedFilters(filters);
@@ -291,8 +267,6 @@ function DashboardApp() {
 
   const allTrackingUpdates: TrackingUpdate[] = data?.trackingUpdates ?? [];
 
-  const isMaintenance = effectiveScreen === 'maintenance';
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
@@ -315,14 +289,11 @@ function DashboardApp() {
     );
   }
 
-  const levelLabel = isMaintenance ? 'Project Summary' : 'Project Dashboard';
-  const viewLabel = isMaintenance
-    ? viewType === 'tile' ? 'Tile View' : viewType === 'table' ? 'Table View' : 'Card View'
-    : viewType === 'chart' ? 'Chart View' : viewType === 'tile' ? 'Tile View' : viewType === 'table' ? 'Table View' : 'Card View';
+  const viewLabel = viewType === 'chart' ? 'Chart View' : viewType === 'tile' ? 'Tile View' : viewType === 'table' ? 'Table View' : 'Card View';
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col">
-      <Header levelLabel={levelLabel} activeScreen={activeScreen} onScreenChange={handleScreenChange} />
+      <Header levelLabel="Project Dashboard" onCreateProject={permissions.canCreateProject ? () => setCreateProjectModal(true) : undefined} />
 
       <StatusBar
         items={drawerFilteredItems}
@@ -337,12 +308,11 @@ function DashboardApp() {
         onOpenFilterDrawer={() => setFilterDrawerOpen(true)}
         onClearFilters={handleClearAllFilters}
         levelLabel={viewLabel}
-        hideChartView={isMaintenance}
       />
 
       {/* Main Content */}
       <div className="flex-1">
-        {!isMaintenance && viewType === 'chart' && (
+        {viewType === 'chart' && (
           <ChartView
             items={filteredItems}
             selectedStates={appliedFilters.states}
@@ -351,29 +321,26 @@ function DashboardApp() {
             onToggleSelection={handleToggleChartSelection}
           />
         )}
-        {(!isMaintenance ? viewType === 'tile' : viewType === 'tile') && (
+        {viewType === 'tile' && (
           <TileView
             items={filteredItems}
             trackingUpdates={allTrackingUpdates}
             onShowDetails={(item) => handleShowDetails(item)}
-            onCreateNew={isMaintenance && permissions.canCreateProject ? () => setProjectFormModal({ project: null, mode: 'create' }) : undefined}
-            onShowWorkOrders={(item) => setWorkOrderProject(item as Project)}
+            onShowWorkOrders={(item) => handleShowDetails(item)}
           />
         )}
-        {(!isMaintenance ? viewType === 'table' : viewType === 'table') && (
+        {viewType === 'table' && (
           <TableView
             items={filteredItems}
             onShowDetails={(item) => handleShowDetails(item)}
-            onCreateNew={isMaintenance && permissions.canCreateProject ? () => setProjectFormModal({ project: null, mode: 'create' }) : undefined}
-            onShowWorkOrders={(item) => setWorkOrderProject(item as Project)}
+            onShowWorkOrders={(item) => handleShowDetails(item)}
           />
         )}
-        {(!isMaintenance ? viewType === 'card' : viewType === 'card') && (
+        {viewType === 'card' && (
           <CardView
             items={filteredItems}
             onShowDetails={(item) => handleShowDetails(item)}
-            onCreateNew={isMaintenance && permissions.canCreateProject ? () => setProjectFormModal({ project: null, mode: 'create' }) : undefined}
-            onShowWorkOrders={(item) => setWorkOrderProject(item as Project)}
+            onShowWorkOrders={(item) => handleShowDetails(item)}
           />
         )}
       </div>
@@ -388,43 +355,27 @@ function DashboardApp() {
         items={currentItems}
       />
 
-      {specModalItem && !isMaintenance && (
-        <SpecModal
-          item={specModalItem.item}
-          level={specModalItem.level}
-          trackingUpdates={allTrackingUpdates}
-          onClose={() => setSpecModalItem(null)}
-        />
-      )}
-
-      {projectFormModal && isMaintenance && (
-        <ProjectFormModal
-          project={projectFormModal.project}
-          mode={projectFormModal.mode}
-          onClose={() => setProjectFormModal(null)}
-          onSave={handleSaveProject}
-        />
-      )}
-
-      {workOrderProject && data && (
-        <WorkOrderModal
-          project={workOrderProject}
+      {detailProject && data && (
+        <ProjectDetailModal
+          project={detailProject}
           workOrders={data.workOrders}
           details={data.workOrderDetails}
           sections={data.woSections}
           payments={data.paymentEntries}
           trackingUpdates={allTrackingUpdates}
-          onClose={() => setWorkOrderProject(null)}
+          onClose={() => setDetailProject(null)}
           onReload={reload}
+          onSaveProject={handleSaveProject}
           onSaveTrackingUpdate={handleSaveTrackingUpdate}
         />
       )}
 
-      {subcategoryModal && !isMaintenance && (
-        <SubcategoryModal
-          category={subcategoryModal}
-          items={filteredItems}
-          onClose={() => setSubcategoryModal(null)}
+      {createProjectModal && (
+        <ProjectFormModal
+          project={null}
+          mode="create"
+          onClose={() => setCreateProjectModal(false)}
+          onSave={handleSaveProject}
         />
       )}
     </div>

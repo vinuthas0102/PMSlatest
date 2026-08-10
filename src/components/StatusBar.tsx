@@ -7,6 +7,7 @@ interface StatusBarProps {
   items: BaseEntity[];
   activeFilter: string | null;
   onFilterChange: (filter: string | null) => void;
+  noun?: string;
 }
 
 interface DPCard {
@@ -27,7 +28,7 @@ interface DPCard {
 const TOP_DPS: DPCard[] = [
   {
     key: 'total',
-    label: 'Total Projects',
+    label: 'Total',
     icon: Building2,
     accent: 'border-l-slate-500',
     gradFrom: 'from-slate-50',
@@ -41,7 +42,7 @@ const TOP_DPS: DPCard[] = [
   },
   {
     key: 'active',
-    label: 'Active Projects',
+    label: 'Active',
     icon: Activity,
     accent: 'border-l-blue-500',
     gradFrom: 'from-blue-50',
@@ -83,7 +84,7 @@ const TOP_DPS: DPCard[] = [
   },
   {
     key: 'delayed',
-    label: 'Delayed Projects',
+    label: 'Delayed',
     icon: AlertTriangle,
     accent: 'border-l-amber-500',
     gradFrom: 'from-amber-50',
@@ -153,7 +154,7 @@ const SUB_DPS: { key: DelayStatus; label: string }[] = [
   { key: 'Delayed - Critical', label: 'Critical' },
 ];
 
-export function StatusBar({ items, activeFilter, onFilterChange }: StatusBarProps) {
+export function StatusBar({ items, activeFilter, onFilterChange, noun = 'Projects' }: StatusBarProps) {
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const total = items.length;
@@ -267,7 +268,7 @@ export function StatusBar({ items, activeFilter, onFilterChange }: StatusBarProp
                 {/* Text block */}
                 <div className="flex-1 min-w-0 text-left">
                   <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider leading-none mb-1">
-                    {dp.label}
+                    {dp.label} {noun}
                   </div>
                   <div className="flex items-baseline gap-1.5">
                     <span className={`text-2xl font-extrabold leading-none ${dp.numColor}`}>{s.count}</span>
