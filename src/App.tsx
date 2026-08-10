@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useDashboardData } from '@/hooks/useDashboardData';
+import { useAuth } from '@/auth/AuthContext';
 import type {
   BaseEntity, ViewType, Filters, Level, DelayStatus,
   Project, ProjectFormData, TrackingType, TrackingUpdate,
@@ -18,6 +19,9 @@ import { SpecModal } from '@/components/SpecModal';
 import { SubcategoryModal } from '@/components/SubcategoryModal';
 import { ProjectFormModal } from '@/components/ProjectFormModal';
 import { TrackingModal } from '@/components/TrackingModal';
+import { WorkOrderModal } from '@/components/WorkOrderModal';
+import { LandingPage } from '@/components/LandingPage';
+import { DPRPanel } from '@/components/DPRPanel';
 
 const DEFAULT_FILTERS: Filters = {
   states: [],
@@ -30,6 +34,24 @@ const DEFAULT_FILTERS: Filters = {
 };
 
 export default function App() {
+  const { user, permissions } = useAuth();
+
+  if (!user) {
+    return <LandingPage />;
+  }
+
+  // Site Engineer only sees the DPR panel (Phase 6), but for now show a placeholder
+  if (user.role === 'site') {
+    return <DPRPanel name={user.name} />;
+  }
+
+  return <DashboardApp />;
+}
+
+
+
+function DashboardApp() {
+  const { permissions } = useAuth();
   const { data, loading, error, reload } = useDashboardData();
 
   const [activeScreen, setActiveScreen] = useState<AppScreen>('dashboard');
@@ -43,8 +65,11 @@ export default function App() {
   const [subcategoryModal, setSubcategoryModal] = useState<string | null>(null);
   const [projectFormModal, setProjectFormModal] = useState<{ project: Project | null; mode: 'edit' | 'create' } | null>(null);
   const [trackingModalItem, setTrackingModalItem] = useState<BaseEntity | null>(null);
+  const [workOrderProject, setWorkOrderProject] = useState<Project | null>(null);
 
-  // When switching to maintenance screen, default to tile view
+  // Determine the effective screen based on permissions
+  const effectiveScreen: AppScreen = permissions.canViewMaintenance ? activeScreen : 'dashboard';
+
   const handleScreenChange = useCallback((s: AppScreen) => {
     setActiveScreen(s);
     if (s === 'maintenance') {
@@ -54,13 +79,11 @@ export default function App() {
     }
   }, []);
 
-  // Project-level items only
   const currentItems = useMemo<BaseEntity[]>(() => {
     if (!data) return [];
     return data.projects;
   }, [data]);
 
-  // Apply drawer filters to the full set (for StatusBar cards — always shows overall totals)
   const drawerFilteredItems = useMemo(() => {
     let result = currentItems;
     const f = appliedFilters;
@@ -90,7 +113,6 @@ export default function App() {
     return result;
   }, [currentItems, appliedFilters]);
 
-  // Apply status DP filter on top of drawer filters (for main content views)
   const filteredItems = useMemo(() => {
     if (!statusFilter) return drawerFilteredItems;
     if (statusFilter === 'completed') {
@@ -115,12 +137,12 @@ export default function App() {
   }, [drawerFilteredItems, statusFilter]);
 
   const handleShowDetails = useCallback((item: BaseEntity) => {
-    if (activeScreen === 'maintenance') {
+    if (effectiveScreen === 'maintenance') {
       setProjectFormModal({ project: item as Project, mode: 'edit' });
     } else {
       setSpecModalItem({ item, level: 'project' });
     }
-  }, [activeScreen]);
+  }, [effectiveScreen]);
 
   const handleApplyFilters = useCallback(() => {
     setAppliedFilters(filters);
@@ -148,7 +170,6 @@ export default function App() {
     setStatusFilter(null);
   }, []);
 
-  // Save project (create or update)
   const handleSaveTrackingUpdate = useCallback(async (entry: {
     project_id: string;
     tracking_type: TrackingType;
@@ -173,14 +194,28 @@ export default function App() {
     }
   }, [reload]);
 
-  const handleSaveProject = useCallback(async (id: string | null, formData: ProjectFormData): Promise<{ success: boolean; error?: string }> => {
+  const handleSaveProject = useCallback(async (id: string | null, formData: ProjectFormData, status: 'draft' | 'finalized'): Promise<{ success: boolean; error?: string }> => {
     try {
-      // `title` is deliberately NOT part of the shared payload: the edit form
-      // presents the project name as read-only, and that is now enforced by the
-      // database, which no longer grants the client UPDATE on that column.
       const payload = {
         description: formData.description || null,
+        project_type: formData.project_type,
+        project_code: formData.project_code || null,
+        segment_id: formData.segment_id || null,
+        client_name: formData.client_name || null,
+        contract_type_id: formData.contract_type_id || null,
+        scheme_id: formData.scheme_id || null,
+        tender_ref_number: formData.tender_ref_number || null,
+        site_city: formData.site_city || null,
+        region_id: formData.region_id || null,
+        site_address_a: formData.site_address_a || null,
+        site_address_b: formData.site_address_b || null,
+        pin_code: formData.pin_code || null,
+        engineer_incharge_id: formData.engineer_incharge_id || null,
+        phone_number: formData.phone_number || null,
+        email_id: formData.email_id || null,
+        work_category_id: formData.work_category_id || null,
         state: formData.state,
+        status,
         district: formData.district,
         category: formData.category,
         subcategory: formData.subcategory,
@@ -188,12 +223,22 @@ export default function App() {
         duration_days: formData.duration_days ? parseInt(formData.duration_days, 10) : null,
         mbook_entry: formData.mbook_entry ? parseFloat(formData.mbook_entry) : 0,
         project_value: formData.project_value ? parseFloat(formData.project_value) : 0,
+        workorder_value: formData.workorder_value ? parseFloat(formData.workorder_value) : 0,
+        security_deposit: formData.security_deposit ? parseFloat(formData.security_deposit) : 0,
+        sd_bg_number: formData.sd_bg_number || null,
+        sd_bg_valid_from: formData.sd_bg_valid_from || null,
+        sd_bg_valid_to: formData.sd_bg_valid_to || null,
+        claim_period_upto: formData.claim_period_upto || null,
+        drawing_pct: parseFloat(formData.drawing_pct) || 0,
+        supply_pct: parseFloat(formData.supply_pct) || 0,
+        civil_pct: parseFloat(formData.civil_pct) || 0,
+        manpower_pct: parseFloat(formData.manpower_pct) || 0,
+        others_pct: parseFloat(formData.others_pct) || 0,
         manager: formData.manager,
         remarks: formData.remarks || null,
       };
 
       if (id) {
-        // Update existing
         const { error: updateError } = await supabase
           .from('projects')
           .update(payload)
@@ -203,7 +248,6 @@ export default function App() {
           return { success: false, error: 'Could not save your changes. Please check the values and try again.' };
         }
       } else {
-        // Create new - compute next seq_no
         const maxSeq = data?.projects.reduce((max, p) => {
           const n = parseFloat(p.seq_no);
           return isNaN(n) ? max : Math.max(max, n);
@@ -211,8 +255,6 @@ export default function App() {
         const nextSeqNo = `${maxSeq + 1}.0.0`;
         const nextCode = `PRJ-${String(maxSeq + 1).padStart(3, '0')}`;
 
-        // delay_status is intentionally omitted: it is a derived status column
-        // the client is not permitted to write. New rows take its default.
         const insertPayload = {
           ...payload,
           title: formData.title,
@@ -231,7 +273,6 @@ export default function App() {
         }
       }
 
-      // Clear cache and reload
       sessionStorage.removeItem('pms_data_v7');
       await reload();
       return { success: true };
@@ -252,7 +293,7 @@ export default function App() {
 
   const allTrackingUpdates: TrackingUpdate[] = data?.trackingUpdates ?? [];
 
-  const isMaintenance = activeScreen === 'maintenance';
+  const isMaintenance = effectiveScreen === 'maintenance';
 
   if (loading) {
     return (
@@ -317,24 +358,27 @@ export default function App() {
             items={filteredItems}
             trackingUpdates={allTrackingUpdates}
             onShowDetails={(item) => handleShowDetails(item)}
-            onCreateNew={isMaintenance ? () => setProjectFormModal({ project: null, mode: 'create' }) : undefined}
-            onTrackUpdate={isMaintenance ? (item) => setTrackingModalItem(item) : undefined}
+            onCreateNew={isMaintenance && permissions.canCreateProject ? () => setProjectFormModal({ project: null, mode: 'create' }) : undefined}
+            onTrackUpdate={isMaintenance && permissions.canTrackDeviations ? (item) => setTrackingModalItem(item) : undefined}
+            onShowWorkOrders={(item) => setWorkOrderProject(item as Project)}
           />
         )}
         {(!isMaintenance ? viewType === 'table' : viewType === 'table') && (
           <TableView
             items={filteredItems}
             onShowDetails={(item) => handleShowDetails(item)}
-            onCreateNew={isMaintenance ? () => setProjectFormModal({ project: null, mode: 'create' }) : undefined}
-            onTrackUpdate={isMaintenance ? (item) => setTrackingModalItem(item) : undefined}
+            onCreateNew={isMaintenance && permissions.canCreateProject ? () => setProjectFormModal({ project: null, mode: 'create' }) : undefined}
+            onTrackUpdate={isMaintenance && permissions.canTrackDeviations ? (item) => setTrackingModalItem(item) : undefined}
+            onShowWorkOrders={(item) => setWorkOrderProject(item as Project)}
           />
         )}
         {(!isMaintenance ? viewType === 'card' : viewType === 'card') && (
           <CardView
             items={filteredItems}
             onShowDetails={(item) => handleShowDetails(item)}
-            onCreateNew={isMaintenance ? () => setProjectFormModal({ project: null, mode: 'create' }) : undefined}
-            onTrackUpdate={isMaintenance ? (item) => setTrackingModalItem(item) : undefined}
+            onCreateNew={isMaintenance && permissions.canCreateProject ? () => setProjectFormModal({ project: null, mode: 'create' }) : undefined}
+            onTrackUpdate={isMaintenance && permissions.canTrackDeviations ? (item) => setTrackingModalItem(item) : undefined}
+            onShowWorkOrders={(item) => setWorkOrderProject(item as Project)}
           />
         )}
       </div>
@@ -373,6 +417,19 @@ export default function App() {
           updates={allTrackingUpdates}
           onClose={() => setTrackingModalItem(null)}
           onSave={handleSaveTrackingUpdate}
+        />
+      )}
+
+      {workOrderProject && data && (
+        <WorkOrderModal
+          project={workOrderProject}
+          workOrders={data.workOrders}
+          details={data.workOrderDetails}
+          sections={data.woSections}
+          payments={data.paymentEntries}
+          trackingUpdates={allTrackingUpdates}
+          onClose={() => setWorkOrderProject(null)}
+          onReload={reload}
         />
       )}
 

@@ -243,7 +243,7 @@ export function StatusBar({ items, activeFilter, onFilterChange }: StatusBarProp
               className={`
                 relative flex flex-col justify-between overflow-hidden
                 min-w-[158px] rounded-lg border-l-4 border border-r
-                bg-gradient-to-br ${dp.gradFrom} ${dp.gradTo}
+                bg-gradient-to-br ${dp.gradFrom} ${dp.gradTo} glass-panel
                 ${dp.accent} ${dp.borderColor} ${dp.hoverBorder}
                 transition-all duration-200
                 ${isActive ? `ring-2 ring-offset-1 ring-cyan-400 shadow-md` : 'shadow-sm hover:shadow-md'}
@@ -342,7 +342,7 @@ export function StatusBar({ items, activeFilter, onFilterChange }: StatusBarProp
                 {/* Bar = proportion of total sub count */}
                 <div className="relative h-1.5 w-full bg-black/5 mt-1 rounded-b-lg overflow-hidden">
                   <div
-                    className={`h-full ${cfg.barColor} transition-all duration-500`}
+                    className={`h-full ${cfg.barColor} progress-fill`}
                     style={{ width: `${barPct}%` }}
                   />
                 </div>

@@ -8,12 +8,13 @@ interface TableViewProps {
   onShowDetails: (item: BaseEntity) => void;
   onCreateNew?: () => void;
   onTrackUpdate?: (item: BaseEntity) => void;
+  onShowWorkOrders?: (item: BaseEntity) => void;
 }
 
 type SortKey = keyof BaseEntity;
 type SortDir = 'asc' | 'desc';
 
-export function TableView({ items, onShowDetails, onCreateNew, onTrackUpdate }: TableViewProps) {
+export function TableView({ items, onShowDetails, onCreateNew, onTrackUpdate, onShowWorkOrders }: TableViewProps) {
   const [sortKey, setSortKey] = useState<SortKey>('seq_no');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
 
@@ -151,9 +152,7 @@ export function TableView({ items, onShowDetails, onCreateNew, onTrackUpdate }: 
                         <ClipboardList className="w-3 h-3" />
                       </button>
                     )}
-                    <span title="View work orders" className="flex items-center gap-1 text-[10px] font-medium text-slate-500 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded">
-                      CMS WOs <ChevronRight className="w-3 h-3" />
-                    </span>
+                    {onShowWorkOrders ? <button onClick={() => onShowWorkOrders(item)} title="View work orders" className="flex items-center gap-1 text-[10px] font-medium text-slate-600 hover:bg-slate-200 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded">CMS WOs <ChevronRight className="w-3 h-3" /></button> : <span title="View work orders" className="flex items-center gap-1 text-[10px] font-medium text-slate-500 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded">CMS WOs <ChevronRight className="w-3 h-3" /></span>}
                   </div>
                 </td>
               </tr>

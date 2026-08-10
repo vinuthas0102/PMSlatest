@@ -9,6 +9,11 @@ import type {
   Spec,
   AuditLogEntry,
   TrackingUpdate,
+  WorkOrderDetail,
+  WOSection,
+  PaymentEntry,
+  DPREntry,
+  Amendment,
 } from '@/types';
 
 const LOADING_KEY = 'pms_data_v7';
@@ -49,13 +54,18 @@ export function useDashboardData() {
         return;
       }
 
-      const [projRes, woRes, schedRes, trkRes, allSpecs, trackingUpdatesRes] = await Promise.all([
+      const [projRes, woRes, schedRes, trkRes, allSpecs, trackingUpdatesRes, woDetailsRes, woSectionsRes, paymentsRes, dprRes, amendmentsRes] = await Promise.all([
         supabase.from('projects').select('*').order('seq_no'),
         supabase.from('work_orders').select('*').order('seq_no'),
         supabase.from('schedules').select('*').order('seq_no'),
         supabase.from('tracking_entries').select('*').order('seq_no'),
         fetchAllSpecs(),
         supabase.from('project_tracking_updates').select('*').order('created_at', { ascending: false }),
+        supabase.from('work_order_details').select('*').order('created_at', { ascending: false }),
+        supabase.from('wo_sections').select('*').order('created_at', { ascending: false }),
+        supabase.from('payment_entries').select('*').order('created_at', { ascending: false }),
+        supabase.from('dpr_entries').select('*').order('created_at', { ascending: false }),
+        supabase.from('amendments').select('*').order('created_at', { ascending: false }),
       ]);
 
       if (projRes.error) throw projRes.error;
@@ -63,6 +73,11 @@ export function useDashboardData() {
       if (schedRes.error) throw schedRes.error;
       if (trkRes.error) throw trkRes.error;
       if (trackingUpdatesRes.error) throw trackingUpdatesRes.error;
+      if (woDetailsRes.error) throw woDetailsRes.error;
+      if (woSectionsRes.error) throw woSectionsRes.error;
+      if (paymentsRes.error) throw paymentsRes.error;
+      if (dprRes.error) throw dprRes.error;
+      if (amendmentsRes.error) throw amendmentsRes.error;
 
       const dashboardData: DashboardData = {
         projects: (projRes.data as Project[]) ?? [],
@@ -71,6 +86,11 @@ export function useDashboardData() {
         trackingEntries: (trkRes.data as TrackingEntry[]) ?? [],
         specs: allSpecs,
         trackingUpdates: (trackingUpdatesRes.data as TrackingUpdate[]) ?? [],
+        workOrderDetails: (woDetailsRes.data as WorkOrderDetail[]) ?? [],
+        woSections: (woSectionsRes.data as WOSection[]) ?? [],
+        paymentEntries: (paymentsRes.data as PaymentEntry[]) ?? [],
+        dprEntries: (dprRes.data as DPREntry[]) ?? [],
+        amendments: (amendmentsRes.data as Amendment[]) ?? [],
       };
       sessionStorage.setItem(LOADING_KEY, JSON.stringify(dashboardData));
       setData(dashboardData);

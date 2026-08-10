@@ -174,7 +174,7 @@ function ChartCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="mirror-card rounded p-3 flex flex-col">
+    <div className="mirror-card rounded border-t-2 border-t-cyan-600 p-3 flex flex-col animate-portal-rise">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5">
           <div>
@@ -569,7 +569,7 @@ export function ChartView({
         <ChartCard title="Category-wise" chartType={chart5Type} onChartTypeChange={setChart5Type} selectedCount={selectedCategories.length}>
           {chart5Type === 'bar' ? renderBar(categoryData) : renderPie(categoryData)}
         </ChartCard>
-        <div className="mirror-card rounded p-3 flex flex-col">
+        <div className="mirror-card rounded border-t-2 border-t-cyan-600 p-3 flex flex-col animate-portal-rise">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-semibold text-slate-700">Timeline Trend</h3>
             <div className="flex items-center bg-slate-100 rounded text-[11px]">
