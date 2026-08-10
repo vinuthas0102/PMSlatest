@@ -661,6 +661,10 @@ function getAgencyName(woId: string, details: WorkOrderDetail[]): string {
   return details.find((d) => d.work_order_id === woId)?.agency_name ?? '-';
 }
 
+function safeNum(v: number | null | undefined): number {
+  return typeof v === 'number' && !isNaN(v) ? v : 0;
+}
+
 function WOTileView({ workOrders, details, onSelect }: { workOrders: WorkOrder[]; details: WorkOrderDetail[]; onSelect: (wo: WorkOrder) => void }) {
   if (workOrders.length === 0) return <div className="text-center text-sm text-slate-500 py-6">No work orders found.</div>;
   return (
@@ -680,18 +684,18 @@ function WOTileView({ workOrders, details, onSelect }: { workOrders: WorkOrder[]
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between text-[10px] text-slate-500 mb-0.5">
                   <span className="font-medium text-slate-600">Physical Progress</span>
-                  <span><span className="font-semibold text-cyan-700">{wo.completed_pct.toFixed(0)}%</span><span className="text-slate-400"> / target {wo.target_pct.toFixed(0)}%</span></span>
+                  <span><span className="font-semibold text-cyan-700">{safeNum(wo.completed_pct).toFixed(0)}%</span><span className="text-slate-400"> / target {safeNum(wo.target_pct).toFixed(0)}%</span></span>
                 </div>
                 <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden relative">
-                  <div className="absolute top-0 bottom-0 w-0.5 bg-slate-500 z-10" style={{ left: `${Math.min(wo.target_pct, 100)}%` }} />
-                  <div className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-blue-600" style={{ width: `${wo.completed_pct}%` }} />
+                  <div className="absolute top-0 bottom-0 w-0.5 bg-slate-500 z-10" style={{ left: `${Math.min(safeNum(wo.target_pct), 100)}%` }} />
+                  <div className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-blue-600" style={{ width: `${safeNum(wo.completed_pct)}%` }} />
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-3 text-[10px] text-slate-500">
-              <span>WO Value: <span className="font-semibold text-indigo-700">{formatINRShort(wo.project_value)}</span></span>
-              <span>Paid: <span className="font-semibold text-emerald-700">{formatINRShort(wo.paid_amount)}</span></span>
-              <span>Billed: <span className="font-semibold text-cyan-700">{formatINRShort(wo.billed_amount)}</span></span>
+              <span>WO Value: <span className="font-semibold text-indigo-700">{formatINRShort(safeNum(wo.project_value))}</span></span>
+              <span>Paid: <span className="font-semibold text-emerald-700">{formatINRShort(safeNum(wo.paid_amount))}</span></span>
+              <span>Billed: <span className="font-semibold text-cyan-700">{formatINRShort(safeNum(wo.billed_amount))}</span></span>
             </div>
             <button onClick={() => onSelect(wo)} className="flex items-center gap-1 text-[10px] font-medium text-cyan-700 hover:text-white hover:bg-cyan-600 bg-cyan-50 border border-cyan-200 px-2.5 py-1 rounded transition-colors self-start">
               <Building2 className="w-3 h-3" /> Agency Detail
@@ -728,12 +732,12 @@ function WOTableView({ workOrders, details, onSelect }: { workOrders: WorkOrder[
                 <td className="px-2 py-1.5 font-mono font-bold text-slate-500 whitespace-nowrap">{wo.seq_no}</td>
                 <td className="px-2 py-1.5 text-slate-800 font-medium max-w-[200px] truncate">{wo.title}</td>
                 <td className="px-2 py-1.5 text-slate-600 whitespace-nowrap">{getAgencyName(wo.id, details)}</td>
-                <td className="px-2 py-1.5 text-right tabular-nums">{wo.completed_pct.toFixed(0)}%</td>
+                <td className="px-2 py-1.5 text-right tabular-nums">{safeNum(wo.completed_pct).toFixed(0)}%</td>
                 <td className="px-2 py-1.5 whitespace-nowrap">
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${colors.bg} ${colors.text} ${colors.border}`}>{delayStatusShort(wo.delay_status)}</span>
                 </td>
-                <td className="px-2 py-1.5 text-indigo-700 font-semibold text-right tabular-nums whitespace-nowrap">{formatINRShort(wo.project_value)}</td>
-                <td className="px-2 py-1.5 text-emerald-700 font-semibold text-right tabular-nums whitespace-nowrap">{formatINRShort(wo.paid_amount)}</td>
+                <td className="px-2 py-1.5 text-indigo-700 font-semibold text-right tabular-nums whitespace-nowrap">{formatINRShort(safeNum(wo.project_value))}</td>
+                <td className="px-2 py-1.5 text-emerald-700 font-semibold text-right tabular-nums whitespace-nowrap">{formatINRShort(safeNum(wo.paid_amount))}</td>
                 <td className="px-2 py-1.5 whitespace-nowrap">
                   <button onClick={() => onSelect(wo)} className="flex items-center gap-1 text-[10px] font-medium text-cyan-700 hover:text-white hover:bg-cyan-600 bg-cyan-50 border border-cyan-200 px-1.5 py-0.5 rounded transition-colors">
                     <Building2 className="w-3 h-3" /> Detail
@@ -765,16 +769,16 @@ function WOCardView({ workOrders, details, onSelect }: { workOrders: WorkOrder[]
             <div>
               <div className="flex items-center justify-between text-[10px] text-slate-500 mb-0.5">
                 <span className="font-semibold text-slate-600">Progress</span>
-                <span className="font-semibold text-slate-700">{wo.completed_pct.toFixed(0)}%</span>
+                <span className="font-semibold text-slate-700">{safeNum(wo.completed_pct).toFixed(0)}%</span>
               </div>
               <div className="h-2 bg-slate-100 rounded-full overflow-hidden relative">
-                <div className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-blue-600" style={{ width: `${wo.completed_pct}%` }} />
-                {wo.target_pct > 0 && <div className="absolute top-0 bottom-0 w-0.5 bg-slate-500" style={{ left: `${Math.min(wo.target_pct, 100)}%` }} />}
+                <div className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-blue-600" style={{ width: `${safeNum(wo.completed_pct)}%` }} />
+                {safeNum(wo.target_pct) > 0 && <div className="absolute top-0 bottom-0 w-0.5 bg-slate-500" style={{ left: `${Math.min(safeNum(wo.target_pct), 100)}%` }} />}
               </div>
             </div>
             <div className="flex items-center justify-between text-[10px] text-slate-500">
-              <span>WO: <span className="font-semibold text-indigo-700">{formatINRShort(wo.project_value)}</span></span>
-              <span>Paid: <span className="font-semibold text-emerald-700">{formatINRShort(wo.paid_amount)}</span></span>
+              <span>WO: <span className="font-semibold text-indigo-700">{formatINRShort(safeNum(wo.project_value))}</span></span>
+              <span>Paid: <span className="font-semibold text-emerald-700">{formatINRShort(safeNum(wo.paid_amount))}</span></span>
             </div>
             <button onClick={() => onSelect(wo)} className="flex items-center gap-1 text-[10px] font-medium text-cyan-700 hover:text-white hover:bg-cyan-600 bg-cyan-50 border border-cyan-200 px-1.5 py-1 rounded transition-colors justify-center">
               <Building2 className="w-3 h-3" /> Agency Detail
@@ -814,12 +818,18 @@ function WorkOrderModalWrapper({
     import('./WorkOrderModal').then((m) => setWOModal(() => m.WorkOrderModal));
   }, []);
 
+  const reorderedWOs = useMemo(() => {
+    if (!selectedWO) return workOrders;
+    const rest = workOrders.filter((w) => w.id !== selectedWO.id);
+    return [selectedWO, ...rest];
+  }, [selectedWO, workOrders]);
+
   if (!WOModal) return null;
 
   return (
     <WOModal
       project={project}
-      workOrders={workOrders}
+      workOrders={reorderedWOs}
       details={details}
       sections={sections}
       payments={payments}
@@ -901,7 +911,7 @@ function CreateWOModal({ project, onClose, onCreated }: { project: Project; onCl
       return;
     }
 
-    sessionStorage.removeItem('pms_data_v7');
+    sessionStorage.removeItem('pms_data_v8');
     setSaving(false);
     onCreated();
   };

@@ -75,11 +75,12 @@ export function WOChartView({ workOrders }: WOChartViewProps) {
     }));
   }, [workOrders]);
 
+  const safeNum = (v: number | null | undefined): number => (typeof v === 'number' && !isNaN(v) ? v : 0);
+
   const financialData = useMemo(() => {
-    const totalWOValue = workOrders.reduce((s, w) => s + w.project_value, 0);
-    const billed = workOrders.reduce((s, w) => s + w.billed_amount, 0);
-    const paid = workOrders.reduce((s, w) => s + w.paid_amount, 0);
-    const pct = (v: number) => (totalWOValue > 0 ? (v / totalWOValue) * 100 : 0);
+    const totalWOValue = workOrders.reduce((s, w) => s + safeNum(w.project_value), 0);
+    const billed = workOrders.reduce((s, w) => s + safeNum(w.billed_amount), 0);
+    const paid = workOrders.reduce((s, w) => s + safeNum(w.paid_amount), 0);
     return [
       { name: 'WO Value', value: totalWOValue, color: '#1e40af', raw: totalWOValue },
       { name: 'Billed', value: billed, color: '#0891b2', raw: billed },
@@ -87,11 +88,11 @@ export function WOChartView({ workOrders }: WOChartViewProps) {
     ];
   }, [workOrders]);
 
-  const totalWOValue = workOrders.reduce((s, w) => s + w.project_value, 0);
+  const totalWOValue = workOrders.reduce((s, w) => s + safeNum(w.project_value), 0);
 
   const physicalData = useMemo(() => {
-    const avgTarget = workOrders.length > 0 ? workOrders.reduce((s, w) => s + (w.target_pct || 0), 0) / workOrders.length : 0;
-    const avgActual = workOrders.length > 0 ? workOrders.reduce((s, w) => s + (w.completed_pct || 0), 0) / workOrders.length : 0;
+    const avgTarget = workOrders.length > 0 ? workOrders.reduce((s, w) => s + safeNum(w.target_pct), 0) / workOrders.length : 0;
+    const avgActual = workOrders.length > 0 ? workOrders.reduce((s, w) => s + safeNum(w.completed_pct), 0) / workOrders.length : 0;
     return [
       { name: 'Target', value: Number(avgTarget.toFixed(1)), color: '#1e40af' },
       { name: 'Actual', value: Number(avgActual.toFixed(1)), color: '#0891b2' },
