@@ -1,4 +1,4 @@
-import { FileText, ChevronRight, MapPin, AlertTriangle, Ruler, CalendarClock, FilePlus, ClipboardList } from 'lucide-react';
+import { FileText, ChevronRight, MapPin, AlertTriangle, Ruler, CalendarClock, FilePlus } from 'lucide-react';
 import type { BaseEntity, TrackingUpdate, TrackingType } from '@/types';
 import { formatINRShort, delayStatusColor, delayStatusShort } from '@/lib/format';
 
@@ -7,7 +7,6 @@ interface TileViewProps {
   trackingUpdates?: TrackingUpdate[];
   onShowDetails: (item: BaseEntity) => void;
   onCreateNew?: () => void;
-  onTrackUpdate?: (item: BaseEntity) => void;
   onShowWorkOrders?: (item: BaseEntity) => void;
 }
 
@@ -16,7 +15,7 @@ function latestDeviationValue(updates: TrackingUpdate[], projectId: string, type
   return match ? match.deviation_value : null;
 }
 
-export function TileView({ items, trackingUpdates = [], onShowDetails, onCreateNew, onTrackUpdate, onShowWorkOrders }: TileViewProps) {
+export function TileView({ items, trackingUpdates = [], onShowDetails, onCreateNew, onShowWorkOrders }: TileViewProps) {
   return (
     <div className="flex flex-col gap-4 p-4">
       {onCreateNew && (
@@ -169,16 +168,8 @@ export function TileView({ items, trackingUpdates = [], onShowDetails, onCreateN
                 onClick={() => onShowDetails(item)}
                 className="flex items-center gap-1 text-[10px] font-medium text-cyan-700 hover:text-white hover:bg-cyan-600 bg-cyan-50 border border-cyan-200 px-2.5 py-1 rounded transition-colors"
               >
-                <FileText className="w-3 h-3" /> {onTrackUpdate ? 'Edit Details' : 'Show Details'}
+                <FileText className="w-3 h-3" /> Show Details
               </button>
-              {onTrackUpdate && (
-                <button
-                  onClick={() => onTrackUpdate(item)}
-                  className="flex items-center gap-1 text-[10px] font-medium text-amber-700 hover:text-white hover:bg-amber-600 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded transition-colors"
-                >
-                  <ClipboardList className="w-3 h-3" /> Update Tracking
-                </button>
-              )}
               {onShowWorkOrders ? <button onClick={() => onShowWorkOrders(item)} className="flex items-center gap-1 text-[10px] font-medium text-slate-600 hover:bg-slate-200 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded">
                 Show CMS WOs <ChevronRight className="w-3 h-3" />
               </button> : <span className="flex items-center gap-1 text-[10px] font-medium text-slate-500 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded">Show CMS WOs <ChevronRight className="w-3 h-3" /></span>}

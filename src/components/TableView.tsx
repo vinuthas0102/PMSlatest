@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowUpDown, FileText, ChevronRight, FilePlus, ClipboardList } from 'lucide-react';
+import { ArrowUpDown, FileText, ChevronRight, FilePlus } from 'lucide-react';
 import type { BaseEntity } from '@/types';
 import { formatINRShort, delayStatusColor, delayStatusShort } from '@/lib/format';
 
@@ -7,14 +7,13 @@ interface TableViewProps {
   items: BaseEntity[];
   onShowDetails: (item: BaseEntity) => void;
   onCreateNew?: () => void;
-  onTrackUpdate?: (item: BaseEntity) => void;
   onShowWorkOrders?: (item: BaseEntity) => void;
 }
 
 type SortKey = keyof BaseEntity;
 type SortDir = 'asc' | 'desc';
 
-export function TableView({ items, onShowDetails, onCreateNew, onTrackUpdate, onShowWorkOrders }: TableViewProps) {
+export function TableView({ items, onShowDetails, onCreateNew, onShowWorkOrders }: TableViewProps) {
   const [sortKey, setSortKey] = useState<SortKey>('seq_no');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
 
@@ -138,20 +137,11 @@ export function TableView({ items, onShowDetails, onCreateNew, onTrackUpdate, on
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => onShowDetails(item)}
-                      title={onTrackUpdate ? 'Edit project details' : 'View project details'}
+                      title="View project details"
                       className="flex items-center gap-1 text-[10px] font-medium text-cyan-700 hover:text-white hover:bg-cyan-600 bg-cyan-50 border border-cyan-200 px-1.5 py-0.5 rounded transition-colors"
                     >
                       <FileText className="w-3 h-3" />
                     </button>
-                    {onTrackUpdate && (
-                      <button
-                        onClick={() => onTrackUpdate(item)}
-                        title="Add tracking update"
-                        className="flex items-center gap-1 text-[10px] font-medium text-amber-700 hover:text-white hover:bg-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded transition-colors"
-                      >
-                        <ClipboardList className="w-3 h-3" />
-                      </button>
-                    )}
                     {onShowWorkOrders ? <button onClick={() => onShowWorkOrders(item)} title="View work orders" className="flex items-center gap-1 text-[10px] font-medium text-slate-600 hover:bg-slate-200 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded">CMS WOs <ChevronRight className="w-3 h-3" /></button> : <span title="View work orders" className="flex items-center gap-1 text-[10px] font-medium text-slate-500 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded">CMS WOs <ChevronRight className="w-3 h-3" /></span>}
                   </div>
                 </td>

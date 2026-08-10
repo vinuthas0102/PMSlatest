@@ -18,7 +18,6 @@ import { FilterDrawer } from '@/components/FilterDrawer';
 import { SpecModal } from '@/components/SpecModal';
 import { SubcategoryModal } from '@/components/SubcategoryModal';
 import { ProjectFormModal } from '@/components/ProjectFormModal';
-import { TrackingModal } from '@/components/TrackingModal';
 import { WorkOrderModal } from '@/components/WorkOrderModal';
 import { LandingPage } from '@/components/LandingPage';
 import { DPRPanel } from '@/components/DPRPanel';
@@ -64,7 +63,6 @@ function DashboardApp() {
   const [specModalItem, setSpecModalItem] = useState<{ item: BaseEntity; level: Level } | null>(null);
   const [subcategoryModal, setSubcategoryModal] = useState<string | null>(null);
   const [projectFormModal, setProjectFormModal] = useState<{ project: Project | null; mode: 'edit' | 'create' } | null>(null);
-  const [trackingModalItem, setTrackingModalItem] = useState<BaseEntity | null>(null);
   const [workOrderProject, setWorkOrderProject] = useState<Project | null>(null);
 
   // Determine the effective screen based on permissions
@@ -359,7 +357,6 @@ function DashboardApp() {
             trackingUpdates={allTrackingUpdates}
             onShowDetails={(item) => handleShowDetails(item)}
             onCreateNew={isMaintenance && permissions.canCreateProject ? () => setProjectFormModal({ project: null, mode: 'create' }) : undefined}
-            onTrackUpdate={isMaintenance && permissions.canTrackDeviations ? (item) => setTrackingModalItem(item) : undefined}
             onShowWorkOrders={(item) => setWorkOrderProject(item as Project)}
           />
         )}
@@ -368,7 +365,6 @@ function DashboardApp() {
             items={filteredItems}
             onShowDetails={(item) => handleShowDetails(item)}
             onCreateNew={isMaintenance && permissions.canCreateProject ? () => setProjectFormModal({ project: null, mode: 'create' }) : undefined}
-            onTrackUpdate={isMaintenance && permissions.canTrackDeviations ? (item) => setTrackingModalItem(item) : undefined}
             onShowWorkOrders={(item) => setWorkOrderProject(item as Project)}
           />
         )}
@@ -377,7 +373,6 @@ function DashboardApp() {
             items={filteredItems}
             onShowDetails={(item) => handleShowDetails(item)}
             onCreateNew={isMaintenance && permissions.canCreateProject ? () => setProjectFormModal({ project: null, mode: 'create' }) : undefined}
-            onTrackUpdate={isMaintenance && permissions.canTrackDeviations ? (item) => setTrackingModalItem(item) : undefined}
             onShowWorkOrders={(item) => setWorkOrderProject(item as Project)}
           />
         )}
@@ -411,15 +406,6 @@ function DashboardApp() {
         />
       )}
 
-      {trackingModalItem && isMaintenance && (
-        <TrackingModal
-          item={trackingModalItem}
-          updates={allTrackingUpdates}
-          onClose={() => setTrackingModalItem(null)}
-          onSave={handleSaveTrackingUpdate}
-        />
-      )}
-
       {workOrderProject && data && (
         <WorkOrderModal
           project={workOrderProject}
@@ -430,6 +416,7 @@ function DashboardApp() {
           trackingUpdates={allTrackingUpdates}
           onClose={() => setWorkOrderProject(null)}
           onReload={reload}
+          onSaveTrackingUpdate={handleSaveTrackingUpdate}
         />
       )}
 
