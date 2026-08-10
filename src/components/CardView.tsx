@@ -1,4 +1,4 @@
-import { FileText, ChevronRight, MapPin, FilePlus } from 'lucide-react';
+import { FileText, MapPin, FilePlus } from 'lucide-react';
 import type { BaseEntity } from '@/types';
 import { formatINRShort, delayStatusColor, delayStatusShort } from '@/lib/format';
 
@@ -6,10 +6,9 @@ interface CardViewProps {
   items: BaseEntity[];
   onShowDetails: (item: BaseEntity) => void;
   onCreateNew?: () => void;
-  onShowWorkOrders?: (item: BaseEntity) => void;
 }
 
-export function CardView({ items, onShowDetails, onCreateNew, onShowWorkOrders }: CardViewProps) {
+export function CardView({ items, onShowDetails, onCreateNew }: CardViewProps) {
   return (
     <div className="p-2">
       {onCreateNew && (
@@ -145,9 +144,6 @@ export function CardView({ items, onShowDetails, onCreateNew, onShowWorkOrders }
               >
                 <FileText className="w-3 h-3" /> Details
               </button>
-              {onShowWorkOrders ? <button onClick={() => onShowWorkOrders(item)} className="flex items-center gap-1 text-[10px] font-medium text-slate-600 hover:bg-slate-200 bg-slate-100 border border-slate-200 px-1.5 py-1 rounded flex-1 justify-center">
-                CMS WOs <ChevronRight className="w-3 h-3" />
-              </button> : <span className="flex items-center gap-1 text-[10px] font-medium text-slate-500 bg-slate-100 border border-slate-200 px-1.5 py-1 rounded flex-1 justify-center">CMS WOs <ChevronRight className="w-3 h-3" /></span>}
             </div>
           </div>
         );

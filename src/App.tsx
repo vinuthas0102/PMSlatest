@@ -326,21 +326,18 @@ function DashboardApp() {
             items={filteredItems}
             trackingUpdates={allTrackingUpdates}
             onShowDetails={(item) => handleShowDetails(item)}
-            onShowWorkOrders={(item) => handleShowDetails(item)}
           />
         )}
         {viewType === 'table' && (
           <TableView
             items={filteredItems}
             onShowDetails={(item) => handleShowDetails(item)}
-            onShowWorkOrders={(item) => handleShowDetails(item)}
           />
         )}
         {viewType === 'card' && (
           <CardView
             items={filteredItems}
             onShowDetails={(item) => handleShowDetails(item)}
-            onShowWorkOrders={(item) => handleShowDetails(item)}
           />
         )}
       </div>

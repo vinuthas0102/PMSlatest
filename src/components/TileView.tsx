@@ -1,4 +1,4 @@
-import { FileText, ChevronRight, MapPin, AlertTriangle, Ruler, CalendarClock, FilePlus } from 'lucide-react';
+import { FileText, MapPin, AlertTriangle, Ruler, CalendarClock, FilePlus } from 'lucide-react';
 import type { BaseEntity, TrackingUpdate, TrackingType } from '@/types';
 import { formatINRShort, delayStatusColor, delayStatusShort } from '@/lib/format';
 
@@ -7,7 +7,6 @@ interface TileViewProps {
   trackingUpdates?: TrackingUpdate[];
   onShowDetails: (item: BaseEntity) => void;
   onCreateNew?: () => void;
-  onShowWorkOrders?: (item: BaseEntity) => void;
 }
 
 function latestDeviationValue(updates: TrackingUpdate[], projectId: string, type: TrackingType): string | null {
@@ -15,7 +14,7 @@ function latestDeviationValue(updates: TrackingUpdate[], projectId: string, type
   return match ? match.deviation_value : null;
 }
 
-export function TileView({ items, trackingUpdates = [], onShowDetails, onCreateNew, onShowWorkOrders }: TileViewProps) {
+export function TileView({ items, trackingUpdates = [], onShowDetails, onCreateNew }: TileViewProps) {
   return (
     <div className="flex flex-col gap-4 p-4">
       {onCreateNew && (
@@ -170,9 +169,6 @@ export function TileView({ items, trackingUpdates = [], onShowDetails, onCreateN
               >
                 <FileText className="w-3 h-3" /> Show Details
               </button>
-              {onShowWorkOrders ? <button onClick={() => onShowWorkOrders(item)} className="flex items-center gap-1 text-[10px] font-medium text-slate-600 hover:bg-slate-200 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded">
-                Show CMS WOs <ChevronRight className="w-3 h-3" />
-              </button> : <span className="flex items-center gap-1 text-[10px] font-medium text-slate-500 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded">Show CMS WOs <ChevronRight className="w-3 h-3" /></span>}
             </div>
           </div>
         );

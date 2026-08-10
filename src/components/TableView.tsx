@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowUpDown, FileText, ChevronRight, FilePlus } from 'lucide-react';
+import { ArrowUpDown, FileText, FilePlus } from 'lucide-react';
 import type { BaseEntity } from '@/types';
 import { formatINRShort, delayStatusColor, delayStatusShort } from '@/lib/format';
 
@@ -7,13 +7,12 @@ interface TableViewProps {
   items: BaseEntity[];
   onShowDetails: (item: BaseEntity) => void;
   onCreateNew?: () => void;
-  onShowWorkOrders?: (item: BaseEntity) => void;
 }
 
 type SortKey = keyof BaseEntity;
 type SortDir = 'asc' | 'desc';
 
-export function TableView({ items, onShowDetails, onCreateNew, onShowWorkOrders }: TableViewProps) {
+export function TableView({ items, onShowDetails, onCreateNew }: TableViewProps) {
   const [sortKey, setSortKey] = useState<SortKey>('seq_no');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
 
@@ -142,7 +141,7 @@ export function TableView({ items, onShowDetails, onCreateNew, onShowWorkOrders 
                     >
                       <FileText className="w-3 h-3" />
                     </button>
-                    {onShowWorkOrders ? <button onClick={() => onShowWorkOrders(item)} title="View work orders" className="flex items-center gap-1 text-[10px] font-medium text-slate-600 hover:bg-slate-200 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded">CMS WOs <ChevronRight className="w-3 h-3" /></button> : <span title="View work orders" className="flex items-center gap-1 text-[10px] font-medium text-slate-500 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded">CMS WOs <ChevronRight className="w-3 h-3" /></span>}
+
                   </div>
                 </td>
               </tr>
