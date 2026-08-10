@@ -17,7 +17,7 @@ interface WorkOrderModalProps {
 
 type Tab = 'header' | 'sections' | 'exceptions';
 
-export function WorkOrderModal({ project, workOrders, details, sections, payments, trackingUpdates, onClose, onReload }: WorkOrderModalProps) {
+export function WorkOrderModal({ project, workOrders = [], details = [], sections = [], payments = [], trackingUpdates = [], onClose, onReload }: WorkOrderModalProps) {
   const { user, permissions } = useAuth();
   const projectWOs = workOrders.filter((wo) => wo.project_id === project.id);
   const [selectedId, setSelectedId] = useState(projectWOs[0]?.id ?? '');

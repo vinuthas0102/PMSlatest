@@ -16,7 +16,7 @@ import type {
   Amendment,
 } from '@/types';
 
-const LOADING_KEY = 'pms_data_v7';
+const LOADING_KEY = 'pms_data_v8';
 
 const SPECS_PAGE_SIZE = 1000;
 
@@ -49,7 +49,20 @@ export function useDashboardData() {
     try {
       const cached = sessionStorage.getItem(LOADING_KEY);
       if (cached) {
-        setData(JSON.parse(cached));
+        const cachedData = JSON.parse(cached) as Partial<DashboardData>;
+        setData({
+          projects: cachedData.projects ?? [],
+          workOrders: cachedData.workOrders ?? [],
+          schedules: cachedData.schedules ?? [],
+          trackingEntries: cachedData.trackingEntries ?? [],
+          specs: cachedData.specs ?? [],
+          trackingUpdates: cachedData.trackingUpdates ?? [],
+          workOrderDetails: cachedData.workOrderDetails ?? [],
+          woSections: cachedData.woSections ?? [],
+          paymentEntries: cachedData.paymentEntries ?? [],
+          dprEntries: cachedData.dprEntries ?? [],
+          amendments: cachedData.amendments ?? [],
+        });
         setLoading(false);
         return;
       }
