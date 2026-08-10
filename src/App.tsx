@@ -55,6 +55,7 @@ function DashboardApp() {
   const [appliedFilters, setAppliedFilters] = useState<Filters>(DEFAULT_FILTERS);
 
   const [detailProject, setDetailProject] = useState<Project | null>(null);
+  const [detailMode, setDetailMode] = useState<'view' | 'maintain'>('view');
   const [createProjectModal, setCreateProjectModal] = useState(false);
 
   const currentItems = useMemo<BaseEntity[]>(() => {
@@ -116,6 +117,12 @@ function DashboardApp() {
 
   const handleShowDetails = useCallback((item: BaseEntity) => {
     setDetailProject(item as Project);
+    setDetailMode('view');
+  }, []);
+
+  const handleMaintainProject = useCallback((item: BaseEntity) => {
+    setDetailProject(item as Project);
+    setDetailMode('maintain');
   }, []);
 
   const handleApplyFilters = useCallback(() => {
@@ -326,18 +333,21 @@ function DashboardApp() {
             items={filteredItems}
             trackingUpdates={allTrackingUpdates}
             onShowDetails={(item) => handleShowDetails(item)}
+            onMaintainProject={permissions.canEditProject ? (item) => handleMaintainProject(item) : undefined}
           />
         )}
         {viewType === 'table' && (
           <TableView
             items={filteredItems}
             onShowDetails={(item) => handleShowDetails(item)}
+            onMaintainProject={permissions.canEditProject ? (item) => handleMaintainProject(item) : undefined}
           />
         )}
         {viewType === 'card' && (
           <CardView
             items={filteredItems}
             onShowDetails={(item) => handleShowDetails(item)}
+            onMaintainProject={permissions.canEditProject ? (item) => handleMaintainProject(item) : undefined}
           />
         )}
       </div>
@@ -360,6 +370,7 @@ function DashboardApp() {
           sections={data.woSections}
           payments={data.paymentEntries}
           trackingUpdates={allTrackingUpdates}
+          mode={detailMode}
           onClose={() => setDetailProject(null)}
           onReload={reload}
           onSaveProject={handleSaveProject}

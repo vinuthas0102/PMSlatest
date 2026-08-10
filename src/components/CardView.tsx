@@ -1,14 +1,15 @@
-import { FileText, MapPin, FilePlus } from 'lucide-react';
+import { FileText, MapPin, FilePlus, Wrench } from 'lucide-react';
 import type { BaseEntity } from '@/types';
 import { formatINRShort, delayStatusColor, delayStatusShort } from '@/lib/format';
 
 interface CardViewProps {
   items: BaseEntity[];
   onShowDetails: (item: BaseEntity) => void;
+  onMaintainProject?: (item: BaseEntity) => void;
   onCreateNew?: () => void;
 }
 
-export function CardView({ items, onShowDetails, onCreateNew }: CardViewProps) {
+export function CardView({ items, onShowDetails, onMaintainProject, onCreateNew }: CardViewProps) {
   return (
     <div className="p-2">
       {onCreateNew && (
@@ -142,8 +143,16 @@ export function CardView({ items, onShowDetails, onCreateNew }: CardViewProps) {
                 onClick={() => onShowDetails(item)}
                 className="flex items-center gap-1 text-[10px] font-medium text-cyan-700 hover:text-white hover:bg-cyan-600 bg-cyan-50 border border-cyan-200 px-1.5 py-1 rounded transition-colors flex-1 justify-center"
               >
-                <FileText className="w-3 h-3" /> Details
+                <FileText className="w-3 h-3" /> Show Project
               </button>
+              {onMaintainProject && (
+                <button
+                  onClick={() => onMaintainProject(item)}
+                  className="flex items-center gap-1 text-[10px] font-medium text-amber-700 hover:text-white hover:bg-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-1 rounded transition-colors flex-1 justify-center"
+                >
+                  <Wrench className="w-3 h-3" /> Maintain
+                </button>
+              )}
             </div>
           </div>
         );

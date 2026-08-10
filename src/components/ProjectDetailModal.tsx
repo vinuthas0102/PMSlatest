@@ -26,6 +26,7 @@ interface ProjectDetailModalProps {
   sections: WOSection[];
   payments: PaymentEntry[];
   trackingUpdates: TrackingUpdate[];
+  mode?: 'view' | 'maintain';
   onClose: () => void;
   onReload: () => Promise<void>;
   onSaveProject: (id: string | null, formData: ProjectFormData, status: ProjectStatus) => Promise<{ success: boolean; error?: string }>;
@@ -108,13 +109,15 @@ type WOViewType = 'tile' | 'table' | 'card';
 
 export function ProjectDetailModal({
   project, workOrders, details, sections, payments, trackingUpdates,
-  onClose, onReload, onSaveProject, onSaveTrackingUpdate,
+  mode = 'view', onClose, onReload, onSaveProject, onSaveTrackingUpdate,
 }: ProjectDetailModalProps) {
   const { user, permissions } = useAuth();
   const [tab, setTab] = useState<Tab>('header');
 
   const canEdit = permissions.canEditProject;
   const isFinalized = project.status === 'finalized';
+  const isMaintainMode = mode === 'maintain';
+  const canMaintain = isMaintainMode && canEdit && !isFinalized;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm" onClick={onClose}>
@@ -125,6 +128,11 @@ export function ProjectDetailModal({
             <div className="flex items-center gap-2">
               <span className="rounded bg-cyan-500/15 px-2 py-1 font-mono text-[10px] font-bold text-cyan-300">{project.seq_no}</span>
               <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-300">CMS Project</span>
+              {isMaintainMode && (
+                <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${isFinalized ? 'bg-slate-700 text-slate-300' : 'bg-amber-500/20 text-amber-300 ring-1 ring-amber-400/30'}`}>
+                  {isFinalized ? 'Approved' : 'Maintenance'}
+                </span>
+              )}
               <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${delayStatusColor(project.delay_status).bg} ${delayStatusColor(project.delay_status).text}`}>
                 {delayStatusShort(project.delay_status)}
               </span>
@@ -160,6 +168,7 @@ export function ProjectDetailModal({
               project={project}
               canEdit={canEdit}
               isFinalized={isFinalized}
+              initialEditing={canMaintain}
               trackingUpdates={trackingUpdates}
               onSaveProject={onSaveProject}
               onClose={onClose}
@@ -186,16 +195,17 @@ export function ProjectDetailModal({
 /* ─── Header Tab ─── */
 
 function HeaderTab({
-  project, canEdit, isFinalized, trackingUpdates, onSaveProject, onClose,
+  project, canEdit, isFinalized, initialEditing = false, trackingUpdates, onSaveProject, onClose,
 }: {
   project: Project;
   canEdit: boolean;
   isFinalized: boolean;
+  initialEditing?: boolean;
   trackingUpdates: TrackingUpdate[];
   onSaveProject: (id: string | null, formData: ProjectFormData, status: ProjectStatus) => Promise<{ success: boolean; error?: string }>;
   onClose: () => void;
 }) {
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(initialEditing);
   const [form, setForm] = useState<ProjectFormData>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -401,14 +411,6 @@ function HeaderTab({
   /* Read-only view */
   return (
     <div className="p-4 space-y-3">
-      {canEdit && !isFinalized && (
-        <button
-          onClick={() => setEditing(true)}
-          className="flex items-center gap-1.5 text-xs font-bold text-cyan-700 hover:text-cyan-800"
-        >
-          <FileText className="w-3.5 h-3.5" /> Edit Header
-        </button>
-      )}
       {isFinalized && (
         <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400">
           <LockKeyhole className="w-3.5 h-3.5" /> Finalized &amp; Locked

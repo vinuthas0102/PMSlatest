@@ -1,18 +1,19 @@
 import { useState } from 'react';
-import { ArrowUpDown, FileText, FilePlus } from 'lucide-react';
+import { ArrowUpDown, FileText, FilePlus, Wrench } from 'lucide-react';
 import type { BaseEntity } from '@/types';
 import { formatINRShort, delayStatusColor, delayStatusShort } from '@/lib/format';
 
 interface TableViewProps {
   items: BaseEntity[];
   onShowDetails: (item: BaseEntity) => void;
+  onMaintainProject?: (item: BaseEntity) => void;
   onCreateNew?: () => void;
 }
 
 type SortKey = keyof BaseEntity;
 type SortDir = 'asc' | 'desc';
 
-export function TableView({ items, onShowDetails, onCreateNew }: TableViewProps) {
+export function TableView({ items, onShowDetails, onMaintainProject, onCreateNew }: TableViewProps) {
   const [sortKey, setSortKey] = useState<SortKey>('seq_no');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
 
@@ -136,12 +137,20 @@ export function TableView({ items, onShowDetails, onCreateNew }: TableViewProps)
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => onShowDetails(item)}
-                      title="View project details"
+                      title="Show Project"
                       className="flex items-center gap-1 text-[10px] font-medium text-cyan-700 hover:text-white hover:bg-cyan-600 bg-cyan-50 border border-cyan-200 px-1.5 py-0.5 rounded transition-colors"
                     >
                       <FileText className="w-3 h-3" />
                     </button>
-
+                    {onMaintainProject && (
+                      <button
+                        onClick={() => onMaintainProject(item)}
+                        title="Maintain Project"
+                        className="flex items-center gap-1 text-[10px] font-medium text-amber-700 hover:text-white hover:bg-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded transition-colors"
+                      >
+                        <Wrench className="w-3 h-3" />
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>

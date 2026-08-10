@@ -1,4 +1,4 @@
-import { FileText, MapPin, AlertTriangle, Ruler, CalendarClock, FilePlus } from 'lucide-react';
+import { FileText, MapPin, AlertTriangle, Ruler, CalendarClock, FilePlus, Wrench } from 'lucide-react';
 import type { BaseEntity, TrackingUpdate, TrackingType } from '@/types';
 import { formatINRShort, delayStatusColor, delayStatusShort } from '@/lib/format';
 
@@ -6,6 +6,7 @@ interface TileViewProps {
   items: BaseEntity[];
   trackingUpdates?: TrackingUpdate[];
   onShowDetails: (item: BaseEntity) => void;
+  onMaintainProject?: (item: BaseEntity) => void;
   onCreateNew?: () => void;
 }
 
@@ -14,7 +15,7 @@ function latestDeviationValue(updates: TrackingUpdate[], projectId: string, type
   return match ? match.deviation_value : null;
 }
 
-export function TileView({ items, trackingUpdates = [], onShowDetails, onCreateNew }: TileViewProps) {
+export function TileView({ items, trackingUpdates = [], onShowDetails, onMaintainProject, onCreateNew }: TileViewProps) {
   return (
     <div className="flex flex-col gap-4 p-4">
       {onCreateNew && (
@@ -167,8 +168,16 @@ export function TileView({ items, trackingUpdates = [], onShowDetails, onCreateN
                 onClick={() => onShowDetails(item)}
                 className="flex items-center gap-1 text-[10px] font-medium text-cyan-700 hover:text-white hover:bg-cyan-600 bg-cyan-50 border border-cyan-200 px-2.5 py-1 rounded transition-colors"
               >
-                <FileText className="w-3 h-3" /> Show Details
+                <FileText className="w-3 h-3" /> Show Project
               </button>
+              {onMaintainProject && (
+                <button
+                  onClick={() => onMaintainProject(item)}
+                  className="flex items-center gap-1 text-[10px] font-medium text-amber-700 hover:text-white hover:bg-amber-600 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded transition-colors"
+                >
+                  <Wrench className="w-3 h-3" /> Maintain Project
+                </button>
+              )}
             </div>
           </div>
         );
