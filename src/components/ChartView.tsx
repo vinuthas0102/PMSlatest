@@ -482,7 +482,7 @@ export function ChartView({
           maxBarSize={42}
           shape={(props: any) => {
             const { x, width, y } = props;
-            if (y == null || isNaN(y)) return null;
+            if (y == null || isNaN(y)) return <g />;
             const cx = x + width / 2;
             const hw = Math.max(6, width * 0.45);
             return (

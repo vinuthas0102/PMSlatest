@@ -855,13 +855,34 @@ function CreateWOModal({ project, onClose, onCreated }: { project: Project; onCl
   const [saving, setSaving] = useState(false);
 
   const handleSubmit = async () => {
-    if (!title.trim()) { setError('Work order name is required.'); return; }
-    if (!agencyName.trim()) { setError('Agency name is required.'); return; }
+    const normalizedTitle = title.trim();
+    const normalizedAgencyName = agencyName.trim();
+    const normalizedAgencyType = agencyType.trim();
+    const normalizedScope = scope.trim();
+    const parsedWoValue = Number(woValue);
+
+    if (!normalizedTitle) { setError('Work order name is required.'); return; }
+    if (!normalizedAgencyName) { setError('Agency name is required.'); return; }
+    if (woValue.trim() && (!Number.isFinite(parsedWoValue) || parsedWoValue < 0)) {
+      setError('WO value must be a valid non-negative number.');
+      return;
+    }
+
     setSaving(true); setError(null);
 
     const maxSeq = project.seq_no;
-    const woCount = await supabase.from('work_orders').select('seq_no', { count: 'exact' }).eq('project_id', project.id);
-    const nextSubSeq = (woCount.data?.length ?? 0) + 1;
+    const { data: existingWOs, error: woCountError } = await supabase
+      .from('work_orders')
+      .select('seq_no')
+      .eq('project_id', project.id);
+    if (woCountError) {
+      console.error('Work order sequence lookup failed', woCountError);
+      setError('Could not prepare the work order number. Please try again.');
+      setSaving(false);
+      return;
+    }
+
+    const nextSubSeq = (existingWOs?.length ?? 0) + 1;
     const seqNo = `${maxSeq}.${nextSubSeq}.0`;
 
     const { data: woData, error: woError } = await supabase.from('work_orders').insert({
@@ -880,7 +901,7 @@ function CreateWOModal({ project, onClose, onCreated }: { project: Project; onCl
       qty_deviations: 0,
       spec_deviations: 0,
       extension_days: 0,
-      project_value: Number(woValue) || 0,
+      project_value: woValue.trim() ? parsedWoValue : 0,
       mbook_entry: 0,
       billed_amount: 0,
       paid_amount: 0,
@@ -889,7 +910,8 @@ function CreateWOModal({ project, onClose, onCreated }: { project: Project; onCl
     }).select();
 
     if (woError || !woData || woData.length === 0) {
-      setError('Could not create the work order.');
+      console.error('Work order insert failed', woError);
+      setError('Could not create the work order. Please check the values and try again.');
       setSaving(false);
       return;
     }
@@ -897,10 +919,10 @@ function CreateWOModal({ project, onClose, onCreated }: { project: Project; onCl
     const woId = woData[0].id;
     const { error: detailError } = await supabase.from('work_order_details').insert({
       work_order_id: woId,
-      agency_name: agencyName.trim(),
-      agency_type: agencyType.trim() || null,
-      scope: scope.trim() || null,
-      wo_value: Number(woValue) || 0,
+      agency_name: normalizedAgencyName,
+      agency_type: normalizedAgencyType || null,
+      scope: normalizedScope || null,
+      wo_value: woValue.trim() ? parsedWoValue : 0,
       nodal_officer: null,
       start_date: project.start_date,
       end_date: null,
@@ -908,7 +930,8 @@ function CreateWOModal({ project, onClose, onCreated }: { project: Project; onCl
     });
 
     if (detailError) {
-      setError('Work order created but agency details could not be saved.');
+      console.error('Agency details insert failed', detailError);
+      setError('The work order was created, but the agency details could not be saved. Please try again.');
       setSaving(false);
       return;
     }
@@ -955,7 +978,7 @@ function CreateWOModal({ project, onClose, onCreated }: { project: Project; onCl
         </div>
         <div className="flex items-center justify-end gap-2 border-t border-slate-200 bg-slate-50 px-5 py-3">
           <button onClick={onClose} className="rounded border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600">Cancel</button>
-          <button onClick={handleSubmit} disabled={saving} className="flex items-center gap-1.5 rounded bg-cyan-700 px-3 py-1.5 text-xs font-bold text-white">
+          <button onClick={handleSubmit} disabled={saving} className="flex items-center gap-1.5 rounded bg-cyan-700 px-3 py-1.5 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-60">
             {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />} Create
           </button>
         </div>

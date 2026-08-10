@@ -234,18 +234,21 @@ export function WorkOrderModal({
     }
   };
 
-  const tabButton = (key: Tab, icon: typeof Building2, label: string) => (
-    <button
-      key={key}
-      onClick={() => setTab(key)}
-      className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
-        tab === key ? 'bg-cyan-700 text-white shadow' : 'text-slate-500 hover:bg-slate-100'
-      }`}
-    >
-      {icon && <icon className="h-3.5 w-3.5" />}
-      {label}
-    </button>
-  );
+  const tabButton = (key: Tab, icon: typeof Building2, label: string) => {
+    const Icon = icon;
+    return (
+      <button
+        key={key}
+        onClick={() => setTab(key)}
+        className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+          tab === key ? 'bg-cyan-700 text-white shadow' : 'text-slate-500 hover:bg-slate-100'
+        }`}
+      >
+        <Icon className="h-3.5 w-3.5" />
+        {label}
+      </button>
+    );
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm" onClick={onClose}>
