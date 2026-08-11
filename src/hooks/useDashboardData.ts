@@ -14,6 +14,9 @@ import type {
   PaymentEntry,
   DPREntry,
   Amendment,
+  WOSectionProgress,
+  WOSectionDocument,
+  WOSectionActivity,
 } from '@/types';
 
 const LOADING_KEY = 'pms_data_v9';
@@ -62,12 +65,15 @@ export function useDashboardData() {
           paymentEntries: cachedData.paymentEntries ?? [],
           dprEntries: cachedData.dprEntries ?? [],
           amendments: cachedData.amendments ?? [],
+          woSectionProgress: cachedData.woSectionProgress ?? [],
+          woSectionDocuments: cachedData.woSectionDocuments ?? [],
+          woSectionActivity: cachedData.woSectionActivity ?? [],
         });
         setLoading(false);
         return;
       }
 
-      const [projRes, woRes, schedRes, trkRes, allSpecs, trackingUpdatesRes, woDetailsRes, woSectionsRes, paymentsRes, dprRes, amendmentsRes] = await Promise.all([
+      const [projRes, woRes, schedRes, trkRes, allSpecs, trackingUpdatesRes, woDetailsRes, woSectionsRes, paymentsRes, dprRes, amendmentsRes, woSectionProgressRes, woSectionDocumentsRes, woSectionActivityRes] = await Promise.all([
         supabase.from('projects').select('*').order('seq_no'),
         supabase.from('work_orders').select('*').order('seq_no'),
         supabase.from('schedules').select('*').order('seq_no'),
@@ -79,6 +85,9 @@ export function useDashboardData() {
         supabase.from('payment_entries').select('*').order('created_at', { ascending: false }),
         supabase.from('dpr_entries').select('*').order('created_at', { ascending: false }),
         supabase.from('amendments').select('*').order('created_at', { ascending: false }),
+        supabase.from('wo_section_progress').select('*').order('created_at', { ascending: false }),
+        supabase.from('wo_section_documents').select('*').order('created_at', { ascending: false }),
+        supabase.from('wo_section_activity').select('*').order('created_at', { ascending: false }),
       ]);
 
       if (projRes.error) throw projRes.error;
@@ -91,6 +100,9 @@ export function useDashboardData() {
       if (paymentsRes.error) throw paymentsRes.error;
       if (dprRes.error) throw dprRes.error;
       if (amendmentsRes.error) throw amendmentsRes.error;
+      if (woSectionProgressRes.error) throw woSectionProgressRes.error;
+      if (woSectionDocumentsRes.error) throw woSectionDocumentsRes.error;
+      if (woSectionActivityRes.error) throw woSectionActivityRes.error;
 
       const dashboardData: DashboardData = {
         projects: (projRes.data as Project[]) ?? [],
@@ -104,6 +116,9 @@ export function useDashboardData() {
         paymentEntries: (paymentsRes.data as PaymentEntry[]) ?? [],
         dprEntries: (dprRes.data as DPREntry[]) ?? [],
         amendments: (amendmentsRes.data as Amendment[]) ?? [],
+        woSectionProgress: (woSectionProgressRes.data as WOSectionProgress[]) ?? [],
+        woSectionDocuments: (woSectionDocumentsRes.data as WOSectionDocument[]) ?? [],
+        woSectionActivity: (woSectionActivityRes.data as WOSectionActivity[]) ?? [],
       };
       sessionStorage.setItem(LOADING_KEY, JSON.stringify(dashboardData));
       setData(dashboardData);

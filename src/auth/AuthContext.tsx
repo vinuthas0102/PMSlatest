@@ -68,6 +68,10 @@ export interface Permissions {
   canViewMaintenance: boolean;
   canExportReports: boolean;
   canTrackDeviations: boolean;
+  canDefineWOItems: boolean;
+  canApproveWOItems: boolean;
+  canTrackWOProgress: boolean;
+  canUploadWODocuments: boolean;
 }
 
 export function getPermissions(role: Role): Permissions {
@@ -87,6 +91,10 @@ export function getPermissions(role: Role): Permissions {
         canViewMaintenance: true,
         canExportReports: true,
         canTrackDeviations: true,
+        canDefineWOItems: true,
+        canApproveWOItems: true,
+        canTrackWOProgress: false,
+        canUploadWODocuments: false,
       };
     case 'management':
       return {
@@ -103,6 +111,10 @@ export function getPermissions(role: Role): Permissions {
         canViewMaintenance: true,
         canExportReports: true,
         canTrackDeviations: false,
+        canDefineWOItems: false,
+        canApproveWOItems: false,
+        canTrackWOProgress: false,
+        canUploadWODocuments: false,
       };
     case 'pm':
       return {
@@ -119,6 +131,10 @@ export function getPermissions(role: Role): Permissions {
         canViewMaintenance: true,
         canExportReports: true,
         canTrackDeviations: true,
+        canDefineWOItems: true,
+        canApproveWOItems: true,
+        canTrackWOProgress: false,
+        canUploadWODocuments: false,
       };
     case 'nodal':
       return {
@@ -135,6 +151,10 @@ export function getPermissions(role: Role): Permissions {
         canViewMaintenance: true,
         canExportReports: true,
         canTrackDeviations: true,
+        canDefineWOItems: true,
+        canApproveWOItems: true,
+        canTrackWOProgress: false,
+        canUploadWODocuments: false,
       };
     case 'site':
       return {
@@ -147,10 +167,14 @@ export function getPermissions(role: Role): Permissions {
         canLogPayments: false,
         canApproveEscalation: false,
         canLogDPR: true,
-        canViewDashboard: false,
-        canViewMaintenance: false,
+        canViewDashboard: true,
+        canViewMaintenance: true,
         canExportReports: false,
         canTrackDeviations: false,
+        canDefineWOItems: false,
+        canApproveWOItems: false,
+        canTrackWOProgress: true,
+        canUploadWODocuments: true,
       };
   }
 }

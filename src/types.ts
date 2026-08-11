@@ -212,6 +212,57 @@ export interface WOSection {
   value: number;
   certificate_name: string | null;
   has_certificate: boolean;
+  approval_status: 'draft' | 'pending_approval' | 'approved';
+  defined_by: string | null;
+  submitted_by: string | null;
+  approved_by: string | null;
+  approved_role: string | null;
+  submitted_at: string | null;
+  approved_at: string | null;
+  approval_remarks: string | null;
+  created_at: string;
+}
+
+export interface WOSectionProgress {
+  id: string;
+  work_order_id: string;
+  section_id: string;
+  entry_date: string;
+  progress_value: number;
+  progress_unit: string | null;
+  status: string;
+  remarks: string | null;
+  created_by: string | null;
+  created_role: string | null;
+  created_at: string;
+}
+
+export interface WOSectionDocument {
+  id: string;
+  work_order_id: string;
+  section_id: string;
+  document_name: string;
+  description: string | null;
+  is_mandatory: boolean;
+  status: 'not_submitted' | 'submitted' | 'accepted' | 'returned';
+  file_name: string | null;
+  storage_path: string | null;
+  uploaded_by: string | null;
+  uploaded_at: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  review_remarks: string | null;
+  created_at: string;
+}
+
+export interface WOSectionActivity {
+  id: string;
+  work_order_id: string;
+  section_id: string;
+  action: string;
+  actor_name: string | null;
+  actor_role: string | null;
+  details: string | null;
   created_at: string;
 }
 
@@ -271,4 +322,7 @@ export interface DashboardData {
   paymentEntries: PaymentEntry[];
   dprEntries: DPREntry[];
   amendments: Amendment[];
+  woSectionProgress: WOSectionProgress[];
+  woSectionDocuments: WOSectionDocument[];
+  woSectionActivity: WOSectionActivity[];
 }

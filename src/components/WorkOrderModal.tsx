@@ -3,10 +3,11 @@ import {
   X, Building2, ClipboardList, AlertTriangle, CreditCard, Plus, Save, ChevronDown,
   Clock, Ruler, Truck, FileText, TrendingUp, Bold, Italic, Underline, Loader2, User, CalendarClock,
 } from 'lucide-react';
-import type { Project, WorkOrder, WorkOrderDetail, WOSection, PaymentEntry, TrackingUpdate, TrackingType } from '@/types';
+import type { Project, WorkOrder, WorkOrderDetail, WOSection, PaymentEntry, TrackingUpdate, TrackingType, WOSectionProgress, WOSectionDocument, WOSectionActivity } from '@/types';
 import { useAuth } from '@/auth/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { calculateAllocationPct, delayStatusColor, delayStatusShort, DELAY_STATUSES } from '@/lib/format';
+import { WOSectionWorkspace } from '@/components/WOSectionWorkspace';
 
 interface WorkOrderModalProps {
   project: Project;
@@ -15,6 +16,9 @@ interface WorkOrderModalProps {
   sections: WOSection[];
   payments: PaymentEntry[];
   trackingUpdates: TrackingUpdate[];
+  woSectionProgress?: WOSectionProgress[];
+  woSectionDocuments?: WOSectionDocument[];
+  woSectionActivity?: WOSectionActivity[];
   onClose: () => void;
   onReload: () => Promise<void>;
   onSaveTrackingUpdate: (entry: {
@@ -54,6 +58,9 @@ export function WorkOrderModal({
   sections = [],
   payments = [],
   trackingUpdates = [],
+  woSectionProgress = [],
+  woSectionDocuments = [],
+  woSectionActivity = [],
   onClose,
   onReload,
   onSaveTrackingUpdate,
@@ -429,6 +436,15 @@ export function WorkOrderModal({
               </div>
             </div>
           ) : tab === 'sections' ? (
+            <WOSectionWorkspace
+              workOrder={selectedWO}
+              sections={woSections}
+              progress={woSectionProgress.filter((entry) => entry.work_order_id === selectedWO.id)}
+              documents={woSectionDocuments.filter((entry) => entry.work_order_id === selectedWO.id)}
+              activity={woSectionActivity.filter((entry) => entry.work_order_id === selectedWO.id)}
+              onReload={onReload}
+            />
+          ) : false ? (
             <div className="space-y-3">
               {['drawing', 'equipment', 'civil', 'manpower', 'quality'].map((type) => {
                 const rows = woSections.filter((s) => s.section_type === type);

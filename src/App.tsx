@@ -18,7 +18,6 @@ import { FilterDrawer } from '@/components/FilterDrawer';
 import { ProjectDetailModal } from '@/components/ProjectDetailModal';
 import { ProjectFormModal } from '@/components/ProjectFormModal';
 import { LandingPage } from '@/components/LandingPage';
-import { DPRPanel } from '@/components/DPRPanel';
 
 const DEFAULT_FILTERS: Filters = {
   states: [],
@@ -35,10 +34,6 @@ export default function App() {
 
   if (!user) {
     return <LandingPage />;
-  }
-
-  if (user.role === 'site') {
-    return <DPRPanel name={user.name} />;
   }
 
   return <DashboardApp />;
@@ -370,6 +365,9 @@ function DashboardApp() {
           sections={data.woSections}
           payments={data.paymentEntries}
           trackingUpdates={allTrackingUpdates}
+          woSectionProgress={data.woSectionProgress}
+          woSectionDocuments={data.woSectionDocuments}
+          woSectionActivity={data.woSectionActivity}
           mode={detailMode}
           onClose={() => setDetailProject(null)}
           onReload={reload}
