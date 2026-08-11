@@ -70,7 +70,6 @@ export function useDashboardData() {
           woSectionActivity: cachedData.woSectionActivity ?? [],
         });
         setLoading(false);
-        return;
       }
 
       const [projRes, woRes, schedRes, trkRes, allSpecs, trackingUpdatesRes, woDetailsRes, woSectionsRes, paymentsRes, dprRes, amendmentsRes, woSectionProgressRes, woSectionDocumentsRes, woSectionActivityRes] = await Promise.all([
