@@ -293,23 +293,6 @@ export interface WODrawingProgress {
   created_at: string;
 }
 
-export interface DPREntry {
-  id: string;
-  project_id: string;
-  work_order_id: string | null;
-  entry_date: string;
-  drawing_cat1: number;
-  drawing_cat2: number;
-  drawing_cat3: number;
-  civil_item_qty: number;
-  civil_item_desc: string | null;
-  manpower_skilled: number;
-  manpower_unskilled: number;
-  remarks: string | null;
-  created_by: string | null;
-  created_at: string;
-}
-
 export interface Amendment {
   id: string;
   project_id: string | null;
@@ -336,7 +319,6 @@ export interface DashboardData {
   workOrderDetails: WorkOrderDetail[];
   woSections: WOSection[];
   paymentEntries: PaymentEntry[];
-  dprEntries: DPREntry[];
   amendments: Amendment[];
   woSectionProgress: WOSectionProgress[];
   woSectionDocuments: WOSectionDocument[];

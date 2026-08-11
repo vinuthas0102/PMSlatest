@@ -50,7 +50,7 @@ export const DEMO_USERS: DemoUser[] = [
     name: 'S. Singh',
     role: 'site',
     roleLabel: 'Site Engineer',
-    accessLevel: 'Restricted access exclusively to the Daily Progress Report (DPR) logging panel',
+    accessLevel: 'Track site progress against approved Work Order items',
   },
 ];
 
@@ -63,7 +63,6 @@ export interface Permissions {
   canManageWorkOrders: boolean;
   canLogPayments: boolean;
   canApproveEscalation: boolean;
-  canLogDPR: boolean;
   canViewDashboard: boolean;
   canViewMaintenance: boolean;
   canExportReports: boolean;
@@ -86,7 +85,6 @@ export function getPermissions(role: Role): Permissions {
         canManageWorkOrders: true,
         canLogPayments: true,
         canApproveEscalation: true,
-        canLogDPR: true,
         canViewDashboard: true,
         canViewMaintenance: true,
         canExportReports: true,
@@ -106,7 +104,6 @@ export function getPermissions(role: Role): Permissions {
         canManageWorkOrders: false,
         canLogPayments: false,
         canApproveEscalation: false,
-        canLogDPR: false,
         canViewDashboard: true,
         canViewMaintenance: true,
         canExportReports: true,
@@ -126,7 +123,6 @@ export function getPermissions(role: Role): Permissions {
         canManageWorkOrders: true,
         canLogPayments: false,
         canApproveEscalation: false,
-        canLogDPR: false,
         canViewDashboard: true,
         canViewMaintenance: true,
         canExportReports: true,
@@ -146,7 +142,6 @@ export function getPermissions(role: Role): Permissions {
         canManageWorkOrders: true,
         canLogPayments: true,
         canApproveEscalation: true,
-        canLogDPR: false,
         canViewDashboard: true,
         canViewMaintenance: true,
         canExportReports: true,
@@ -166,7 +161,6 @@ export function getPermissions(role: Role): Permissions {
         canManageWorkOrders: false,
         canLogPayments: false,
         canApproveEscalation: false,
-        canLogDPR: true,
         canViewDashboard: true,
         canViewMaintenance: true,
         canExportReports: false,

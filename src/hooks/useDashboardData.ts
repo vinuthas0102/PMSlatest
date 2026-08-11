@@ -12,7 +12,6 @@ import type {
   WorkOrderDetail,
   WOSection,
   PaymentEntry,
-  DPREntry,
   Amendment,
   WOSectionProgress,
   WOSectionDocument,
@@ -64,7 +63,6 @@ export function useDashboardData() {
           workOrderDetails: cachedData.workOrderDetails ?? [],
           woSections: cachedData.woSections ?? [],
           paymentEntries: cachedData.paymentEntries ?? [],
-          dprEntries: cachedData.dprEntries ?? [],
           amendments: cachedData.amendments ?? [],
           woSectionProgress: cachedData.woSectionProgress ?? [],
           woSectionDocuments: cachedData.woSectionDocuments ?? [],
@@ -74,7 +72,7 @@ export function useDashboardData() {
         setLoading(false);
       }
 
-      const [projRes, woRes, schedRes, trkRes, allSpecs, trackingUpdatesRes, woDetailsRes, woSectionsRes, paymentsRes, dprRes, amendmentsRes, woSectionProgressRes, woSectionDocumentsRes, woSectionActivityRes, woDrawingProgressRes] = await Promise.all([
+      const [projRes, woRes, schedRes, trkRes, allSpecs, trackingUpdatesRes, woDetailsRes, woSectionsRes, paymentsRes, amendmentsRes, woSectionProgressRes, woSectionDocumentsRes, woSectionActivityRes, woDrawingProgressRes] = await Promise.all([
         supabase.from('projects').select('*').order('seq_no'),
         supabase.from('work_orders').select('*').order('seq_no'),
         supabase.from('schedules').select('*').order('seq_no'),
@@ -84,7 +82,6 @@ export function useDashboardData() {
         supabase.from('work_order_details').select('*').order('created_at', { ascending: false }),
         supabase.from('wo_sections').select('*').order('created_at', { ascending: false }),
         supabase.from('payment_entries').select('*').order('created_at', { ascending: false }),
-        supabase.from('dpr_entries').select('*').order('created_at', { ascending: false }),
         supabase.from('amendments').select('*').order('created_at', { ascending: false }),
         supabase.from('wo_section_progress').select('*').order('created_at', { ascending: false }),
         supabase.from('wo_section_documents').select('*').order('created_at', { ascending: false }),
@@ -100,7 +97,6 @@ export function useDashboardData() {
       if (woDetailsRes.error) throw woDetailsRes.error;
       if (woSectionsRes.error) throw woSectionsRes.error;
       if (paymentsRes.error) throw paymentsRes.error;
-      if (dprRes.error) throw dprRes.error;
       if (amendmentsRes.error) throw amendmentsRes.error;
       if (woSectionProgressRes.error) throw woSectionProgressRes.error;
       if (woSectionDocumentsRes.error) throw woSectionDocumentsRes.error;
@@ -117,7 +113,6 @@ export function useDashboardData() {
         workOrderDetails: (woDetailsRes.data as WorkOrderDetail[]) ?? [],
         woSections: (woSectionsRes.data as WOSection[]) ?? [],
         paymentEntries: (paymentsRes.data as PaymentEntry[]) ?? [],
-        dprEntries: (dprRes.data as DPREntry[]) ?? [],
         amendments: (amendmentsRes.data as Amendment[]) ?? [],
         woSectionProgress: (woSectionProgressRes.data as WOSectionProgress[]) ?? [],
         woSectionDocuments: (woSectionDocumentsRes.data as WOSectionDocument[]) ?? [],
