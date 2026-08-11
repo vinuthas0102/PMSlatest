@@ -3,7 +3,7 @@ import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis,
   CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart, Line, LabelList,
 } from 'recharts';
-import { BarChart3, PieChart as PieIcon, Check, X, Filter } from 'lucide-react';
+import { BarChart3, PieChart as PieIcon, Check, X, Filter, FileBarChart } from 'lucide-react';
 import type { BaseEntity, DelayStatus, DrawingStatusEntry } from '@/types';
 import { formatINR, formatINRShort, CATEGORIES, delayStatusShort, DELAY_STATUSES } from '@/lib/format';
 
@@ -624,11 +624,49 @@ function DrawingStatusChart({
   const grandTotalCompleted = summary.reduce((s, e) => s + e.completed_drawings, 0);
   const overallPct = grandTotalDrawings > 0 ? (grandTotalCompleted / grandTotalDrawings) * 100 : 0;
 
-  const data: ChartDatum[] = summary.map((e) => ({
-    label: e.discipline,
+  const data = summary.map((e, i) => ({
+    name: e.discipline,
     value: e.total_drawings,
-    color: '#0891b2',
+    color: CHART_COLORS[i % CHART_COLORS.length],
   }));
+
+  const renderBarChart = () => (
+    <ResponsiveContainer width="100%" height={CHART_H}>
+      <BarChart data={data} margin={{ top: 20, right: 10, left: 0, bottom: 20 }}>
+        <CartesianGrid strokeDasharray="3 3" className="stroke-slate-100" vertical={false} />
+        <XAxis dataKey="name" tick={{ fontSize: 10, fontWeight: 600 }} angle={-15} textAnchor="end" height={50} axisLine={{ stroke: '#cbd5e1' }} />
+        <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+        <Tooltip cursor={{ fill: 'rgba(8,145,178,0.05)' }} />
+        <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={50} maxBarSize={60}>
+          {data.map((d, i) => (
+            <Cell key={i} fill={d.color} />
+          ))}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  );
+
+  const renderPieChart = () => (
+    <ResponsiveContainer width="100%" height={CHART_H}>
+      <PieChart>
+        <Pie
+          data={data}
+          dataKey="value"
+          nameKey="name"
+          cx="50%"
+          cy="50%"
+          outerRadius={90}
+          innerRadius={45}
+          label={(e: any) => `${e.name}: ${e.value}`}
+        >
+          {data.map((d, i) => (
+            <Cell key={i} fill={d.color} stroke="#fff" strokeWidth={1} />
+          ))}
+        </Pie>
+        <Tooltip />
+      </PieChart>
+    </ResponsiveContainer>
+  );
 
   return (
     <ChartCard
@@ -647,7 +685,7 @@ function DrawingStatusChart({
         </div>
       ) : chartType === 'bar' ? (
         <>
-          {renderBar(data)}
+          {renderBarChart()}
           <div className="mt-2 overflow-x-auto">
             <table className="w-full text-[11px]">
               <thead>
@@ -684,7 +722,7 @@ function DrawingStatusChart({
           </div>
         </>
       ) : (
-        renderPie(data)
+        renderPieChart()
       )}
     </ChartCard>
   );
