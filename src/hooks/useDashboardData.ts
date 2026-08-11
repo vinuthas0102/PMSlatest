@@ -135,6 +135,22 @@ export function useDashboardData() {
     load();
   }, [load]);
 
+  useEffect(() => {
+    const channel = supabase
+      .channel('drawing-status-live-updates')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'wo_drawing_progress' }, () => {
+        void load();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'wo_sections' }, () => {
+        void load();
+      })
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [load]);
+
   return { data, loading, error, reload: load };
 }
 

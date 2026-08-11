@@ -4,8 +4,9 @@ import {
   CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart, Line, LabelList,
 } from 'recharts';
 import { BarChart3, PieChart as PieIcon, Check, X, Filter } from 'lucide-react';
-import type { BaseEntity, DelayStatus } from '@/types';
+import type { BaseEntity, DelayStatus, WOSection, WODrawingProgress } from '@/types';
 import { formatINR, formatINRShort, CATEGORIES, delayStatusShort, DELAY_STATUSES } from '@/lib/format';
+import { aggregateDrawingStatus } from '@/lib/drawingStatus';
 
 type FilterField = 'states' | 'categories' | 'delayStatuses';
 
@@ -15,6 +16,8 @@ interface ChartViewProps {
   selectedCategories: string[];
   selectedDelayStatuses: DelayStatus[];
   onToggleSelection: (field: FilterField, value: string) => void;
+  woSections?: WOSection[];
+  woDrawingProgress?: WODrawingProgress[];
 }
 
 type ChartType = 'bar' | 'pie';
@@ -215,6 +218,8 @@ export function ChartView({
   selectedCategories,
   selectedDelayStatuses,
   onToggleSelection,
+  woSections = [],
+  woDrawingProgress = [],
 }: ChartViewProps) {
   const [chart1Type, setChart1Type] = useState<ChartType>('bar');
   const [chart2Type, setChart2Type] = useState<ChartType>('bar');
@@ -222,7 +227,19 @@ export function ChartView({
   const [chart4Type, setChart4Type] = useState<ChartType>('bar');
   const [chart5Type, setChart5Type] = useState<ChartType>('bar');
   const [chart6Type, setChart6Type] = useState<ChartType>('bar');
+  const [chart7Type, setChart7Type] = useState<ChartType>('bar');
   const [timelineMode, setTimelineMode] = useState<'yearly' | 'monthly'>('monthly');
+
+  const drawingSummary = useMemo(
+    () => aggregateDrawingStatus(woSections, woDrawingProgress, null, { onlyApproved: true }),
+    [woSections, woDrawingProgress],
+  );
+
+  const drawingData = useMemo<ChartPoint[]>(() => {
+    return drawingSummary.byDiscipline.map((d, idx) =>
+      makePoint(d.discipline, Number(d.progressPct.toFixed(1)), CHART_COLORS[idx % CHART_COLORS.length], [], '%'),
+    );
+  }, [drawingSummary]);
 
   const physicalData = useMemo<ChartPoint[]>(() => {
     const total = items;
@@ -588,6 +605,26 @@ export function ChartView({
         </div>
         <ChartCard title="Project Status" chartType={chart1Type} onChartTypeChange={setChart1Type}>
           {chart1Type === 'bar' ? renderBar(physicalData) : renderPie(physicalData)}
+        </ChartCard>
+        <ChartCard
+          title="Drawing Status"
+          chartType={chart7Type}
+          onChartTypeChange={setChart7Type}
+          subtitle={
+            drawingSummary.totalDrawings > 0
+              ? `${drawingSummary.totalCompleted}/${drawingSummary.totalDrawings} drawings · ${drawingSummary.progressPct.toFixed(1)}%`
+              : 'No approved drawing items yet'
+          }
+        >
+          {drawingData.length === 0 ? (
+            <div className="flex h-full min-h-[260px] items-center justify-center text-xs text-slate-400">
+              No drawing progress data available.
+            </div>
+          ) : chart7Type === 'bar' ? (
+            renderBar(drawingData, false, true)
+          ) : (
+            renderPie(drawingData, false, true)
+          )}
         </ChartCard>
       </div>
     </div>

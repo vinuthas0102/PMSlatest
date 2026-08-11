@@ -321,6 +321,8 @@ function DashboardApp() {
             selectedCategories={appliedFilters.categories}
             selectedDelayStatuses={appliedFilters.delayStatuses}
             onToggleSelection={handleToggleChartSelection}
+            woSections={data?.woSections ?? []}
+            woDrawingProgress={data?.woDrawingProgress ?? []}
           />
         )}
         {viewType === 'tile' && (
