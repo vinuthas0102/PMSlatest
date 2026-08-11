@@ -277,6 +277,22 @@ export interface PaymentEntry {
   created_at: string;
 }
 
+export interface WODrawingProgress {
+  id: string;
+  work_order_id: string;
+  section_id: string;
+  entry_date: string;
+  cat1_completed: number;
+  cat2_completed: number;
+  cat3_completed: number;
+  total_completed: number;
+  progress_pct: number;
+  remarks: string | null;
+  created_by: string | null;
+  created_role: string | null;
+  created_at: string;
+}
+
 export interface DPREntry {
   id: string;
   project_id: string;
@@ -325,4 +341,5 @@ export interface DashboardData {
   woSectionProgress: WOSectionProgress[];
   woSectionDocuments: WOSectionDocument[];
   woSectionActivity: WOSectionActivity[];
+  woDrawingProgress: WODrawingProgress[];
 }

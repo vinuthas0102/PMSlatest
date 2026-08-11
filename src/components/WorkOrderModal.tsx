@@ -3,7 +3,7 @@ import {
   X, Building2, ClipboardList, AlertTriangle, CreditCard, Plus, Save, ChevronDown,
   Clock, Ruler, Truck, FileText, TrendingUp, Bold, Italic, Underline, Loader2, User, CalendarClock,
 } from 'lucide-react';
-import type { Project, WorkOrder, WorkOrderDetail, WOSection, PaymentEntry, TrackingUpdate, TrackingType, WOSectionProgress, WOSectionDocument, WOSectionActivity } from '@/types';
+import type { Project, WorkOrder, WorkOrderDetail, WOSection, PaymentEntry, TrackingUpdate, TrackingType, WOSectionProgress, WOSectionDocument, WOSectionActivity, WODrawingProgress } from '@/types';
 import { useAuth } from '@/auth/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { calculateAllocationPct, delayStatusColor, delayStatusShort, DELAY_STATUSES } from '@/lib/format';
@@ -19,6 +19,7 @@ interface WorkOrderModalProps {
   woSectionProgress?: WOSectionProgress[];
   woSectionDocuments?: WOSectionDocument[];
   woSectionActivity?: WOSectionActivity[];
+  woDrawingProgress?: WODrawingProgress[];
   onClose: () => void;
   onReload: () => Promise<void>;
   onSaveTrackingUpdate: (entry: {
@@ -61,6 +62,7 @@ export function WorkOrderModal({
   woSectionProgress = [],
   woSectionDocuments = [],
   woSectionActivity = [],
+  woDrawingProgress = [],
   onClose,
   onReload,
   onSaveTrackingUpdate,
@@ -442,6 +444,7 @@ export function WorkOrderModal({
               progress={woSectionProgress.filter((entry) => entry.work_order_id === selectedWO.id)}
               documents={woSectionDocuments.filter((entry) => entry.work_order_id === selectedWO.id)}
               activity={woSectionActivity.filter((entry) => entry.work_order_id === selectedWO.id)}
+              drawingProgress={woDrawingProgress.filter((entry) => entry.work_order_id === selectedWO.id)}
               onReload={onReload}
             />
           ) : false ? (

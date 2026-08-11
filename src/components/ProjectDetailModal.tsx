@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import type {
   Project, ProjectFormData, ProjectStatus, WorkOrder, WorkOrderDetail,
-  WOSection, PaymentEntry, TrackingUpdate, TrackingType, DelayStatus, WOSectionProgress, WOSectionDocument, WOSectionActivity,
+  WOSection, PaymentEntry, TrackingUpdate, TrackingType, DelayStatus, WOSectionProgress, WOSectionDocument, WOSectionActivity, WODrawingProgress,
 } from '@/types';
 import { useAuth } from '@/auth/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -29,6 +29,7 @@ interface ProjectDetailModalProps {
   woSectionProgress: WOSectionProgress[];
   woSectionDocuments: WOSectionDocument[];
   woSectionActivity: WOSectionActivity[];
+  woDrawingProgress: WODrawingProgress[];
   mode?: 'view' | 'maintain';
   onClose: () => void;
   onReload: () => Promise<void>;
@@ -111,7 +112,7 @@ function UpdateCard({ u, icon: Icon, color }: { u: TrackingUpdate; icon: typeof 
 type WOViewType = 'tile' | 'table' | 'card';
 
 export function ProjectDetailModal({
-  project, workOrders, details, sections, payments, trackingUpdates, woSectionProgress, woSectionDocuments, woSectionActivity,
+  project, workOrders, details, sections, payments, trackingUpdates, woSectionProgress, woSectionDocuments, woSectionActivity, woDrawingProgress,
   mode = 'view', onClose, onReload, onSaveProject, onSaveTrackingUpdate,
 }: ProjectDetailModalProps) {
   const { user, permissions } = useAuth();
@@ -190,6 +191,7 @@ export function ProjectDetailModal({
               woSectionProgress={woSectionProgress}
               woSectionDocuments={woSectionDocuments}
               woSectionActivity={woSectionActivity}
+              woDrawingProgress={woDrawingProgress}
               onReload={onReload}
               onSaveTrackingUpdate={onSaveTrackingUpdate}
             />
@@ -566,7 +568,7 @@ function HeaderTab({
 /* ─── Agency Tab ─── */
 
 function AgencyTab({
-  project, workOrders, details, sections, payments, trackingUpdates, woSectionProgress, woSectionDocuments, woSectionActivity, onReload, onSaveTrackingUpdate,
+  project, workOrders, details, sections, payments, trackingUpdates, woSectionProgress, woSectionDocuments, woSectionActivity, woDrawingProgress, onReload, onSaveTrackingUpdate,
 }: {
   project: Project;
   workOrders: WorkOrder[];
@@ -577,6 +579,7 @@ function AgencyTab({
   woSectionProgress: WOSectionProgress[];
   woSectionDocuments: WOSectionDocument[];
   woSectionActivity: WOSectionActivity[];
+  woDrawingProgress: WODrawingProgress[];
   onReload: () => Promise<void>;
   onSaveTrackingUpdate: (entry: {
     project_id: string;
@@ -686,6 +689,7 @@ function AgencyTab({
           woSectionProgress={woSectionProgress}
           woSectionDocuments={woSectionDocuments}
           woSectionActivity={woSectionActivity}
+          woDrawingProgress={woDrawingProgress}
           onClose={() => setSelectedWO(null)}
           onReload={onReload}
           onSaveTrackingUpdate={onSaveTrackingUpdate}
@@ -854,7 +858,7 @@ function WOCardView({ workOrders, details, onSelect, projectValue }: { workOrder
 /* ─── WorkOrderModal wrapper (delegates to existing WorkOrderModal) ─── */
 
 function WorkOrderModalWrapper({
-  project, selectedWO, workOrders, details, sections, payments, trackingUpdates, woSectionProgress, woSectionDocuments, woSectionActivity, onClose, onReload, onSaveTrackingUpdate,
+  project, selectedWO, workOrders, details, sections, payments, trackingUpdates, woSectionProgress, woSectionDocuments, woSectionActivity, woDrawingProgress, onClose, onReload, onSaveTrackingUpdate,
 }: {
   project: Project;
   selectedWO: WorkOrder;
@@ -866,6 +870,7 @@ function WorkOrderModalWrapper({
   woSectionProgress: WOSectionProgress[];
   woSectionDocuments: WOSectionDocument[];
   woSectionActivity: WOSectionActivity[];
+  woDrawingProgress: WODrawingProgress[];
   onClose: () => void;
   onReload: () => Promise<void>;
   onSaveTrackingUpdate: (entry: {
@@ -901,6 +906,7 @@ function WorkOrderModalWrapper({
       woSectionProgress={woSectionProgress}
       woSectionDocuments={woSectionDocuments}
       woSectionActivity={woSectionActivity}
+      woDrawingProgress={woDrawingProgress}
       onClose={onClose}
       onReload={onReload}
       onSaveTrackingUpdate={onSaveTrackingUpdate}

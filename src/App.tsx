@@ -382,6 +382,7 @@ function DashboardApp({ onNavigateToDPR }: { onNavigateToDPR?: () => void }) {
           woSectionProgress={data.woSectionProgress}
           woSectionDocuments={data.woSectionDocuments}
           woSectionActivity={data.woSectionActivity}
+          woDrawingProgress={data.woDrawingProgress}
           mode={detailMode}
           onClose={() => setDetailProject(null)}
           onReload={reload}
