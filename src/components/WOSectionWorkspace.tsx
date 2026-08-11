@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft, ArrowRight, Check, CheckCircle2, ClipboardCheck, Clock3, FileCheck2,
   FilePlus2, FileText, History, Loader2, LockKeyhole, Plus, RotateCcw, Save,
@@ -84,6 +84,12 @@ export function WOSectionWorkspace({ workOrder, sections, progress, documents, a
   const selectedProgress = useMemo(() => progress.filter((entry) => entry.section_id === selectedItem?.id), [progress, selectedItem?.id]);
   const selectedDocuments = useMemo(() => documents.filter((entry) => entry.section_id === selectedItem?.id), [documents, selectedItem?.id]);
   const selectedActivity = useMemo(() => activity.filter((entry) => entry.section_id === selectedItem?.id), [activity, selectedItem?.id]);
+
+  useEffect(() => {
+    if (!selectedItem) return;
+    const fresh = sections.find((entry) => entry.id === selectedItem.id);
+    if (fresh && fresh !== selectedItem) setSelectedItem(fresh);
+  }, [sections, selectedItem]);
 
   const openCreate = () => {
     setSelectedItem(null);
@@ -192,6 +198,7 @@ export function WOSectionWorkspace({ workOrder, sections, progress, documents, a
     else {
       await log(selectedItem.id, 'submitted_for_approval', 'Item submitted for approval.');
       setMessage('Item submitted for approval.');
+      setSelectedItem({ ...selectedItem, approval_status: 'pending_approval', submitted_by: user?.name ?? null, submitted_at: new Date().toISOString() });
       await onReload();
     }
     setSaving(false);
@@ -211,6 +218,14 @@ export function WOSectionWorkspace({ workOrder, sections, progress, documents, a
     else {
       await log(selectedItem.id, approved ? 'item_approved' : 'item_returned', approved ? 'Item definition approved and frozen.' : 'Item returned for correction.');
       setMessage(approved ? 'Item approved and frozen.' : 'Item returned to draft.');
+      setSelectedItem({
+        ...selectedItem,
+        approval_status: approved ? 'approved' : 'draft',
+        approved_by: approved ? user?.name ?? null : null,
+        approved_role: approved ? user?.role ?? null : null,
+        approved_at: approved ? new Date().toISOString() : null,
+        approval_remarks: approved ? 'Approved for site progress tracking.' : 'Returned for correction.',
+      });
       await onReload();
     }
     setSaving(false);
