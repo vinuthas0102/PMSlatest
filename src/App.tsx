@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useDashboardData } from '@/hooks/useDashboardData';
@@ -18,6 +18,7 @@ import { FilterDrawer } from '@/components/FilterDrawer';
 import { ProjectDetailModal } from '@/components/ProjectDetailModal';
 import { ProjectFormModal } from '@/components/ProjectFormModal';
 import { LandingPage } from '@/components/LandingPage';
+import { DPRPanel } from '@/components/DPRPanel';
 
 const DEFAULT_FILTERS: Filters = {
   states: [],
@@ -30,16 +31,29 @@ const DEFAULT_FILTERS: Filters = {
 };
 
 export default function App() {
-  const { user } = useAuth();
+  const { user, permissions } = useAuth();
+  const [view, setView] = useState<'dashboard' | 'dpr'>('dashboard');
+  const [initialized, setInitialized] = useState(false);
+
+  useEffect(() => {
+    if (user && !initialized) {
+      setView(user.role === 'site' ? 'dpr' : 'dashboard');
+      setInitialized(true);
+    }
+  }, [user, initialized]);
 
   if (!user) {
     return <LandingPage />;
   }
 
-  return <DashboardApp />;
+  if (view === 'dpr') {
+    return <DPRPanel name={user.name} onNavigateToDashboard={() => setView('dashboard')} />;
+  }
+
+  return <DashboardApp onNavigateToDPR={permissions.canLogDPR ? () => setView('dpr') : undefined} />;
 }
 
-function DashboardApp() {
+function DashboardApp({ onNavigateToDPR }: { onNavigateToDPR?: () => void }) {
   const { permissions } = useAuth();
   const { data, loading, error, reload } = useDashboardData();
 
@@ -295,7 +309,7 @@ function DashboardApp() {
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col">
-      <Header levelLabel="Project Dashboard" onCreateProject={permissions.canCreateProject ? () => setCreateProjectModal(true) : undefined} />
+      <Header levelLabel="Project Dashboard" onCreateProject={permissions.canCreateProject ? () => setCreateProjectModal(true) : undefined} onNavigateToDPR={onNavigateToDPR} />
 
       <StatusBar
         items={drawerFilteredItems}

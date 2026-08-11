@@ -1,4 +1,4 @@
-import { User, Clock, LogOut, ChevronDown, Plus } from 'lucide-react';
+import { User, Clock, LogOut, ChevronDown, Plus, ClipboardEdit } from 'lucide-react';
 import { useState } from 'react';
 import { DEPT_NAME } from '@/lib/constants';
 import { useAuth } from '@/auth/AuthContext';
@@ -7,9 +7,10 @@ import epiLogo from './logo.png';
 interface HeaderProps {
   levelLabel: string;
   onCreateProject?: () => void;
+  onNavigateToDPR?: () => void;
 }
 
-export function Header({ levelLabel, onCreateProject }: HeaderProps) {
+export function Header({ levelLabel, onCreateProject, onNavigateToDPR }: HeaderProps) {
   const { user, permissions, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -44,6 +45,18 @@ export function Header({ levelLabel, onCreateProject }: HeaderProps) {
             >
               <Plus className="w-4 h-4" />
               <span className="hidden sm:inline">New Project</span>
+            </button>
+          )}
+
+          {onNavigateToDPR && (
+            <button
+              onClick={onNavigateToDPR}
+              title="Daily Progress Reporting"
+              aria-label="Daily Progress Reporting"
+              className="flex items-center gap-1.5 rounded-lg bg-cyan-500 px-3 py-2 text-xs font-bold text-white shadow-sm transition-all hover:bg-cyan-400"
+            >
+              <ClipboardEdit className="w-4 h-4" />
+              <span className="hidden sm:inline">Daily Progress</span>
             </button>
           )}
 
