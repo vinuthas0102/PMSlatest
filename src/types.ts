@@ -186,6 +186,7 @@ export interface WorkOrderDetail {
   wo_value: number;
   payment_terms: string | null;
   nodal_officer: string | null;
+  work_order_number: string | null;
   start_date: string | null;
   end_date: string | null;
   status: ProjectStatus;

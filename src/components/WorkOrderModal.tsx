@@ -69,6 +69,9 @@ export function WorkOrderModal({
   const [scope, setScope] = useState(details.find((d) => d.work_order_id === selectedWO?.id)?.scope ?? '');
   const [woValue, setWoValue] = useState(String(details.find((d) => d.work_order_id === selectedWO?.id)?.wo_value ?? selectedWO?.project_value ?? 0));
   const [nodalOfficer, setNodalOfficer] = useState(details.find((d) => d.work_order_id === selectedWO?.id)?.nodal_officer ?? '');
+  const [woNumber, setWoNumber] = useState(details.find((d) => d.work_order_id === selectedWO?.id)?.work_order_number ?? '');
+  const [startDate, setStartDate] = useState(details.find((d) => d.work_order_id === selectedWO?.id)?.start_date ?? selectedWO?.start_date ?? '');
+  const [completionDate, setCompletionDate] = useState(details.find((d) => d.work_order_id === selectedWO?.id)?.end_date ?? '');
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentRemarks, setPaymentRemarks] = useState('');
   const [error, setError] = useState('');
@@ -161,8 +164,9 @@ export function WorkOrderModal({
       scope,
       wo_value: Number(woValue) || 0,
       nodal_officer: nodalOfficer,
-      start_date: selectedWO.start_date,
-      end_date: selectedWO.end_date,
+      work_order_number: woNumber,
+      start_date: startDate || null,
+      end_date: completionDate || null,
       status: 'draft' as const,
     };
     const { error: saveError } = await supabase
@@ -284,11 +288,15 @@ export function WorkOrderModal({
             onChange={(e) => {
               setSelectedId(e.target.value);
               const d = details.find((detail) => detail.work_order_id === e.target.value);
+              const wo = projectWOs.find((w) => w.id === e.target.value);
               setAgencyName(d?.agency_name ?? '');
               setAgencyType(d?.agency_type ?? '');
               setScope(d?.scope ?? '');
               setWoValue(String(d?.wo_value ?? 0));
               setNodalOfficer(d?.nodal_officer ?? '');
+              setWoNumber(d?.work_order_number ?? '');
+              setStartDate(d?.start_date ?? wo?.start_date ?? '');
+              setCompletionDate(d?.end_date ?? '');
             }}
             className="mr-auto rounded border border-slate-300 px-2 py-1.5 text-xs font-semibold text-slate-700"
           >
@@ -321,6 +329,16 @@ export function WorkOrderModal({
                   Work Order Header · {selectedWO.seq_no}
                 </h3>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <label className="text-[10px] font-bold uppercase text-slate-500">
+                    Work Order Number
+                    <input
+                      value={woNumber}
+                      onChange={(e) => setWoNumber(e.target.value)}
+                      disabled={!permissions.canManageWorkOrders}
+                      placeholder="e.g. WO/2024/ORR/0142"
+                      className="mt-1 w-full rounded border border-slate-300 p-2 text-xs"
+                    />
+                  </label>
                   <label className="text-[10px] font-bold uppercase text-slate-500">
                     Agency Name
                     <input
@@ -371,6 +389,26 @@ export function WorkOrderModal({
                     <input
                       value={nodalOfficer}
                       onChange={(e) => setNodalOfficer(e.target.value)}
+                      disabled={!permissions.canManageWorkOrders}
+                      className="mt-1 w-full rounded border border-slate-300 p-2 text-xs"
+                    />
+                  </label>
+                  <label className="text-[10px] font-bold uppercase text-slate-500">
+                    Start Date
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      disabled={!permissions.canManageWorkOrders}
+                      className="mt-1 w-full rounded border border-slate-300 p-2 text-xs"
+                    />
+                  </label>
+                  <label className="text-[10px] font-bold uppercase text-slate-500">
+                    Completion Date
+                    <input
+                      type="date"
+                      value={completionDate}
+                      onChange={(e) => setCompletionDate(e.target.value)}
                       disabled={!permissions.canManageWorkOrders}
                       className="mt-1 w-full rounded border border-slate-300 p-2 text-xs"
                     />
