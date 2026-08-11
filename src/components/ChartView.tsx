@@ -3,8 +3,8 @@ import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis,
   CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart, Line, LabelList,
 } from 'recharts';
-import { BarChart3, PieChart as PieIcon, Check, X, Filter, FileBarChart } from 'lucide-react';
-import type { BaseEntity, DelayStatus, DrawingStatusEntry } from '@/types';
+import { BarChart3, PieChart as PieIcon, Check, X, Filter } from 'lucide-react';
+import type { BaseEntity, DelayStatus } from '@/types';
 import { formatINR, formatINRShort, CATEGORIES, delayStatusShort, DELAY_STATUSES } from '@/lib/format';
 
 type FilterField = 'states' | 'categories' | 'delayStatuses';
@@ -15,7 +15,6 @@ interface ChartViewProps {
   selectedCategories: string[];
   selectedDelayStatuses: DelayStatus[];
   onToggleSelection: (field: FilterField, value: string) => void;
-  drawingStatusEntries: DrawingStatusEntry[];
 }
 
 type ChartType = 'bar' | 'pie';
@@ -216,7 +215,6 @@ export function ChartView({
   selectedCategories,
   selectedDelayStatuses,
   onToggleSelection,
-  drawingStatusEntries,
 }: ChartViewProps) {
   const [chart1Type, setChart1Type] = useState<ChartType>('bar');
   const [chart2Type, setChart2Type] = useState<ChartType>('bar');
@@ -224,7 +222,6 @@ export function ChartView({
   const [chart4Type, setChart4Type] = useState<ChartType>('bar');
   const [chart5Type, setChart5Type] = useState<ChartType>('bar');
   const [chart6Type, setChart6Type] = useState<ChartType>('bar');
-  const [chart7Type, setChart7Type] = useState<ChartType>('bar');
   const [timelineMode, setTimelineMode] = useState<'yearly' | 'monthly'>('monthly');
 
   const physicalData = useMemo<ChartPoint[]>(() => {
@@ -592,138 +589,7 @@ export function ChartView({
         <ChartCard title="Project Status" chartType={chart1Type} onChartTypeChange={setChart1Type}>
           {chart1Type === 'bar' ? renderBar(physicalData) : renderPie(physicalData)}
         </ChartCard>
-        <DrawingStatusChart entries={drawingStatusEntries} chartType={chart7Type} onChartTypeChange={setChart7Type} />
       </div>
     </div>
-  );
-}
-
-const DRAWING_DISCIPLINES = ['Civil', 'Mechanical', 'Electrical', 'Vessels/Piping'];
-
-function DrawingStatusChart({
-  entries,
-  chartType,
-  onChartTypeChange,
-}: {
-  entries: DrawingStatusEntry[];
-  chartType: ChartType;
-  onChartTypeChange: (t: ChartType) => void;
-}) {
-  const summary = useMemo(() => {
-    const map = new Map<string, DrawingStatusEntry>();
-    for (const entry of entries) {
-      const existing = map.get(entry.discipline);
-      if (!existing || new Date(entry.created_at) > new Date(existing.created_at)) {
-        map.set(entry.discipline, entry);
-      }
-    }
-    return DRAWING_DISCIPLINES.map((d) => map.get(d)).filter(Boolean) as DrawingStatusEntry[];
-  }, [entries]);
-
-  const grandTotalDrawings = summary.reduce((s, e) => s + e.total_drawings, 0);
-  const grandTotalCompleted = summary.reduce((s, e) => s + e.completed_drawings, 0);
-  const overallPct = grandTotalDrawings > 0 ? (grandTotalCompleted / grandTotalDrawings) * 100 : 0;
-
-  const data = summary.map((e, i) => ({
-    name: e.discipline,
-    value: e.total_drawings,
-    color: CHART_COLORS[i % CHART_COLORS.length],
-  }));
-
-  const renderBarChart = () => (
-    <ResponsiveContainer width="100%" height={CHART_H}>
-      <BarChart data={data} margin={{ top: 20, right: 10, left: 0, bottom: 20 }}>
-        <CartesianGrid strokeDasharray="3 3" className="stroke-slate-100" vertical={false} />
-        <XAxis dataKey="name" tick={{ fontSize: 10, fontWeight: 600 }} angle={-15} textAnchor="end" height={50} axisLine={{ stroke: '#cbd5e1' }} />
-        <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-        <Tooltip cursor={{ fill: 'rgba(8,145,178,0.05)' }} />
-        <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={50} maxBarSize={60}>
-          {data.map((d, i) => (
-            <Cell key={i} fill={d.color} />
-          ))}
-        </Bar>
-      </BarChart>
-    </ResponsiveContainer>
-  );
-
-  const renderPieChart = () => (
-    <ResponsiveContainer width="100%" height={CHART_H}>
-      <PieChart>
-        <Pie
-          data={data}
-          dataKey="value"
-          nameKey="name"
-          cx="50%"
-          cy="50%"
-          outerRadius={90}
-          innerRadius={45}
-          label={(e: any) => `${e.name}: ${e.value}`}
-        >
-          {data.map((d, i) => (
-            <Cell key={i} fill={d.color} stroke="#fff" strokeWidth={1} />
-          ))}
-        </Pie>
-        <Tooltip />
-      </PieChart>
-    </ResponsiveContainer>
-  );
-
-  return (
-    <ChartCard
-      title="Drawing Status"
-      chartType={chartType}
-      onChartTypeChange={onChartTypeChange}
-      subtitle={summary.length > 0 ? `Overall Progress: ${overallPct.toFixed(1)}%` : undefined}
-    >
-      {summary.length === 0 ? (
-        <div className="flex h-[300px] items-center justify-center text-center text-sm text-slate-400">
-          <div>
-            <FileBarChart className="mx-auto mb-2 h-10 w-10 text-slate-300" />
-            <p>No Drawing Status data has been entered yet.</p>
-            <p className="mt-1 text-xs">Site Engineers can add entries from the Daily Progress Reporting panel.</p>
-          </div>
-        </div>
-      ) : chartType === 'bar' ? (
-        <>
-          {renderBarChart()}
-          <div className="mt-2 overflow-x-auto">
-            <table className="w-full text-[11px]">
-              <thead>
-                <tr className="border-b border-slate-200 text-left text-[9px] font-bold uppercase text-slate-500">
-                  <th className="pb-1.5 pr-2">Discipline</th>
-                  <th className="pb-1.5 pr-2 text-right">Cat 1</th>
-                  <th className="pb-1.5 pr-2 text-right">Cat 2</th>
-                  <th className="pb-1.5 pr-2 text-right">Cat 3</th>
-                  <th className="pb-1.5 pr-2 text-right">Total</th>
-                  <th className="pb-1.5 text-right">Code</th>
-                </tr>
-              </thead>
-              <tbody>
-                {summary.map((e) => (
-                  <tr key={e.discipline} className="border-b border-slate-50 text-slate-700">
-                    <td className="py-1.5 pr-2 font-semibold">{e.discipline}</td>
-                    <td className="py-1.5 pr-2 text-right">{e.cat1_total}</td>
-                    <td className="py-1.5 pr-2 text-right">{e.cat2_total}</td>
-                    <td className="py-1.5 pr-2 text-right">{e.cat3_total}</td>
-                    <td className="py-1.5 pr-2 text-right font-bold">{e.total_drawings}</td>
-                    <td className="py-1.5 text-right">{e.code_value.toFixed(1)}</td>
-                  </tr>
-                ))}
-                <tr className="bg-cyan-50 font-extrabold text-cyan-900">
-                  <td className="py-2 pr-2">Total</td>
-                  <td className="py-2 pr-2 text-right">{summary.reduce((s, e) => s + e.cat1_total, 0)}</td>
-                  <td className="py-2 pr-2 text-right">{summary.reduce((s, e) => s + e.cat2_total, 0)}</td>
-                  <td className="py-2 pr-2 text-right">{summary.reduce((s, e) => s + e.cat3_total, 0)}</td>
-                  <td className="py-2 pr-2 text-right">{grandTotalDrawings}</td>
-                  <td className="py-2 text-right">{summary.reduce((s, e) => s + e.code_value, 0).toFixed(1)}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </>
-      ) : (
-        renderPieChart()
-      )}
-    </ChartCard>
   );
 }

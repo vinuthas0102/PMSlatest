@@ -310,24 +310,6 @@ export interface Amendment {
   created_at: string;
 }
 
-export interface DrawingStatusEntry {
-  id: string;
-  project_id: string;
-  work_order_id: string | null;
-  discipline: string;
-  entry_date: string;
-  cat1_total: number;
-  cat2_total: number;
-  cat3_total: number;
-  code_value: number;
-  total_drawings: number;
-  completed_drawings: number;
-  drawing_progress_pct: number;
-  remarks: string | null;
-  created_by: string | null;
-  created_at: string;
-}
-
 export interface DashboardData {
   projects: Project[];
   workOrders: WorkOrder[];
@@ -343,5 +325,4 @@ export interface DashboardData {
   woSectionProgress: WOSectionProgress[];
   woSectionDocuments: WOSectionDocument[];
   woSectionActivity: WOSectionActivity[];
-  drawingStatusEntries: DrawingStatusEntry[];
 }
