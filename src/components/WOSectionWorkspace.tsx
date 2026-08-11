@@ -337,7 +337,7 @@ export function WOSectionWorkspace({ workOrder, sections, progress, documents, a
         <button onClick={() => changeType(1)} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Next section"><ArrowRight className="h-4 w-4" /></button>
       </div>
 
-      <div className={`grid gap-3 ${editorMode ? 'xl:grid-cols-[minmax(0,1fr)_420px]' : 'grid-cols-1'}`}>
+      <div className={`grid gap-3 ${editorMode ? 'lg:grid-cols-[minmax(0,1fr)_380px]' : 'grid-cols-1'}`}>
         <section className="min-w-0 rounded-xl border border-slate-200 bg-white shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 py-3">
             <div>
