@@ -18,6 +18,7 @@ import { FilterDrawer } from '@/components/FilterDrawer';
 import { ProjectDetailModal } from '@/components/ProjectDetailModal';
 import { ProjectFormModal } from '@/components/ProjectFormModal';
 import { LandingPage } from '@/components/LandingPage';
+import { DPRPanel } from '@/components/DPRPanel';
 
 const DEFAULT_FILTERS: Filters = {
   states: [],
@@ -34,6 +35,10 @@ export default function App() {
 
   if (!user) {
     return <LandingPage />;
+  }
+
+  if (user.role === 'site') {
+    return <DPRPanel name={user.name} />;
   }
 
   return <DashboardApp />;
@@ -321,6 +326,7 @@ function DashboardApp() {
             selectedCategories={appliedFilters.categories}
             selectedDelayStatuses={appliedFilters.delayStatuses}
             onToggleSelection={handleToggleChartSelection}
+            drawingStatusEntries={data?.drawingStatusEntries ?? []}
           />
         )}
         {viewType === 'tile' && (

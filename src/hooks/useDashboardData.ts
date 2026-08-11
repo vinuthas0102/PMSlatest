@@ -17,9 +17,10 @@ import type {
   WOSectionProgress,
   WOSectionDocument,
   WOSectionActivity,
+  DrawingStatusEntry,
 } from '@/types';
 
-const LOADING_KEY = 'pms_data_v9';
+const LOADING_KEY = 'pms_data_v10';
 
 const SPECS_PAGE_SIZE = 1000;
 
@@ -68,11 +69,12 @@ export function useDashboardData() {
           woSectionProgress: cachedData.woSectionProgress ?? [],
           woSectionDocuments: cachedData.woSectionDocuments ?? [],
           woSectionActivity: cachedData.woSectionActivity ?? [],
+          drawingStatusEntries: cachedData.drawingStatusEntries ?? [],
         });
         setLoading(false);
       }
 
-      const [projRes, woRes, schedRes, trkRes, allSpecs, trackingUpdatesRes, woDetailsRes, woSectionsRes, paymentsRes, dprRes, amendmentsRes, woSectionProgressRes, woSectionDocumentsRes, woSectionActivityRes] = await Promise.all([
+      const [projRes, woRes, schedRes, trkRes, allSpecs, trackingUpdatesRes, woDetailsRes, woSectionsRes, paymentsRes, dprRes, amendmentsRes, woSectionProgressRes, woSectionDocumentsRes, woSectionActivityRes, drawingStatusRes] = await Promise.all([
         supabase.from('projects').select('*').order('seq_no'),
         supabase.from('work_orders').select('*').order('seq_no'),
         supabase.from('schedules').select('*').order('seq_no'),
@@ -87,6 +89,7 @@ export function useDashboardData() {
         supabase.from('wo_section_progress').select('*').order('created_at', { ascending: false }),
         supabase.from('wo_section_documents').select('*').order('created_at', { ascending: false }),
         supabase.from('wo_section_activity').select('*').order('created_at', { ascending: false }),
+        supabase.from('drawing_status_entries').select('*').order('created_at', { ascending: false }),
       ]);
 
       if (projRes.error) throw projRes.error;
@@ -102,6 +105,7 @@ export function useDashboardData() {
       if (woSectionProgressRes.error) throw woSectionProgressRes.error;
       if (woSectionDocumentsRes.error) throw woSectionDocumentsRes.error;
       if (woSectionActivityRes.error) throw woSectionActivityRes.error;
+      if (drawingStatusRes.error) throw drawingStatusRes.error;
 
       const dashboardData: DashboardData = {
         projects: (projRes.data as Project[]) ?? [],
@@ -118,6 +122,7 @@ export function useDashboardData() {
         woSectionProgress: (woSectionProgressRes.data as WOSectionProgress[]) ?? [],
         woSectionDocuments: (woSectionDocumentsRes.data as WOSectionDocument[]) ?? [],
         woSectionActivity: (woSectionActivityRes.data as WOSectionActivity[]) ?? [],
+        drawingStatusEntries: (drawingStatusRes.data as DrawingStatusEntry[]) ?? [],
       };
       sessionStorage.setItem(LOADING_KEY, JSON.stringify(dashboardData));
       setData(dashboardData);
