@@ -138,9 +138,9 @@ export function LandingPage() {
       <div className="relative z-10 w-full max-w-5xl grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Left: Branding */}
         <div className="lg:col-span-2 flex flex-col justify-center text-center lg:text-left rounded-2xl bg-white/75 backdrop-blur-sm border border-white/80 shadow-lg p-6 sm:p-8">
-          <div className="flex items-center justify-center lg:justify-start gap-3 mb-4">
-            <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-white border border-slate-200 shadow-md">
-              <img src={epiLogo} alt="EPI Logo" className="h-12 w-auto object-contain" />
+          <div className="flex items-center justify-center lg:justify-start gap-3 mb-5">
+            <div className="flex items-center justify-center w-20 h-20 rounded-2xl bg-white border border-slate-200 shadow-md">
+              <img src={epiLogo} alt="EPI Logo" className="h-16 w-auto object-contain" />
             </div>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight leading-tight">
