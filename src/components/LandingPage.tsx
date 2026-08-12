@@ -138,18 +138,15 @@ export function LandingPage() {
       <div className="relative z-10 w-full max-w-5xl grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Left: Branding */}
         <div className="lg:col-span-2 flex flex-col justify-center text-center lg:text-left rounded-2xl bg-white/75 backdrop-blur-sm border border-white/80 shadow-lg p-6 sm:p-8">
-          <div className="flex items-center justify-center lg:justify-start gap-3 mb-5">
-            <div className="flex items-center justify-center w-20 h-20 rounded-2xl bg-white border border-slate-200 shadow-md">
-              <img src={epiLogo} alt="EPI Logo" className="h-16 w-auto object-contain" />
+          <div className="flex items-center justify-center lg:justify-start gap-3 mb-6">
+            <div className="flex items-center justify-center w-28 h-28 rounded-2xl bg-white border border-slate-200 shadow-md">
+              <img src={epiLogo} alt="EPI Logo" className="h-24 w-auto object-contain" />
             </div>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight leading-tight">
             Engineering Projects (India) Ltd.
           </h1>
-          <p className="mt-2 text-sm sm:text-base text-cyan-700 font-semibold">
-            Project Monitoring &amp; Contract Management System (PMS/CMS)
-          </p>
-          <p className="mt-4 text-xs text-slate-600 leading-relaxed max-w-sm mx-auto lg:mx-0">
+                    <p className="mt-4 text-xs text-slate-600 leading-relaxed max-w-sm mx-auto lg:mx-0">
             A comprehensive government infrastructure portal for monitoring project progress,
             financial tracking, work order management, and daily progress reporting.
           </p>
@@ -171,7 +168,7 @@ export function LandingPage() {
                 </div>
                 <div>
                   <h2 className="text-base font-bold text-white">Portal Login</h2>
-                  <p className="text-[11px] text-cyan-300">Sign in to access the PMS/CMS dashboard</p>
+                  <p className="text-[11px] text-cyan-300">Sign in to access the project dashboard</p>
                 </div>
               </div>
             </div>
