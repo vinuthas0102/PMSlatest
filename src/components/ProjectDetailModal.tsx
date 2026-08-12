@@ -743,6 +743,58 @@ function getPaidAmount(workOrder: WorkOrder, payments: PaymentEntry[]): number {
   return entries.length ? Math.max(...entries.map((payment) => safeNum(payment.cumulative_paid))) : safeNum(workOrder.paid_amount);
 }
 
+function AgencyFinancialBar({ value, paid, billed, compact = false }: { value: number; paid: number; billed: number; compact?: boolean }) {
+  const base = Math.max(1, value);
+  const billedNotPaid = Math.max(0, billed - paid);
+  const balance = Math.max(0, value - paid);
+  const paidPct = Math.min(100, (paid / base) * 100);
+  const billedNotPaidPct = Math.min(100 - paidPct, (billedNotPaid / base) * 100);
+  const remainingPct = Math.max(0, 100 - paidPct - billedNotPaidPct);
+
+  if (compact) {
+    return (
+      <div className="min-w-[150px]">
+        <div className="mb-1 flex items-center justify-between text-[9px] text-slate-500">
+          <span className="font-semibold text-slate-600">Financial Progress</span>
+          <span className="font-bold text-slate-700">{paidPct.toFixed(0)}%</span>
+        </div>
+        <div className="flex h-2 overflow-hidden rounded-full border border-slate-200 bg-slate-100">
+          {paidPct > 0 && <div className="bg-emerald-500 transition-all duration-500" style={{ width: `${paidPct}%` }} />}
+          {billedNotPaidPct > 0 && <div className="bg-cyan-500 transition-all duration-500" style={{ width: `${billedNotPaidPct}%` }} />}
+          {remainingPct > 0 && <div className="bg-rose-400 transition-all duration-500" style={{ width: `${remainingPct}%` }} />}
+        </div>
+        <div className="mt-1 flex items-center justify-between text-[9px] font-semibold tabular-nums">
+          <span className="text-emerald-700">{formatINRShort(paid)}</span>
+          <span className="text-cyan-700">{formatINRShort(billedNotPaid)}</span>
+          <span className="text-rose-600">{formatINRShort(balance)}</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded border border-slate-200 bg-slate-50/80 px-2 py-1.5">
+      <div className="mb-0.5 flex items-center justify-between text-[10px] text-slate-500">
+        <span className="inline-flex items-center gap-1">
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
+          <span className="font-semibold text-slate-600">Financial Progress</span>
+        </span>
+        <span className="font-semibold text-slate-700">{paidPct.toFixed(0)}%</span>
+      </div>
+      <div className="flex h-3 overflow-hidden rounded-full border border-slate-200 bg-slate-100">
+        {paidPct > 0 && <div className="bg-emerald-500 transition-all duration-500" style={{ width: `${paidPct}%` }} />}
+        {billedNotPaidPct > 0 && <div className="bg-cyan-500 transition-all duration-500" style={{ width: `${billedNotPaidPct}%` }} />}
+        {remainingPct > 0 && <div className="bg-rose-400 transition-all duration-500" style={{ width: `${remainingPct}%` }} />}
+      </div>
+      <div className="mt-1 flex items-center justify-between text-[9px]">
+        <span className="flex items-center gap-0.5"><span className="h-2 w-2 rounded-sm bg-emerald-500" /><span className="font-semibold text-emerald-700">{formatINRShort(paid)}</span></span>
+        <span className="flex items-center gap-0.5"><span className="h-2 w-2 rounded-sm bg-cyan-500" /><span className="font-semibold text-cyan-700">{formatINRShort(billedNotPaid)}</span></span>
+        <span className="flex items-center gap-0.5"><span className="h-2 w-2 rounded-sm bg-rose-400" /><span className="font-semibold text-rose-600">{formatINRShort(balance)}</span></span>
+      </div>
+    </div>
+  );
+}
+
 function WOTileView({ workOrders, details, payments, onSelect, projectValue }: { workOrders: WorkOrder[]; details: WorkOrderDetail[]; payments: PaymentEntry[]; onSelect: (wo: WorkOrder) => void; projectValue?: number }) {
   if (workOrders.length === 0) return <div className="text-center text-sm text-slate-500 py-6">No work orders found.</div>;
   return (
@@ -774,12 +826,12 @@ function WOTileView({ workOrders, details, payments, onSelect, projectValue }: {
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-3 text-[10px] text-slate-500">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-slate-500">
               <span>Agency: <span className="font-semibold text-slate-700">{agencyName}</span></span>
               <span>WO Value: <span className="font-semibold text-indigo-700">{formatINRShort(Number(woValue) || 0)}</span></span>
-              <span>Paid: <span className="font-semibold text-emerald-700">{formatINRShort(paidAmount)}</span> · <span className="font-semibold text-cyan-700">{financialPct.toFixed(1)}%</span></span>
               <span>Billed: <span className="font-semibold text-cyan-700">{formatINRShort(safeNum(wo.billed_amount))}</span></span>
             </div>
+            <AgencyFinancialBar value={Number(woValue) || 0} paid={paidAmount} billed={safeNum(wo.billed_amount)} />
             <button onClick={() => onSelect(wo)} className="flex items-center gap-1 text-[10px] font-medium text-cyan-700 hover:text-white hover:bg-cyan-600 bg-cyan-50 border border-cyan-200 px-2.5 py-1 rounded transition-colors self-start">
               <Building2 className="w-3 h-3" /> Agency Detail
             </button>
@@ -826,7 +878,7 @@ function WOTableView({ workOrders, details, payments, onSelect, projectValue }: 
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${colors.bg} ${colors.text} ${colors.border}`}>{delayStatusShort(wo.delay_status)}</span>
                 </td>
                 <td className="px-2 py-1.5 text-indigo-700 font-semibold text-right tabular-nums whitespace-nowrap">{formatINRShort(Number(woValue) || 0)}</td>
-                <td className="px-2 py-1.5 text-emerald-700 font-semibold text-right tabular-nums whitespace-nowrap">{formatINRShort(paidAmount)} · {financialPct.toFixed(1)}%</td>
+                <td className="px-2 py-1.5 align-middle"><AgencyFinancialBar value={Number(woValue) || 0} paid={paidAmount} billed={safeNum(wo.billed_amount)} compact /></td>
                 <td className="px-2 py-1.5 whitespace-nowrap">
                   <button onClick={() => onSelect(wo)} className="flex items-center gap-1 text-[10px] font-medium text-cyan-700 hover:text-white hover:bg-cyan-600 bg-cyan-50 border border-cyan-200 px-1.5 py-0.5 rounded transition-colors">
                     <Building2 className="w-3 h-3" /> Detail
@@ -874,8 +926,9 @@ function WOCardView({ workOrders, details, payments, onSelect, projectValue }: {
             </div>
             <div className="flex items-center justify-between text-[10px] text-slate-500">
               <span>WO: <span className="font-semibold text-indigo-700">{formatINRShort(Number(woValue) || 0)}</span></span>
-              <span>Paid: <span className="font-semibold text-emerald-700">{formatINRShort(paidAmount)}</span> · <span className="font-semibold text-cyan-700">{financialPct.toFixed(1)}%</span></span>
+              <span>Billed: <span className="font-semibold text-cyan-700">{formatINRShort(safeNum(wo.billed_amount))}</span></span>
             </div>
+            <AgencyFinancialBar value={Number(woValue) || 0} paid={paidAmount} billed={safeNum(wo.billed_amount)} compact />
             <button onClick={() => onSelect(wo)} className="flex items-center gap-1 text-[10px] font-medium text-cyan-700 hover:text-white hover:bg-cyan-600 bg-cyan-50 border border-cyan-200 px-1.5 py-1 rounded transition-colors justify-center">
               <Building2 className="w-3 h-3" /> Agency Detail
             </button>
