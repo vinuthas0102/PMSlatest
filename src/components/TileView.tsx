@@ -14,7 +14,7 @@ interface TileViewProps {
 
 function latestDeviationValue(updates: TrackingUpdate[], projectId: string, type: TrackingType): string | null {
   const match = updates.find((u) => u.project_id === projectId && u.tracking_type === type);
-  return match ? match.deviation_value : null;
+  return match?.deviation_value.trim() || null;
 }
 
 export function TileView({ items, trackingUpdates = [], projectAllocations = new Map(), onShowDetails, onMaintainProject, onCreateNew }: TileViewProps) {
@@ -91,21 +91,30 @@ export function TileView({ items, trackingUpdates = [], projectAllocations = new
                 </div>
               </div>
               <div className="flex items-center gap-1.5 text-[10px] shrink-0">
-                {(() => { const v = latestDeviationValue(trackingUpdates, item.id, 'spec'); return (item.spec_deviations > 0 || v) && (
-                  <span className="flex items-center gap-0.5 text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-300 font-medium">
-                    <AlertTriangle className="w-2.5 h-2.5" /> {v ?? `${item.spec_deviations}`} Spec
-                  </span>
-                ); })()}
-                {(() => { const v = latestDeviationValue(trackingUpdates, item.id, 'quantity'); return (item.qty_deviations > 0 || v) && (
-                  <span className="flex items-center gap-0.5 text-orange-700 bg-orange-100 px-1.5 py-0.5 rounded border border-orange-300 font-medium">
-                    <Ruler className="w-2.5 h-2.5" /> {v ?? `${item.qty_deviations}`} Qty
-                  </span>
-                ); })()}
-                {(() => { const v = latestDeviationValue(trackingUpdates, item.id, 'delay'); return (item.extension_days > 0 || v) && (
-                  <span className="flex items-center gap-0.5 text-red-700 bg-red-100 px-1.5 py-0.5 rounded border border-red-300 font-medium">
-                    <CalendarClock className="w-2.5 h-2.5" /> {v ?? `${item.extension_days}d`} Ext
-                  </span>
-                ); })()}
+                {(() => {
+                  const v = latestDeviationValue(trackingUpdates, item.id, 'spec');
+                  return (
+                    <span className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded border font-medium ${v ? 'text-amber-700 bg-amber-100 border-amber-300' : 'text-slate-500 bg-slate-100 border-slate-200'}`}>
+                      <AlertTriangle className="w-2.5 h-2.5" /> {v ? `${v} Spec` : 'No Spec Exception'}
+                    </span>
+                  );
+                })()}
+                {(() => {
+                  const v = latestDeviationValue(trackingUpdates, item.id, 'quantity');
+                  return (
+                    <span className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded border font-medium ${v ? 'text-orange-700 bg-orange-100 border-orange-300' : 'text-slate-500 bg-slate-100 border-slate-200'}`}>
+                      <Ruler className="w-2.5 h-2.5" /> {v ? `${v} Qty` : 'No Qty Exception'}
+                    </span>
+                  );
+                })()}
+                {(() => {
+                  const v = latestDeviationValue(trackingUpdates, item.id, 'delay');
+                  return (
+                    <span className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded border font-medium ${v ? 'text-red-700 bg-red-100 border-red-300' : 'text-slate-500 bg-slate-100 border-slate-200'}`}>
+                      <CalendarClock className="w-2.5 h-2.5" /> {v ? `${v} Ext` : 'No Extension Exception'}
+                    </span>
+                  );
+                })()}
               </div>
             </div>
 
