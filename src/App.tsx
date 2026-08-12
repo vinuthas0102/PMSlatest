@@ -323,6 +323,7 @@ function DashboardApp() {
             onToggleSelection={handleToggleChartSelection}
             woSections={data?.woSections ?? []}
             woDrawingProgress={data?.woDrawingProgress ?? []}
+            woSectionProgress={data?.woSectionProgress ?? []}
           />
         )}
         {viewType === 'tile' && (

@@ -14,11 +14,11 @@ const STATUS_COLORS: Record<string, string> = {
   'Delayed - Critical': '#dc2626',
 };
 
-const CHART_H = 260;
+const MINI_H = 120;
 
 type ChartType = 'bar' | 'pie';
 
-function ChartCard({
+function MiniChartCard({
   title,
   chartType,
   onChartTypeChange,
@@ -32,28 +32,28 @@ function ChartCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="mirror-card rounded border-t-2 border-t-cyan-600 p-3 flex flex-col">
-      <div className="flex items-center justify-between mb-2">
-        <div>
-          <h3 className="text-sm font-semibold text-slate-700">{title}</h3>
-          {subtitle && <p className="text-[10px] text-slate-500 font-medium mt-0.5">{subtitle}</p>}
+    <div className="mirror-card rounded border-t-2 border-t-cyan-600 p-2 flex flex-col">
+      <div className="flex items-center justify-between mb-1">
+        <div className="min-w-0">
+          <h3 className="text-xs font-semibold text-slate-700 truncate">{title}</h3>
+          {subtitle && <p className="text-[9px] text-slate-500 font-medium truncate">{subtitle}</p>}
         </div>
-        <div className="flex items-center gap-0.5">
+        <div className="flex items-center gap-0.5 shrink-0">
           <button
             onClick={() => onChartTypeChange('bar')}
-            className={`p-1 rounded ${chartType === 'bar' ? 'bg-cyan-100 text-cyan-700' : 'text-slate-400 hover:bg-slate-100'}`}
+            className={`p-0.5 rounded ${chartType === 'bar' ? 'bg-cyan-100 text-cyan-700' : 'text-slate-400 hover:bg-slate-100'}`}
           >
-            <BarChart3 className="w-4 h-4" />
+            <BarChart3 className="w-3 h-3" />
           </button>
           <button
             onClick={() => onChartTypeChange('pie')}
-            className={`p-1 rounded ${chartType === 'pie' ? 'bg-cyan-100 text-cyan-700' : 'text-slate-400 hover:bg-slate-100'}`}
+            className={`p-0.5 rounded ${chartType === 'pie' ? 'bg-cyan-100 text-cyan-700' : 'text-slate-400 hover:bg-slate-100'}`}
           >
-            <PieIcon className="w-4 h-4" />
+            <PieIcon className="w-3 h-3" />
           </button>
         </div>
       </div>
-      <div className="flex-1 min-h-[260px]">{children}</div>
+      <div className="flex-1 min-h-[120px]">{children}</div>
     </div>
   );
 }
@@ -112,13 +112,13 @@ export function WOChartView({ workOrders, workOrderDetails = [], paymentEntries 
   }, [workOrders]);
 
   const renderBar = (data: { name: string; value: number; color: string }[], money = false, percent = false) => (
-    <ResponsiveContainer width="100%" height={CHART_H}>
-      <BarChart data={data} margin={{ top: 20, right: 10, left: 0, bottom: 20 }}>
-        <CartesianGrid strokeDasharray="3 3" className="stroke-slate-100" vertical={false} />
-        <XAxis dataKey="name" tick={{ fontSize: 10, fontWeight: 600 }} angle={-15} textAnchor="end" height={50} axisLine={{ stroke: '#cbd5e1' }} />
-        <YAxis domain={percent ? [0, 100] : undefined} tick={{ fontSize: 10 }} tickFormatter={(v) => (money ? formatINRShort(v) : percent ? `${v}%` : v)} axisLine={false} tickLine={false} />
+    <ResponsiveContainer width="100%" height={MINI_H}>
+      <BarChart data={data} margin={{ top: 8, right: 4, left: 0, bottom: 4 }}>
+        <CartesianGrid strokeDasharray="2 2" className="stroke-slate-100" vertical={false} />
+        <XAxis dataKey="name" tick={{ fontSize: 8, fontWeight: 600 }} angle={-15} textAnchor="end" height={28} axisLine={{ stroke: '#cbd5e1' }} />
+        <YAxis domain={percent ? [0, 100] : undefined} tick={{ fontSize: 8 }} width={money ? 40 : 28} tickFormatter={(v) => (money ? formatINRShort(v) : percent ? `${v}%` : v)} axisLine={false} tickLine={false} />
         <Tooltip cursor={{ fill: 'rgba(8,145,178,0.05)' }} />
-        <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={50} maxBarSize={60}>
+        <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={28} maxBarSize={36}>
           {data.map((d, i) => (
             <Cell key={i} fill={d.color} />
           ))}
@@ -128,7 +128,7 @@ export function WOChartView({ workOrders, workOrderDetails = [], paymentEntries 
   );
 
   const renderPie = (data: { name: string; value: number; color: string }[], money = false, percent = false) => (
-    <ResponsiveContainer width="100%" height={CHART_H}>
+    <ResponsiveContainer width="100%" height={MINI_H}>
       <PieChart>
         <Pie
           data={data}
@@ -136,9 +136,10 @@ export function WOChartView({ workOrders, workOrderDetails = [], paymentEntries 
           nameKey="name"
           cx="50%"
           cy="50%"
-          outerRadius={80}
-          innerRadius={40}
+          outerRadius={42}
+          innerRadius={20}
           label={(e: any) => (money ? formatINRShort(e.value) : percent ? `${e.value}%` : e.value)}
+          labelLine={false}
         >
           {data.map((d, i) => (
             <Cell key={i} fill={d.color} stroke="#fff" strokeWidth={1} />
@@ -158,16 +159,16 @@ export function WOChartView({ workOrders, workOrderDetails = [], paymentEntries 
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-3">
-      <ChartCard title="Schedule Status" chartType={scheduleType} onChartTypeChange={setScheduleType} subtitle="WO count by delay severity">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-2 p-2">
+      <MiniChartCard title="Schedule Status" chartType={scheduleType} onChartTypeChange={setScheduleType} subtitle="WO count by delay severity">
         {scheduleType === 'bar' ? renderBar(scheduleData) : renderPie(scheduleData)}
-      </ChartCard>
-      <ChartCard title="Financial Progress" chartType={financialType} onChartTypeChange={setFinancialType} subtitle={`Total WO Value: ${formatINRShort(totalWOValue)}`}>
+      </MiniChartCard>
+      <MiniChartCard title="Financial Progress" chartType={financialType} onChartTypeChange={setFinancialType} subtitle={`Total WO Value: ${formatINRShort(totalWOValue)}`}>
         {financialType === 'bar' ? renderBar(financialData, true) : renderPie(financialData, true)}
-      </ChartCard>
-      <ChartCard title="Physical Progress (%)" chartType={physicalType} onChartTypeChange={setPhysicalType} subtitle="Avg target vs actual completion">
+      </MiniChartCard>
+      <MiniChartCard title="Physical Progress (%)" chartType={physicalType} onChartTypeChange={setPhysicalType} subtitle="Avg target vs actual completion">
         {physicalType === 'bar' ? renderBar(physicalData, false, true) : renderPie(physicalData, false, true)}
-      </ChartCard>
+      </MiniChartCard>
     </div>
   );
 }

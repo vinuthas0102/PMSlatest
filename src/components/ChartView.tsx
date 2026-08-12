@@ -4,9 +4,10 @@ import {
   CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart, Line, LabelList,
 } from 'recharts';
 import { BarChart3, PieChart as PieIcon, Check, X, Filter } from 'lucide-react';
-import type { BaseEntity, DelayStatus, WOSection, WODrawingProgress } from '@/types';
+import type { BaseEntity, DelayStatus, WOSection, WOSectionProgress, WODrawingProgress } from '@/types';
 import { formatINR, formatINRShort, CATEGORIES, delayStatusShort, DELAY_STATUSES } from '@/lib/format';
 import { aggregateDrawingStatus } from '@/lib/drawingStatus';
+import { aggregateSectionStatus, type SectionType } from '@/lib/sectionStatus';
 
 type FilterField = 'states' | 'categories' | 'delayStatuses';
 
@@ -18,6 +19,7 @@ interface ChartViewProps {
   onToggleSelection: (field: FilterField, value: string) => void;
   woSections?: WOSection[];
   woDrawingProgress?: WODrawingProgress[];
+  woSectionProgress?: WOSectionProgress[];
 }
 
 type ChartType = 'bar' | 'pie';
@@ -220,6 +222,7 @@ export function ChartView({
   onToggleSelection,
   woSections = [],
   woDrawingProgress = [],
+  woSectionProgress = [],
 }: ChartViewProps) {
   const [chart1Type, setChart1Type] = useState<ChartType>('bar');
   const [chart2Type, setChart2Type] = useState<ChartType>('bar');
@@ -228,6 +231,9 @@ export function ChartView({
   const [chart5Type, setChart5Type] = useState<ChartType>('bar');
   const [chart6Type, setChart6Type] = useState<ChartType>('bar');
   const [chart7Type, setChart7Type] = useState<ChartType>('bar');
+  const [chart8Type, setChart8Type] = useState<ChartType>('bar');
+  const [chart9Type, setChart9Type] = useState<ChartType>('bar');
+  const [chart10Type, setChart10Type] = useState<ChartType>('bar');
   const [timelineMode, setTimelineMode] = useState<'yearly' | 'monthly'>('monthly');
 
   const drawingSummary = useMemo(
@@ -240,6 +246,36 @@ export function ChartView({
       makePoint(d.discipline, Number(d.progressPct.toFixed(1)), CHART_COLORS[idx % CHART_COLORS.length], [], '%'),
     );
   }, [drawingSummary]);
+
+  const equipmentSummary = useMemo(
+    () => aggregateSectionStatus(woSections, woSectionProgress, 'equipment', null, { onlyApproved: true }),
+    [woSections, woSectionProgress],
+  );
+  const equipmentData = useMemo<ChartPoint[]>(() => {
+    return equipmentSummary.byDiscipline.map((d, idx) =>
+      makePoint(d.discipline, Number(d.progressPct.toFixed(1)), CHART_COLORS[idx % CHART_COLORS.length], [], '%'),
+    );
+  }, [equipmentSummary]);
+
+  const civilSummary = useMemo(
+    () => aggregateSectionStatus(woSections, woSectionProgress, 'civil', null, { onlyApproved: true }),
+    [woSections, woSectionProgress],
+  );
+  const civilData = useMemo<ChartPoint[]>(() => {
+    return civilSummary.byDiscipline.map((d, idx) =>
+      makePoint(d.discipline, Number(d.progressPct.toFixed(1)), CHART_COLORS[idx % CHART_COLORS.length], [], '%'),
+    );
+  }, [civilSummary]);
+
+  const manpowerSummary = useMemo(
+    () => aggregateSectionStatus(woSections, woSectionProgress, 'manpower', null, { onlyApproved: true }),
+    [woSections, woSectionProgress],
+  );
+  const manpowerData = useMemo<ChartPoint[]>(() => {
+    return manpowerSummary.byDiscipline.map((d, idx) =>
+      makePoint(d.discipline, Number(d.progressPct.toFixed(1)), CHART_COLORS[idx % CHART_COLORS.length], [], '%'),
+    );
+  }, [manpowerSummary]);
 
   const physicalData = useMemo<ChartPoint[]>(() => {
     const total = items;
@@ -624,6 +660,66 @@ export function ChartView({
             renderBar(drawingData, false, true)
           ) : (
             renderPie(drawingData, false, true)
+          )}
+        </ChartCard>
+        <ChartCard
+          title="Supply & Equipment"
+          chartType={chart8Type}
+          onChartTypeChange={setChart8Type}
+          subtitle={
+            equipmentSummary.itemCount > 0
+              ? `${equipmentSummary.totalExecuted.toFixed(0)}/${equipmentSummary.totalRequired.toFixed(0)} units · ${equipmentSummary.progressPct.toFixed(1)}%`
+              : 'No approved equipment items yet'
+          }
+        >
+          {equipmentData.length === 0 ? (
+            <div className="flex h-full min-h-[260px] items-center justify-center text-xs text-slate-400">
+              No equipment procurement data available.
+            </div>
+          ) : chart8Type === 'bar' ? (
+            renderBar(equipmentData, false, true)
+          ) : (
+            renderPie(equipmentData, false, true)
+          )}
+        </ChartCard>
+        <ChartCard
+          title="Civil Work"
+          chartType={chart9Type}
+          onChartTypeChange={setChart9Type}
+          subtitle={
+            civilSummary.itemCount > 0
+              ? `${civilSummary.totalExecuted.toFixed(0)}/${civilSummary.totalRequired.toFixed(0)} units · ${civilSummary.progressPct.toFixed(1)}%`
+              : 'No approved civil items yet'
+          }
+        >
+          {civilData.length === 0 ? (
+            <div className="flex h-full min-h-[260px] items-center justify-center text-xs text-slate-400">
+              No civil work progress data available.
+            </div>
+          ) : chart9Type === 'bar' ? (
+            renderBar(civilData, false, true)
+          ) : (
+            renderPie(civilData, false, true)
+          )}
+        </ChartCard>
+        <ChartCard
+          title="Manpower"
+          chartType={chart10Type}
+          onChartTypeChange={setChart10Type}
+          subtitle={
+            manpowerSummary.itemCount > 0
+              ? `${manpowerSummary.totalExecuted.toFixed(0)}/${manpowerSummary.totalRequired.toFixed(0)} deployed · ${manpowerSummary.progressPct.toFixed(1)}%`
+              : 'No approved manpower items yet'
+          }
+        >
+          {manpowerData.length === 0 ? (
+            <div className="flex h-full min-h-[260px] items-center justify-center text-xs text-slate-400">
+              No manpower deployment data available.
+            </div>
+          ) : chart10Type === 'bar' ? (
+            renderBar(manpowerData, false, true)
+          ) : (
+            renderPie(manpowerData, false, true)
           )}
         </ChartCard>
       </div>
