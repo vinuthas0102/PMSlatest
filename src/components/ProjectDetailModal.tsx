@@ -1138,176 +1138,126 @@ function ProjectDrawingStatus({
     [sections, drawingProgress, workOrders],
   );
 
-  const [chartType, setChartType] = useState<'bar' | 'pie'>('bar');
+  const [statusChartType, setStatusChartType] = useState<'bar' | 'pie'>('bar');
+  const [disciplineChartType, setDisciplineChartType] = useState<'bar' | 'pie'>('bar');
+
+  const statusData = useMemo(() => [
+    { name: 'Total', value: summary.totalDrawings, color: '#1e40af' },
+    { name: 'Completed', value: summary.totalCompleted, color: '#059669' },
+    { name: 'Pending', value: Math.max(0, summary.totalDrawings - summary.totalCompleted), color: '#d97706' },
+  ], [summary]);
 
   const chartData = useMemo(
-    () =>
-      summary.byDiscipline.map((d, idx) => ({
-        name: d.discipline,
-        value: Number(d.progressPct.toFixed(1)),
-        color: CHART_COLORS[idx % CHART_COLORS.length],
-        itemCount: d.itemCount,
-        cat1Completed: d.cat1Completed,
-        cat1Total: d.cat1Total,
-        cat2Completed: d.cat2Completed,
-        cat2Total: d.cat2Total,
-        cat3Completed: d.cat3Completed,
-        cat3Total: d.cat3Total,
-        totalCompleted: d.totalCompleted,
-        totalDrawings: d.totalDrawings,
-      })),
+    () => summary.byDiscipline.map((d, idx) => ({
+      name: d.discipline,
+      value: Number(d.progressPct.toFixed(1)),
+      color: CHART_COLORS[idx % CHART_COLORS.length],
+      itemCount: d.itemCount,
+      cat1Completed: d.cat1Completed,
+      cat1Total: d.cat1Total,
+      cat2Completed: d.cat2Completed,
+      cat2Total: d.cat2Total,
+      cat3Completed: d.cat3Completed,
+      cat3Total: d.cat3Total,
+      totalCompleted: d.totalCompleted,
+      totalDrawings: d.totalDrawings,
+    })),
     [summary],
   );
 
+  const renderStatusBar = () => (
+    <ResponsiveContainer width="100%" height={120}>
+      <BarChart data={statusData} margin={{ top: 8, right: 4, left: 0, bottom: 4 }}>
+        <CartesianGrid strokeDasharray="2 2" className="stroke-slate-100" vertical={false} />
+        <XAxis dataKey="name" tick={{ fontSize: 8, fontWeight: 600 }} axisLine={{ stroke: '#cbd5e1' }} />
+        <YAxis allowDecimals={false} tick={{ fontSize: 8 }} width={28} axisLine={false} tickLine={false} />
+        <Tooltip cursor={{ fill: 'rgba(8,145,178,0.05)' }} />
+        <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={28} maxBarSize={36}>
+          {statusData.map((d) => <Cell key={d.name} fill={d.color} />)}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  );
+
+  const renderStatusPie = () => (
+    <ResponsiveContainer width="100%" height={120}>
+      <PieChart>
+        <Pie data={statusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={42} innerRadius={20} label={(entry: { name: string; value: number }) => `${entry.name}: ${entry.value}`} labelLine={false}>
+          {statusData.map((d) => <Cell key={d.name} fill={d.color} stroke="#fff" strokeWidth={1} />)}
+        </Pie>
+        <Tooltip />
+      </PieChart>
+    </ResponsiveContainer>
+  );
+
+  const renderDisciplineBar = () => (
+    <ResponsiveContainer width="100%" height={120}>
+      <BarChart data={chartData} margin={{ top: 8, right: 4, left: 0, bottom: 4 }}>
+        <CartesianGrid strokeDasharray="2 2" className="stroke-slate-100" vertical={false} />
+        <XAxis dataKey="name" tick={{ fontSize: 8, fontWeight: 600 }} angle={-15} textAnchor="end" height={28} axisLine={{ stroke: '#cbd5e1' }} />
+        <YAxis domain={[0, 100]} tick={{ fontSize: 8 }} tickFormatter={(v) => `${v}%`} width={30} axisLine={false} tickLine={false} />
+        <Tooltip cursor={{ fill: 'rgba(8,145,178,0.05)' }} content={<DisciplineTooltip />} />
+        <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={28} maxBarSize={36}>
+          {chartData.map((d) => <Cell key={d.name} fill={d.color} />)}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  );
+
+  const renderDisciplinePie = () => (
+    <ResponsiveContainer width="100%" height={120}>
+      <PieChart>
+        <Pie data={chartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={42} innerRadius={20} label={(entry: { name: string; value: number }) => `${entry.name}: ${entry.value}%`} labelLine={false}>
+          {chartData.map((d) => <Cell key={d.name} fill={d.color} stroke="#fff" strokeWidth={1} />)}
+        </Pie>
+        <Tooltip content={<DisciplineTooltip />} />
+      </PieChart>
+    </ResponsiveContainer>
+  );
+
+  const chartButtons = (type: 'bar' | 'pie', setType: (value: 'bar' | 'pie') => void) => (
+    <div className="flex items-center gap-0.5">
+      <button onClick={() => setType('bar')} className={`rounded p-0.5 ${type === 'bar' ? 'bg-cyan-100 text-cyan-700' : 'text-slate-400 hover:bg-slate-100'}`}>
+        <BarChart3 className="h-3 w-3" />
+      </button>
+      <button onClick={() => setType('pie')} className={`rounded p-0.5 ${type === 'pie' ? 'bg-cyan-100 text-cyan-700' : 'text-slate-400 hover:bg-slate-100'}`}>
+        <PieChartIcon className="h-3 w-3" />
+      </button>
+    </div>
+  );
+
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+    <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <div>
           <h3 className="text-sm font-bold text-slate-800">Project-level Drawing Status</h3>
-          <p className="text-[11px] text-slate-500">
-            Auto-consolidated from approved Work Order drawing items. Updated in real time as Site Engineers log progress.
-          </p>
+          <p className="text-[11px] text-slate-500">Auto-consolidated from approved Work Order drawing items.</p>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-xs">
-            <span className="font-bold text-cyan-800">{summary.progressPct.toFixed(1)}%</span>
-            <span className="ml-1 text-cyan-600">complete</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Summary tiles */}
-      <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-          <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Total Drawings</div>
-          <div className="mt-1 text-lg font-bold text-slate-800">{summary.totalDrawings}</div>
-        </div>
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
-          <div className="text-[10px] font-bold uppercase tracking-wide text-emerald-600">Completed</div>
-          <div className="mt-1 text-lg font-bold text-emerald-700">{summary.totalCompleted}</div>
-        </div>
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-          <div className="text-[10px] font-bold uppercase tracking-wide text-amber-600">Pending</div>
-          <div className="mt-1 text-lg font-bold text-amber-700">{summary.totalDrawings - summary.totalCompleted}</div>
-        </div>
-        <div className="rounded-lg border border-cyan-200 bg-cyan-50 p-3">
-          <div className="text-[10px] font-bold uppercase tracking-wide text-cyan-600">Disciplines</div>
-          <div className="mt-1 text-lg font-bold text-cyan-700">{summary.byDiscipline.length}</div>
-        </div>
+        <span className="rounded-lg border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-xs font-bold text-cyan-800">{summary.progressPct.toFixed(1)}% complete</span>
       </div>
 
       {summary.byDiscipline.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-slate-200 px-4 py-10 text-center text-xs text-slate-400">
-          No approved drawing items yet. Once a Site Engineer approves drawing items and logs progress, the consolidated status will appear here automatically.
-        </div>
+        <div className="rounded-lg border border-dashed border-slate-200 px-4 py-8 text-center text-xs text-slate-400">No approved drawing items yet.</div>
       ) : (
-        <>
-          {/* Chart */}
-          <div className="mb-4 flex items-center justify-between">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-600">Progress by Discipline</h4>
-            <div className="flex items-center gap-0.5">
-              <button onClick={() => setChartType('bar')} className={`rounded p-1 ${chartType === 'bar' ? 'bg-cyan-100 text-cyan-700' : 'text-slate-400 hover:bg-slate-100'}`}>
-                <BarChart3 className="h-4 w-4" />
-              </button>
-              <button onClick={() => setChartType('pie')} className={`rounded p-1 ${chartType === 'pie' ? 'bg-cyan-100 text-cyan-700' : 'text-slate-400 hover:bg-slate-100'}`}>
-                <PieChartIcon className="h-4 w-4" />
-              </button>
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+          <div className="mirror-card rounded border-t-2 border-t-cyan-600 p-2">
+            <div className="mb-1 flex items-center justify-between">
+              <div>
+                <h4 className="text-xs font-semibold text-slate-700">Drawing Status</h4>
+                <p className="text-[9px] font-medium text-slate-500">Total, completed, and pending drawings</p>
+              </div>
+              {chartButtons(statusChartType, setStatusChartType)}
             </div>
+            {statusChartType === 'bar' ? renderStatusBar() : renderStatusPie()}
           </div>
-          <div className="h-[168px]">
-            <ResponsiveContainer width="100%" height="100%">
-              {chartType === 'bar' ? (
-                <BarChart data={chartData} margin={{ top: 8, right: 10, left: 0, bottom: 12 }}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-slate-100" vertical={false} />
-                  <XAxis dataKey="name" tick={{ fontSize: 9, fontWeight: 600 }} angle={-15} textAnchor="end" height={34} axisLine={{ stroke: '#cbd5e1' }} />
-                  <YAxis domain={[0, 100]} tick={{ fontSize: 9 }} tickFormatter={(v) => `${v}%`} axisLine={false} tickLine={false} width={30} />
-                  <Tooltip cursor={{ fill: 'rgba(8,145,178,0.05)' }} content={<DisciplineTooltip />} />
-                  <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={30} maxBarSize={36}>
-                    {chartData.map((d, i) => (
-                      <Cell key={i} fill={d.color} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              ) : (
-                <PieChart>
-                  <Pie
-                    data={chartData}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={52}
-                    innerRadius={26}
-                    label={(e: any) => `${e.name}: ${e.value}%`}
-                  >
-                    {chartData.map((d, i) => (
-                      <Cell key={i} fill={d.color} stroke="#fff" strokeWidth={1} />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<DisciplineTooltip />} />
-                </PieChart>
-              )}
-            </ResponsiveContainer>
+          <div className="mirror-card rounded border-t-2 border-t-cyan-600 p-2">
+            <div className="mb-1 flex items-center justify-between">
+              <h4 className="text-xs font-semibold text-slate-700">Progress by Discipline</h4>
+              {chartButtons(disciplineChartType, setDisciplineChartType)}
+            </div>
+            {disciplineChartType === 'bar' ? renderDisciplineBar() : renderDisciplinePie()}
           </div>
-
-          {/* Discipline breakdown table */}
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[760px] text-xs">
-              <thead className="bg-slate-900 text-left text-[10px] uppercase tracking-wide text-white">
-                <tr>
-                  <th className="p-2">Discipline</th>
-                  <th className="p-2 text-right">Items</th>
-                  <th className="p-2 text-right">Cat 1 (Done/Total)</th>
-                  <th className="p-2 text-right">Cat 2 (Done/Total)</th>
-                  <th className="p-2 text-right">Cat 3 (Done/Total)</th>
-                  <th className="p-2 text-right">Completed</th>
-                  <th className="p-2 text-right">Total</th>
-                  <th className="p-2">Progress</th>
-                </tr>
-              </thead>
-              <tbody>
-                {summary.byDiscipline.map((d) => (
-                  <tr key={d.discipline} className="border-b border-slate-100 odd:bg-slate-50/60">
-                    <td className="p-2 font-semibold text-slate-800">{d.discipline}</td>
-                    <td className="p-2 text-right text-slate-600">{d.itemCount}</td>
-                    <td className="p-2 text-right text-slate-600">{d.cat1Completed}/{d.cat1Total}</td>
-                    <td className="p-2 text-right text-slate-600">{d.cat2Completed}/{d.cat2Total}</td>
-                    <td className="p-2 text-right text-slate-600">{d.cat3Completed}/{d.cat3Total}</td>
-                    <td className="p-2 text-right font-semibold text-emerald-700">{d.totalCompleted}</td>
-                    <td className="p-2 text-right font-semibold text-slate-700">{d.totalDrawings}</td>
-                    <td className="p-2">
-                      <div className="flex items-center gap-2">
-                        <div className="h-1.5 w-20 overflow-hidden rounded-full bg-slate-200">
-                          <div className="h-full rounded-full bg-cyan-600" style={{ width: `${Math.min(100, d.progressPct)}%` }} />
-                        </div>
-                        <span className="tabular-nums text-slate-600">{d.progressPct.toFixed(1)}%</span>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="border-t-2 border-slate-300 bg-slate-100 font-bold">
-                  <td className="p-2 text-slate-800">Total</td>
-                  <td className="p-2 text-right text-slate-700">{summary.byDiscipline.reduce((s, d) => s + d.itemCount, 0)}</td>
-                  <td className="p-2 text-right text-slate-700">{summary.byDiscipline.reduce((s, d) => s + d.cat1Completed, 0)}/{summary.byDiscipline.reduce((s, d) => s + d.cat1Total, 0)}</td>
-                  <td className="p-2 text-right text-slate-700">{summary.byDiscipline.reduce((s, d) => s + d.cat2Completed, 0)}/{summary.byDiscipline.reduce((s, d) => s + d.cat2Total, 0)}</td>
-                  <td className="p-2 text-right text-slate-700">{summary.byDiscipline.reduce((s, d) => s + d.cat3Completed, 0)}/{summary.byDiscipline.reduce((s, d) => s + d.cat3Total, 0)}</td>
-                  <td className="p-2 text-right text-emerald-700">{summary.totalCompleted}</td>
-                  <td className="p-2 text-right text-slate-800">{summary.totalDrawings}</td>
-                  <td className="p-2">
-                    <div className="flex items-center gap-2">
-                      <div className="h-1.5 w-20 overflow-hidden rounded-full bg-slate-200">
-                        <div className="h-full rounded-full bg-cyan-700" style={{ width: `${Math.min(100, summary.progressPct)}%` }} />
-                      </div>
-                      <span className="tabular-nums font-bold text-cyan-700">{summary.progressPct.toFixed(1)}%</span>
-                    </div>
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </>
+        </div>
       )}
     </div>
   );
