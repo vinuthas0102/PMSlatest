@@ -98,11 +98,11 @@ export function TileView({ items, trackingUpdates = [], onShowDetails, onMaintai
                     <Ruler className="w-2.5 h-2.5" /> {v ?? `${item.qty_deviations}`} Qty
                   </span>
                 ); })()}
-                {item.extension_days > 0 && (
+                {(() => { const v = latestDeviationValue(trackingUpdates, item.id, 'delay'); return (item.extension_days > 0 || v) && (
                   <span className="flex items-center gap-0.5 text-red-700 bg-red-100 px-1.5 py-0.5 rounded border border-red-300 font-medium">
-                    <CalendarClock className="w-2.5 h-2.5" /> {item.extension_days}d Ext
+                    <CalendarClock className="w-2.5 h-2.5" /> {v ?? `${item.extension_days}d`} Ext
                   </span>
-                )}
+                ); })()}
               </div>
             </div>
 

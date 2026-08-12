@@ -494,6 +494,7 @@ function HeaderTab({
             <div>
               <SectionTitle icon={FileText}>Financials</SectionTitle>
               <MetaRow label="Total Project Value" value={formatINR(project.project_value)} valueClass="text-indigo-700" />
+              <MetaRow label="Agency Allocation" value={`${formatINR(agencyValueTotal)} · ${agencyAllocationTotal.toFixed(1)}%`} valueClass="text-cyan-700" />
               <MetaRow label="Work Order Value" value={formatINR(project.workorder_value)} valueClass="text-blue-700" />
               <MetaRow label="MBook Entry" value={formatINR(project.mbook_entry)} valueClass="text-blue-700" />
               <MetaRow label="Billed Amount" value={formatINR(project.billed_amount)} valueClass="text-cyan-700" />
@@ -612,6 +613,7 @@ function AgencyTab({
     return { wo, agencyName: detail?.agency_name ?? '-', value, pct: calculateAllocationPct(value, Number(project.project_value) || 0) };
   }), [details, project.project_value, projectWOs]);
   const allocationTotal = allocationRows.reduce((sum, row) => sum + row.pct, 0);
+  const agencyValueTotal = allocationRows.reduce((sum, row) => sum + row.value, 0);
 
   const filteredWOs = useMemo(() => {
     if (!statusFilter) return projectWOs;
@@ -657,7 +659,10 @@ function AgencyTab({
 
       <div className="mx-4 mt-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
         <div className="mb-2 flex items-center justify-between">
-          <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Agency Allocation</h3>
+          <div>
+            <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Agency Allocation</h3>
+            <p className="mt-0.5 text-[10px] text-slate-400">{formatINR(agencyValueTotal)} of {formatINR(project.project_value)}</p>
+          </div>
           <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${Math.abs(allocationTotal - 100) < 0.01 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800'}`}>{allocationTotal.toFixed(1)}% / 100%</span>
         </div>
         <div className="space-y-1.5">
