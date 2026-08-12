@@ -66,7 +66,8 @@ export function aggregateSectionStatus(
     }
 
     if (sectionType === 'manpower') {
-      const target = parseTargetDeployment(section.target_deployment);
+      const target = parseTargetDeployment(section.target_deployment) ||
+        (Number(section.skilled_count) || 0) + (Number(section.unskilled_count) || 0);
       const latest = latestProgressForSection(section.id, progress);
       const deployed = latest
         ? Number(latest.progress_value) || 0
