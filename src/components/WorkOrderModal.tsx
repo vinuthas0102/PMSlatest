@@ -6,7 +6,7 @@ import {
 import type { Project, WorkOrder, WorkOrderDetail, WOSection, PaymentEntry, TrackingUpdate, TrackingType, WOSectionProgress, WOSectionDocument, WOSectionActivity, WODrawingProgress } from '@/types';
 import { useAuth } from '@/auth/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { calculateAllocationPct, delayStatusColor, delayStatusShort, DELAY_STATUSES } from '@/lib/format';
+import { calculateAllocationPct, delayStatusColor, delayStatusShort, DELAY_STATUSES, formatINRShort } from '@/lib/format';
 import { WOSectionWorkspace } from '@/components/WOSectionWorkspace';
 
 interface WorkOrderModalProps {
@@ -105,6 +105,14 @@ export function WorkOrderModal({
     return sum + (Number(value) || 0);
   }, 0);
   const allocationTotalPct = calculateAllocationPct(projectWOValue, projectValue);
+  const agencyPayments = payments.filter((payment) => payment.work_order_id === selectedWO?.id);
+  const agencyPaid = agencyPayments.length > 0
+    ? agencyPayments.reduce((sum, payment) => sum + (Number(payment.amount_paid) || 0), 0)
+    : Number(selectedWO?.paid_amount) || 0;
+  const agencyBalance = Math.max(0, approvedValue - agencyPaid);
+  const agencyFinancialPct = approvedValue > 0 ? Math.min(100, (agencyPaid / approvedValue) * 100) : 0;
+  const agencyPhysicalPct = Math.min(100, Math.max(0, Number(selectedWO?.completed_pct) || 0));
+  const agencyPhysicalTarget = Math.min(100, Math.max(0, Number(selectedWO?.target_pct) || 0));
   const exceptions = useMemo(() => trackingUpdates.filter((u) => u.project_id === project.id), [trackingUpdates, project.id]);
   const tabExceptions = useMemo(() => exceptions.filter((e) => e.tracking_type === exceptionTab), [exceptions, exceptionTab]);
   const tabMeta = EXCEPTION_TABS.find((t) => t.key === exceptionTab);
@@ -399,6 +407,35 @@ export function WorkOrderModal({
                     Save WO Header
                   </button>
                 )}
+              </div>
+              <div className="rounded-xl border-t-2 border-emerald-600 bg-white p-4 shadow-sm md:col-span-2">
+                <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-700">Agency Progress</h3>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="rounded-lg border border-cyan-100 bg-cyan-50 px-3 py-3">
+                    <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wide text-slate-500">
+                      <span>Physical Progress</span>
+                      <span className="text-sm tabular-nums text-cyan-700">{agencyPhysicalPct.toFixed(1)}%</span>
+                    </div>
+                    <div className="relative mt-2 h-2.5 overflow-hidden rounded-full bg-slate-200">
+                      <div className="absolute inset-y-0 w-0.5 bg-slate-500" style={{ left: `${agencyPhysicalTarget}%` }} />
+                      <div className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-blue-600" style={{ width: `${agencyPhysicalPct}%` }} />
+                    </div>
+                    <div className="mt-1 text-[10px] text-slate-500">Target: {agencyPhysicalTarget.toFixed(1)}%</div>
+                  </div>
+                  <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-3">
+                    <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wide text-slate-500">
+                      <span>Financial Progress</span>
+                      <span className="text-sm tabular-nums text-emerald-700">{agencyFinancialPct.toFixed(1)}%</span>
+                    </div>
+                    <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-slate-200">
+                      <div className="h-full rounded-full bg-emerald-500" style={{ width: `${agencyFinancialPct}%` }} />
+                    </div>
+                    <div className="mt-1 flex justify-between text-[10px] text-slate-500">
+                      <span>Paid: {formatINRShort(agencyPaid)}</span>
+                      <span>Balance: {formatINRShort(agencyBalance)}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           ) : tab === 'sections' ? (

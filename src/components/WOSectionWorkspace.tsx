@@ -48,6 +48,8 @@ const EMPTY_ITEM = {
   item_code: '',
   description: '',
   unit: '',
+  start_date: '',
+  end_date: '',
   required_qty: '0',
   value: '0',
   cat1_total: '0',
@@ -121,6 +123,8 @@ export function WOSectionWorkspace({ workOrder, sections, progress, documents, a
       item_code: item.item_code ?? '',
       description: item.description ?? '',
       unit: item.unit ?? '',
+      start_date: item.start_date ?? '',
+      end_date: item.end_date ?? '',
       required_qty: String(item.required_qty ?? 0),
       value: String(item.value ?? 0),
       cat1_total: String(item.cat1_total ?? 0),
@@ -245,6 +249,8 @@ export function WOSectionWorkspace({ workOrder, sections, progress, documents, a
       item_code: itemForm.item_code.trim() || null,
       description: itemForm.description.trim() || null,
       unit: itemForm.unit.trim() || null,
+      start_date: itemForm.start_date || null,
+      end_date: itemForm.end_date || null,
       required_qty: Number(itemForm.required_qty) || 0,
       value: Number(itemForm.value) || 0,
       cat1_total: Number(itemForm.cat1_total) || 0,
@@ -492,10 +498,10 @@ export function WOSectionWorkspace({ workOrder, sections, progress, documents, a
                     return <tr key={row.id} className="border-b border-slate-100 odd:bg-slate-50/60">
                       <td className="max-w-[260px] p-2"><div className="font-semibold text-slate-800">{row.item_code || row.description || 'Unnamed item'}</div><div className="text-[10px] text-slate-500">{row.description && row.item_code ? row.description : row.unit || 'No unit'}</div></td>
                       <td className="p-2 text-slate-600">{row.discipline || '-'}</td>
-                      <td className="p-2 font-semibold text-slate-700">{activeType === 'manpower' ? `${row.skilled_count + row.unskilled_count} people` : activeType === 'quality' ? `${completedDocs}/${itemDocuments.length} docs` : `${row.required_qty} ${row.unit || ''}`}</td>
+                      <td className="p-2 font-semibold text-slate-700">{activeType === 'manpower' ? `${row.skilled_count + row.unskilled_count} people` : activeType === 'quality' ? `${completedDocs}/${itemDocuments.length} docs` : `${row.required_qty} ${row.unit || ''}`}<div className="mt-1 text-[10px] font-normal text-slate-400">{row.start_date || row.end_date ? `${row.start_date || '—'} to ${row.end_date || '—'}` : 'No dates'}</div></td>
                       <td className="p-2"><div className="flex items-center gap-2"><div className="h-1.5 w-20 overflow-hidden rounded-full bg-slate-200"><div className="h-full rounded-full bg-cyan-600" style={{ width: `${Math.min(100, Number(row.required_qty) ? totalProgress / Number(row.required_qty) * 100 : 0)}%` }} /></div><span className="tabular-nums text-slate-600">{totalProgress} {row.unit || ''}</span></div></td>
                       <td className="p-2"><span className={`rounded-full border px-2 py-1 text-[10px] font-bold ${statusStyle(row.approval_status)}`}>{statusLabel(row.approval_status)}</span></td>
-                      <td className="p-2"><div className="flex justify-end gap-1"><button onClick={() => openDetail(row)} className="rounded border border-slate-200 px-2 py-1 text-[10px] font-bold text-cyan-700 hover:bg-cyan-50">Details</button>{permissions.canTrackWOProgress && row.approval_status === 'approved' && <button onClick={() => openTracker(row)} className="rounded border border-cyan-200 bg-cyan-50 px-2 py-1 text-[10px] font-bold text-cyan-700 hover:bg-cyan-100">Track</button>}{permissions.canLogPayments && <button onClick={() => openPaymentEditor(row)} className="inline-flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-700 hover:bg-emerald-100"><CreditCard className="h-3 w-3" /> Payment</button>}</div><div className="mt-1 text-right text-[10px] text-emerald-700">₹{paidValue.toFixed(2)} · {financialPct.toFixed(1)}%</div></td>
+                      <td className="p-2"><div className="flex justify-end gap-1"><button onClick={() => openDetail(row)} className="rounded border border-slate-200 px-2 py-1 text-[10px] font-bold text-cyan-700 hover:bg-cyan-50">Details</button>{permissions.canTrackWOProgress && row.approval_status === 'approved' && <button onClick={() => openTracker(row)} className="rounded border border-cyan-200 bg-cyan-50 px-2 py-1 text-[10px] font-bold text-cyan-700 hover:bg-cyan-100">Track</button>}{permissions.canLogPayments && row.section_type !== 'quality' && <button onClick={() => openPaymentEditor(row)} className="inline-flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-700 hover:bg-emerald-100"><CreditCard className="h-3 w-3" /> Payment</button>}</div>{row.section_type !== 'quality' && <div className="mt-1 text-right text-[10px] text-emerald-700">₹{paidValue.toFixed(2)} · {financialPct.toFixed(1)}%</div>}</td>
                     </tr>;
                   })}
                 </tbody>
@@ -507,7 +513,7 @@ export function WOSectionWorkspace({ workOrder, sections, progress, documents, a
         {editorMode && <aside className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
           <div className="flex items-start justify-between border-b border-slate-200 bg-slate-50 px-4 py-3"><div><div className="flex items-center gap-2"><h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">{!selectedItem ? 'Create Item' : panelTab === 'activity' ? 'Activity Log' : panelTab === 'progress' ? 'Progress Update' : 'Item Detail'}</h3>{selectedItem && <span className={`rounded-full border px-2 py-0.5 text-[9px] font-bold ${statusStyle(selectedItem.approval_status)}`}>{statusLabel(selectedItem.approval_status)}</span>}</div><p className="mt-1 text-[11px] text-slate-500">{selectedItem?.item_code || selectedItem?.description || sectionTitle(itemForm.section_type)}</p></div><button onClick={() => setEditorMode(null)} className="rounded p-1 text-slate-400 hover:bg-slate-200"><X className="h-4 w-4" /></button></div>
           {selectedItem && <div className="flex border-b border-slate-200 px-2 pt-2" role="tablist" aria-label="Item workspace tabs">
-            {(['details', 'activity', 'progress', 'payments'] as PanelTab[]).map((tab) => <button key={tab} onClick={() => setPanelTab(tab)} role="tab" aria-selected={panelTab === tab} className={`flex-1 rounded-t-lg px-2 py-2 text-[10px] font-bold capitalize transition-colors ${panelTab === tab ? 'border-b-2 border-cyan-700 bg-cyan-50 text-cyan-800' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}>{tab === 'details' ? 'Item Details' : tab === 'activity' ? 'Activity Log' : tab === 'progress' ? 'Progress Update' : 'Payments'}</button>)}
+            {(['details', 'activity', 'progress', ...(selectedItem.section_type === 'quality' ? [] : ['payments'])] as PanelTab[]).map((tab) => <button key={tab} onClick={() => setPanelTab(tab)} role="tab" aria-selected={panelTab === tab} className={`flex-1 rounded-t-lg px-2 py-2 text-[10px] font-bold capitalize transition-colors ${panelTab === tab ? 'border-b-2 border-cyan-700 bg-cyan-50 text-cyan-800' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}>{tab === 'details' ? 'Item Details' : tab === 'activity' ? 'Activity Log' : tab === 'progress' ? 'Progress Update' : 'Payments'}</button>)}
           </div>}
           <div className="max-h-[72vh] overflow-y-auto p-4">
             {(!selectedItem || panelTab === 'details') && <>
@@ -516,6 +522,8 @@ export function WOSectionWorkspace({ workOrder, sections, progress, documents, a
                 <Field label="Discipline" value={itemForm.discipline} onChange={(value) => setItemForm({ ...itemForm, discipline: value })} />
                 <Field label="Description" value={itemForm.description} onChange={(value) => setItemForm({ ...itemForm, description: value })} full />
                 <Field label="Unit" value={itemForm.unit} onChange={(value) => setItemForm({ ...itemForm, unit: value })} />
+                <Field label="Start Date" value={itemForm.start_date} onChange={(value) => setItemForm({ ...itemForm, start_date: value })} type="date" />
+                <Field label="End Date" value={itemForm.end_date} onChange={(value) => setItemForm({ ...itemForm, end_date: value })} type="date" />
                 <Field label="Planned Quantity" value={itemForm.required_qty} onChange={(value) => setItemForm({ ...itemForm, required_qty: value })} type="number" />
                 <Field label="Planned Value" value={itemForm.value} onChange={(value) => setItemForm({ ...itemForm, value })} type="number" />
               </div>

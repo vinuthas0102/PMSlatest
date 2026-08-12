@@ -201,6 +201,8 @@ export interface WOSection {
   item_code: string | null;
   description: string | null;
   unit: string | null;
+  start_date: string | null;
+  end_date: string | null;
   required_qty: number;
   executed_qty: number;
   cat1_total: number;
