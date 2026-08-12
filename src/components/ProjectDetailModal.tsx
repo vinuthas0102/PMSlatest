@@ -671,7 +671,7 @@ function AgencyTab({
       </div>
 
       {/* WO Charts */}
-      <WOChartView workOrders={projectWOs} />
+      <WOChartView workOrders={projectWOs} workOrderDetails={details} paymentEntries={payments} />
 
       {/* Project-level Drawing Status */}
       <ProjectDrawingStatus
@@ -685,9 +685,9 @@ function AgencyTab({
 
       {/* WO Views */}
       <div className="flex-1">
-        {woViewType === 'tile' && <WOTileView workOrders={filteredWOs} details={details} projectValue={project.project_value} onSelect={(wo) => setSelectedWO(wo)} />}
-        {woViewType === 'table' && <WOTableView workOrders={filteredWOs} details={details} projectValue={project.project_value} onSelect={(wo) => setSelectedWO(wo)} />}
-        {woViewType === 'card' && <WOCardView workOrders={filteredWOs} details={details} projectValue={project.project_value} onSelect={(wo) => setSelectedWO(wo)} />}
+        {woViewType === 'tile' && <WOTileView workOrders={filteredWOs} details={details} payments={payments} projectValue={project.project_value} onSelect={(wo) => setSelectedWO(wo)} />}
+        {woViewType === 'table' && <WOTableView workOrders={filteredWOs} details={details} payments={payments} projectValue={project.project_value} onSelect={(wo) => setSelectedWO(wo)} />}
+        {woViewType === 'card' && <WOCardView workOrders={filteredWOs} details={details} payments={payments} projectValue={project.project_value} onSelect={(wo) => setSelectedWO(wo)} />}
       </div>
 
       {/* WorkOrderModal for selected WO */}
@@ -732,7 +732,12 @@ function safeNum(v: number | null | undefined): number {
   return typeof v === 'number' && !isNaN(v) ? v : 0;
 }
 
-function WOTileView({ workOrders, details, onSelect, projectValue }: { workOrders: WorkOrder[]; details: WorkOrderDetail[]; onSelect: (wo: WorkOrder) => void; projectValue?: number }) {
+function getPaidAmount(workOrder: WorkOrder, payments: PaymentEntry[]): number {
+  const entries = payments.filter((payment) => payment.work_order_id === workOrder.id);
+  return entries.length ? Math.max(...entries.map((payment) => safeNum(payment.cumulative_paid))) : safeNum(workOrder.paid_amount);
+}
+
+function WOTileView({ workOrders, details, payments, onSelect, projectValue }: { workOrders: WorkOrder[]; details: WorkOrderDetail[]; payments: PaymentEntry[]; onSelect: (wo: WorkOrder) => void; projectValue?: number }) {
   if (workOrders.length === 0) return <div className="text-center text-sm text-slate-500 py-6">No work orders found.</div>;
   return (
     <div className="flex flex-col gap-3 p-4">
@@ -741,6 +746,8 @@ function WOTileView({ workOrders, details, onSelect, projectValue }: { workOrder
         const agencyName = getAgencyName(wo.id, details);
         const woValue = details.find((detail) => detail.work_order_id === wo.id)?.wo_value ?? wo.project_value;
         const allocationPct = calculateAllocationPct(Number(woValue) || 0, Number(projectValue) || 0);
+        const paidAmount = getPaidAmount(wo, payments);
+        const financialPct = Number(woValue) > 0 ? Math.min(100, (paidAmount / Number(woValue)) * 100) : 0;
         return (
           <div key={wo.id} className={`mirror-card rounded-r-lg rounded-l-sm p-4 flex flex-col gap-2 border-l-4 ${colors.borderAccent}`}>
             <div className="flex items-center gap-2 flex-wrap">
@@ -764,7 +771,7 @@ function WOTileView({ workOrders, details, onSelect, projectValue }: { workOrder
             <div className="flex items-center gap-3 text-[10px] text-slate-500">
               <span>Agency: <span className="font-semibold text-slate-700">{agencyName}</span></span>
               <span>WO Value: <span className="font-semibold text-indigo-700">{formatINRShort(Number(woValue) || 0)}</span></span>
-              <span>Paid: <span className="font-semibold text-emerald-700">{formatINRShort(safeNum(wo.paid_amount))}</span></span>
+              <span>Paid: <span className="font-semibold text-emerald-700">{formatINRShort(paidAmount)}</span> · <span className="font-semibold text-cyan-700">{financialPct.toFixed(1)}%</span></span>
               <span>Billed: <span className="font-semibold text-cyan-700">{formatINRShort(safeNum(wo.billed_amount))}</span></span>
             </div>
             <button onClick={() => onSelect(wo)} className="flex items-center gap-1 text-[10px] font-medium text-cyan-700 hover:text-white hover:bg-cyan-600 bg-cyan-50 border border-cyan-200 px-2.5 py-1 rounded transition-colors self-start">
@@ -777,7 +784,7 @@ function WOTileView({ workOrders, details, onSelect, projectValue }: { workOrder
   );
 }
 
-function WOTableView({ workOrders, details, onSelect, projectValue }: { workOrders: WorkOrder[]; details: WorkOrderDetail[]; onSelect: (wo: WorkOrder) => void; projectValue?: number }) {
+function WOTableView({ workOrders, details, payments, onSelect, projectValue }: { workOrders: WorkOrder[]; details: WorkOrderDetail[]; payments: PaymentEntry[]; onSelect: (wo: WorkOrder) => void; projectValue?: number }) {
   if (workOrders.length === 0) return <div className="text-center text-sm text-slate-500 py-6">No work orders found.</div>;
   return (
     <div className="p-2 overflow-x-auto">
@@ -791,7 +798,7 @@ function WOTableView({ workOrders, details, onSelect, projectValue }: { workOrde
             <th className="px-2 py-2 font-bold text-slate-700 text-right">Comp %</th>
             <th className="px-2 py-2 font-bold text-slate-700 text-left">Status</th>
             <th className="px-2 py-2 font-bold text-slate-700 text-right">WO Value</th>
-            <th className="px-2 py-2 font-bold text-slate-700 text-right">Paid</th>
+            <th className="px-2 py-2 font-bold text-slate-700 text-right">Paid / Financial</th>
             <th className="px-2 py-2 font-bold text-slate-700 text-left">Actions</th>
           </tr>
         </thead>
@@ -800,6 +807,8 @@ function WOTableView({ workOrders, details, onSelect, projectValue }: { workOrde
             const colors = delayStatusColor(wo.delay_status);
             const woValue = details.find((detail) => detail.work_order_id === wo.id)?.wo_value ?? wo.project_value;
             const allocationPct = calculateAllocationPct(Number(woValue) || 0, Number(projectValue) || 0);
+            const paidAmount = getPaidAmount(wo, payments);
+            const financialPct = Number(woValue) > 0 ? Math.min(100, (paidAmount / Number(woValue)) * 100) : 0;
             return (
               <tr key={wo.id} className={`border-b border-slate-200 hover:bg-cyan-50/40 transition-colors ${idx % 2 === 1 ? 'bg-slate-50' : 'bg-white'}`}>
                 <td className="px-2 py-1.5 font-mono font-bold text-slate-500 whitespace-nowrap">{wo.seq_no}</td>
@@ -811,7 +820,7 @@ function WOTableView({ workOrders, details, onSelect, projectValue }: { workOrde
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${colors.bg} ${colors.text} ${colors.border}`}>{delayStatusShort(wo.delay_status)}</span>
                 </td>
                 <td className="px-2 py-1.5 text-indigo-700 font-semibold text-right tabular-nums whitespace-nowrap">{formatINRShort(Number(woValue) || 0)}</td>
-                <td className="px-2 py-1.5 text-emerald-700 font-semibold text-right tabular-nums whitespace-nowrap">{formatINRShort(safeNum(wo.paid_amount))}</td>
+                <td className="px-2 py-1.5 text-emerald-700 font-semibold text-right tabular-nums whitespace-nowrap">{formatINRShort(paidAmount)} · {financialPct.toFixed(1)}%</td>
                 <td className="px-2 py-1.5 whitespace-nowrap">
                   <button onClick={() => onSelect(wo)} className="flex items-center gap-1 text-[10px] font-medium text-cyan-700 hover:text-white hover:bg-cyan-600 bg-cyan-50 border border-cyan-200 px-1.5 py-0.5 rounded transition-colors">
                     <Building2 className="w-3 h-3" /> Detail
@@ -826,7 +835,7 @@ function WOTableView({ workOrders, details, onSelect, projectValue }: { workOrde
   );
 }
 
-function WOCardView({ workOrders, details, onSelect, projectValue }: { workOrders: WorkOrder[]; details: WorkOrderDetail[]; onSelect: (wo: WorkOrder) => void; projectValue?: number }) {
+function WOCardView({ workOrders, details, payments, onSelect, projectValue }: { workOrders: WorkOrder[]; details: WorkOrderDetail[]; payments: PaymentEntry[]; onSelect: (wo: WorkOrder) => void; projectValue?: number }) {
   if (workOrders.length === 0) return <div className="text-center text-sm text-slate-500 py-6">No work orders found.</div>;
   return (
     <div className="p-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
@@ -834,6 +843,8 @@ function WOCardView({ workOrders, details, onSelect, projectValue }: { workOrder
         const colors = delayStatusColor(wo.delay_status);
         const woValue = details.find((detail) => detail.work_order_id === wo.id)?.wo_value ?? wo.project_value;
         const allocationPct = calculateAllocationPct(Number(woValue) || 0, Number(projectValue) || 0);
+        const paidAmount = getPaidAmount(wo, payments);
+        const financialPct = Number(woValue) > 0 ? Math.min(100, (paidAmount / Number(woValue)) * 100) : 0;
         return (
           <div key={wo.id} className={`mirror-card rounded-r-lg rounded-l-sm p-3 flex flex-col gap-2 border-l-4 ${colors.borderAccent}`}>
             <div className="flex items-center gap-1.5">
@@ -857,7 +868,7 @@ function WOCardView({ workOrders, details, onSelect, projectValue }: { workOrder
             </div>
             <div className="flex items-center justify-between text-[10px] text-slate-500">
               <span>WO: <span className="font-semibold text-indigo-700">{formatINRShort(Number(woValue) || 0)}</span></span>
-              <span>Paid: <span className="font-semibold text-emerald-700">{formatINRShort(safeNum(wo.paid_amount))}</span></span>
+              <span>Paid: <span className="font-semibold text-emerald-700">{formatINRShort(paidAmount)}</span> · <span className="font-semibold text-cyan-700">{financialPct.toFixed(1)}%</span></span>
             </div>
             <button onClick={() => onSelect(wo)} className="flex items-center gap-1 text-[10px] font-medium text-cyan-700 hover:text-white hover:bg-cyan-600 bg-cyan-50 border border-cyan-200 px-1.5 py-1 rounded transition-colors justify-center">
               <Building2 className="w-3 h-3" /> Agency Detail

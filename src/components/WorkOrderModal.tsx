@@ -189,28 +189,29 @@ export function WorkOrderModal({
     if (!selectedWO) return;
     const amount = Number(paymentAmount);
     if (!amount || amount <= 0) {
-      setError('Enter a payment amount greater than zero.');
+      setError('Enter an Amount Paid greater than zero.');
       return;
     }
-    const cumulative = currentPaid + amount;
-    if (cumulative > approvedValue) {
-      setError(`Payment exceeds the approved WO value by ₹${(cumulative - approvedValue).toFixed(2)}.`);
-      setEscalationOpen(true);
-      return;
-    }
-    const { error: paymentError } = await supabase.from('payment_entries').insert({
-      work_order_id: selectedWO.id,
-      amount_paid: amount,
-      cumulative_paid: cumulative,
-      payment_date: new Date().toISOString().slice(0, 10),
-      remarks: paymentRemarks || null,
-      created_by: user?.name ?? null,
+
+    const { error: paymentError } = await supabase.rpc('record_work_order_payment', {
+      p_work_order_id: selectedWO.id,
+      p_amount: amount,
+      p_payment_date: new Date().toISOString().slice(0, 10),
+      p_remarks: paymentRemarks,
+      p_created_by: user?.name ?? null,
     });
+
     if (paymentError) {
-      setError('Could not save the payment entry.');
+      const message = paymentError.message ?? '';
+      if (message.includes('PAYMENT_EXCEEDS_APPROVED_VALUE')) {
+        setError(`This payment would exceed the approved Work Order Value. The remaining balance is ₹${Math.max(0, approvedValue - currentPaid).toFixed(2)}.`);
+      } else if (message.includes('PAYMENT_AMOUNT_MUST_BE_GREATER_THAN_ZERO')) {
+        setError('Enter an Amount Paid greater than zero.');
+      } else {
+        setError('Could not save the payment entry. Please try again.');
+      }
     } else {
-      await supabase.from('work_orders').update({ paid_amount: cumulative }).eq('id', selectedWO.id);
-      await supabase.from('projects').update({ paid_amount: project.paid_amount + amount }).eq('id', project.id);
+      setError('');
       setPaymentAmount('');
       setPaymentRemarks('');
       await onReload();
@@ -508,7 +509,8 @@ export function WorkOrderModal({
                 </h3>
                 <div className="mb-3 flex flex-wrap gap-3 text-xs">
                   <span>Approved: <b>₹{approvedValue.toFixed(2)}</b></span>
-                  <span>Previous Total Paid: <b className="text-emerald-700">₹{currentPaid.toFixed(2)}</b></span>
+                  <span>Total Paid Amount: <b className="text-emerald-700">₹{currentPaid.toFixed(2)}</b></span>
+                  <span>Financial Progress: <b className="text-cyan-700">{approvedValue > 0 ? Math.min(100, (currentPaid / approvedValue) * 100).toFixed(1) : '0.0'}%</b></span>
                   <span>Balance: <b className="text-rose-600">₹{Math.max(0, approvedValue - currentPaid).toFixed(2)}</b></span>
                 </div>
                 {permissions.canLogPayments && (
@@ -516,7 +518,8 @@ export function WorkOrderModal({
                     <input
                       type="number"
                       min="0"
-                      placeholder="Amount paid"
+                      aria-label="Amount Paid"
+                      placeholder="Amount Paid"
                       value={paymentAmount}
                       onChange={(e) => setPaymentAmount(e.target.value)}
                       className="rounded border border-slate-300 p-2 text-xs"
@@ -533,7 +536,7 @@ export function WorkOrderModal({
                       className="flex items-center justify-center gap-1 rounded bg-emerald-700 px-3 py-2 text-xs font-bold text-white"
                     >
                       <Plus className="h-3.5 w-3.5" />
-                      Add Payment
+                      Save Amount Paid
                     </button>
                   </div>
                 )}

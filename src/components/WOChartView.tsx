@@ -4,7 +4,7 @@ import {
   CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import { BarChart3, PieChart as PieIcon } from 'lucide-react';
-import type { WorkOrder } from '@/types';
+import type { PaymentEntry, WorkOrder, WorkOrderDetail } from '@/types';
 import { formatINR, formatINRShort, DELAY_STATUSES, delayStatusShort } from '@/lib/format';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -60,9 +60,11 @@ function ChartCard({
 
 interface WOChartViewProps {
   workOrders: WorkOrder[];
+  workOrderDetails?: WorkOrderDetail[];
+  paymentEntries?: PaymentEntry[];
 }
 
-export function WOChartView({ workOrders }: WOChartViewProps) {
+export function WOChartView({ workOrders, workOrderDetails = [], paymentEntries = [] }: WOChartViewProps) {
   const [scheduleType, setScheduleType] = useState<ChartType>('bar');
   const [financialType, setFinancialType] = useState<ChartType>('bar');
   const [physicalType, setPhysicalType] = useState<ChartType>('bar');
@@ -78,17 +80,27 @@ export function WOChartView({ workOrders }: WOChartViewProps) {
   const safeNum = (v: number | null | undefined): number => (typeof v === 'number' && !isNaN(v) ? v : 0);
 
   const financialData = useMemo(() => {
-    const totalWOValue = workOrders.reduce((s, w) => s + safeNum(w.project_value), 0);
+    const totalWOValue = workOrders.reduce((s, w) => {
+      const approvedValue = workOrderDetails.find((d) => d.work_order_id === w.id)?.wo_value ?? w.project_value;
+      return s + safeNum(approvedValue);
+    }, 0);
     const billed = workOrders.reduce((s, w) => s + safeNum(w.billed_amount), 0);
-    const paid = workOrders.reduce((s, w) => s + safeNum(w.paid_amount), 0);
+    const paid = workOrders.reduce((s, w) => {
+      const entries = paymentEntries.filter((p) => p.work_order_id === w.id);
+      const cumulative = entries.length ? Math.max(...entries.map((p) => safeNum(p.cumulative_paid))) : safeNum(w.paid_amount);
+      return s + cumulative;
+    }, 0);
     return [
       { name: 'WO Value', value: totalWOValue, color: '#1e40af', raw: totalWOValue },
       { name: 'Billed', value: billed, color: '#0891b2', raw: billed },
       { name: 'Paid', value: paid, color: '#059669', raw: paid },
     ];
-  }, [workOrders]);
+  }, [workOrders, workOrderDetails, paymentEntries]);
 
-  const totalWOValue = workOrders.reduce((s, w) => s + safeNum(w.project_value), 0);
+  const totalWOValue = workOrders.reduce((s, w) => {
+    const approvedValue = workOrderDetails.find((d) => d.work_order_id === w.id)?.wo_value ?? w.project_value;
+    return s + safeNum(approvedValue);
+  }, 0);
 
   const physicalData = useMemo(() => {
     const avgTarget = workOrders.length > 0 ? workOrders.reduce((s, w) => s + safeNum(w.target_pct), 0) / workOrders.length : 0;
