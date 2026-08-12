@@ -125,36 +125,36 @@ export function LandingPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center p-4 sm:p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-cyan-50 to-slate-200 flex items-center justify-center p-4 sm:p-6 relative overflow-hidden">
       {/* Animated particle background */}
-      <div className="absolute inset-0 opacity-60">
+      <div className="absolute inset-0 opacity-35">
         <ParticleField />
       </div>
 
       {/* Glow orbs */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-cyan-300/20 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-300/20 rounded-full blur-3xl pointer-events-none" />
 
       <div className="relative z-10 w-full max-w-5xl grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Left: Branding */}
-        <div className="lg:col-span-2 flex flex-col justify-center text-center lg:text-left">
+        <div className="lg:col-span-2 flex flex-col justify-center text-center lg:text-left rounded-2xl bg-white/75 backdrop-blur-sm border border-white/80 shadow-lg p-6 sm:p-8">
           <div className="flex items-center justify-center lg:justify-start gap-3 mb-4">
-            <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-lg">
+            <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-white border border-slate-200 shadow-md">
               <img src={epiLogo} alt="EPI Logo" className="h-12 w-auto object-contain" />
             </div>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-tight">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight leading-tight">
             Engineering Projects (India) Ltd.
           </h1>
-          <p className="mt-2 text-sm sm:text-base text-cyan-300 font-semibold">
+          <p className="mt-2 text-sm sm:text-base text-cyan-700 font-semibold">
             Project Monitoring &amp; Contract Management System (PMS/CMS)
           </p>
-          <p className="mt-4 text-xs text-slate-400 leading-relaxed max-w-sm mx-auto lg:mx-0">
+          <p className="mt-4 text-xs text-slate-600 leading-relaxed max-w-sm mx-auto lg:mx-0">
             A comprehensive government infrastructure portal for monitoring project progress,
             financial tracking, work order management, and daily progress reporting.
           </p>
 
-          <div className="mt-6 flex items-center justify-center lg:justify-start gap-2 text-[11px] text-slate-500">
+          <div className="mt-6 flex items-center justify-center lg:justify-start gap-2 text-[11px] text-slate-600">
             <ShieldCheck className="w-4 h-4 text-cyan-400" />
             <span>Secure Government Portal &middot; Authorized Personnel Only</span>
           </div>
