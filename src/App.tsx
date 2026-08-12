@@ -7,6 +7,7 @@ import type {
   BaseEntity, ViewType, Filters, DelayStatus,
   Project, ProjectFormData, TrackingType, TrackingUpdate,
 } from '@/types';
+import { buildProjectAllocations } from '@/lib/projectAllocation';
 import { Header } from '@/components/Header';
 import { StatusBar } from '@/components/StatusBar';
 import { ViewControls } from '@/components/ViewControls';
@@ -268,6 +269,10 @@ function DashboardApp() {
     Boolean(appliedFilters.endMonth);
 
   const allTrackingUpdates: TrackingUpdate[] = data?.trackingUpdates ?? [];
+  const projectAllocations = useMemo(
+    () => buildProjectAllocations(data?.projects ?? [], data?.workOrders ?? [], data?.workOrderDetails ?? []),
+    [data],
+  );
 
   if (loading) {
     return (
@@ -330,6 +335,7 @@ function DashboardApp() {
           <TileView
             items={filteredItems}
             trackingUpdates={allTrackingUpdates}
+            projectAllocations={projectAllocations}
             onShowDetails={(item) => handleShowDetails(item)}
             onMaintainProject={permissions.canEditProject ? (item) => handleMaintainProject(item) : undefined}
           />
@@ -337,6 +343,7 @@ function DashboardApp() {
         {viewType === 'table' && (
           <TableView
             items={filteredItems}
+            projectAllocations={projectAllocations}
             onShowDetails={(item) => handleShowDetails(item)}
             onMaintainProject={permissions.canEditProject ? (item) => handleMaintainProject(item) : undefined}
           />
@@ -344,6 +351,7 @@ function DashboardApp() {
         {viewType === 'card' && (
           <CardView
             items={filteredItems}
+            projectAllocations={projectAllocations}
             onShowDetails={(item) => handleShowDetails(item)}
             onMaintainProject={permissions.canEditProject ? (item) => handleMaintainProject(item) : undefined}
           />

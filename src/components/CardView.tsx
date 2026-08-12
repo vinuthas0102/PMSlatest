@@ -1,15 +1,17 @@
 import { FileText, MapPin, FilePlus, Wrench } from 'lucide-react';
 import type { BaseEntity } from '@/types';
-import { formatINRShort, delayStatusColor, delayStatusShort } from '@/lib/format';
+import type { ProjectAllocation } from '@/lib/projectAllocation';
+import { formatINRShort, formatPct, delayStatusColor, delayStatusShort } from '@/lib/format';
 
 interface CardViewProps {
   items: BaseEntity[];
+  projectAllocations?: Map<string, ProjectAllocation>;
   onShowDetails: (item: BaseEntity) => void;
   onMaintainProject?: (item: BaseEntity) => void;
   onCreateNew?: () => void;
 }
 
-export function CardView({ items, onShowDetails, onMaintainProject, onCreateNew }: CardViewProps) {
+export function CardView({ items, projectAllocations = new Map(), onShowDetails, onMaintainProject, onCreateNew }: CardViewProps) {
   return (
     <div className="p-2">
       {onCreateNew && (
@@ -36,6 +38,7 @@ export function CardView({ items, onShowDetails, onMaintainProject, onCreateNew 
         const paidPct = Math.min(100, (item.paid_amount / base) * 100);
         const billedNotPaidPct = Math.min(100 - paidPct, (billedNotPaid / base) * 100);
         const remPct = Math.max(0, 100 - paidPct - billedNotPaidPct);
+        const agencyAllocation = projectAllocations.get(item.id) ?? { value: 0, percentage: 0 };
 
         return (
           <div
@@ -90,6 +93,13 @@ export function CardView({ items, onShowDetails, onMaintainProject, onCreateNew 
               {item.target_pct > 0 && (
                 <div className="text-right text-[9px] text-slate-400 mt-0.5">Target: {item.target_pct.toFixed(0)}%</div>
               )}
+            </div>
+
+            <div className="flex items-center justify-between rounded px-2 py-1.5 border border-cyan-200 bg-cyan-50/70">
+              <span className="text-[9px] font-semibold text-cyan-800 uppercase tracking-wider">Agency Allocation</span>
+              <span className="text-[10px] font-bold text-cyan-900 tabular-nums">
+                {formatINRShort(agencyAllocation.value)} · {formatPct(agencyAllocation.percentage)}
+              </span>
             </div>
 
             {/* Financial: single stacked bar */}

@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { ArrowUpDown, FileText, FilePlus, Wrench } from 'lucide-react';
 import type { BaseEntity } from '@/types';
-import { formatINRShort, delayStatusColor, delayStatusShort } from '@/lib/format';
+import type { ProjectAllocation } from '@/lib/projectAllocation';
+import { formatINRShort, formatPct, delayStatusColor, delayStatusShort } from '@/lib/format';
 
 interface TableViewProps {
   items: BaseEntity[];
+  projectAllocations?: Map<string, ProjectAllocation>;
   onShowDetails: (item: BaseEntity) => void;
   onMaintainProject?: (item: BaseEntity) => void;
   onCreateNew?: () => void;
@@ -13,7 +15,7 @@ interface TableViewProps {
 type SortKey = keyof BaseEntity;
 type SortDir = 'asc' | 'desc';
 
-export function TableView({ items, onShowDetails, onMaintainProject, onCreateNew }: TableViewProps) {
+export function TableView({ items, projectAllocations = new Map(), onShowDetails, onMaintainProject, onCreateNew }: TableViewProps) {
   const [sortKey, setSortKey] = useState<SortKey>('seq_no');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
 
@@ -47,6 +49,7 @@ export function TableView({ items, onShowDetails, onMaintainProject, onCreateNew
     { key: 'completed_pct', label: 'Comp %', align: 'right' },
     { key: 'delay_status', label: 'Status' },
     { key: 'project_value', label: 'Project ₹', align: 'right' },
+    { key: 'project_value', label: 'Agency Allocation', align: 'right' },
     { key: 'mbook_entry', label: 'MBook ₹', align: 'right' },
     { key: 'billed_amount', label: 'Billed ₹', align: 'right' },
     { key: 'paid_amount', label: 'Paid ₹', align: 'right' },
@@ -93,6 +96,7 @@ export function TableView({ items, onShowDetails, onMaintainProject, onCreateNew
           {sorted.map((item, idx) => {
             const colors = delayStatusColor(item.delay_status);
             const balance = Math.max(0, item.mbook_entry - item.paid_amount);
+            const agencyAllocation = projectAllocations.get(item.id) ?? { value: 0, percentage: 0 };
             return (
               <tr
                 key={item.id}
@@ -129,6 +133,10 @@ export function TableView({ items, onShowDetails, onMaintainProject, onCreateNew
                   </span>
                 </td>
                 <td className="px-2 py-1.5 text-indigo-700 font-semibold whitespace-nowrap text-right tabular-nums">{formatINRShort(item.project_value)}</td>
+                <td className="px-2 py-1.5 text-cyan-800 font-semibold whitespace-nowrap text-right tabular-nums">
+                  <div>{formatINRShort(agencyAllocation.value)}</div>
+                  <div className="text-[10px] text-cyan-600">{formatPct(agencyAllocation.percentage)}</div>
+                </td>
                 <td className="px-2 py-1.5 text-blue-700 font-semibold whitespace-nowrap text-right tabular-nums">{formatINRShort(item.mbook_entry)}</td>
                 <td className="px-2 py-1.5 text-cyan-700 font-semibold whitespace-nowrap text-right tabular-nums">{formatINRShort(item.billed_amount)}</td>
                 <td className="px-2 py-1.5 text-emerald-700 font-semibold whitespace-nowrap text-right tabular-nums">{formatINRShort(item.paid_amount)}</td>

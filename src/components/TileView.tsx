@@ -1,10 +1,12 @@
 import { FileText, MapPin, AlertTriangle, Ruler, CalendarClock, FilePlus, Wrench } from 'lucide-react';
 import type { BaseEntity, TrackingUpdate, TrackingType } from '@/types';
-import { formatINRShort, delayStatusColor, delayStatusShort } from '@/lib/format';
+import type { ProjectAllocation } from '@/lib/projectAllocation';
+import { formatINRShort, formatPct, delayStatusColor, delayStatusShort } from '@/lib/format';
 
 interface TileViewProps {
   items: BaseEntity[];
   trackingUpdates?: TrackingUpdate[];
+  projectAllocations?: Map<string, ProjectAllocation>;
   onShowDetails: (item: BaseEntity) => void;
   onMaintainProject?: (item: BaseEntity) => void;
   onCreateNew?: () => void;
@@ -15,7 +17,7 @@ function latestDeviationValue(updates: TrackingUpdate[], projectId: string, type
   return match ? match.deviation_value : null;
 }
 
-export function TileView({ items, trackingUpdates = [], onShowDetails, onMaintainProject, onCreateNew }: TileViewProps) {
+export function TileView({ items, trackingUpdates = [], projectAllocations = new Map(), onShowDetails, onMaintainProject, onCreateNew }: TileViewProps) {
   return (
     <div className="flex flex-col gap-4 p-4">
       {onCreateNew && (
@@ -39,6 +41,7 @@ export function TileView({ items, trackingUpdates = [], onShowDetails, onMaintai
         const billedNotPaid = Math.max(0, item.billed_amount - item.paid_amount);
         const progressPct = Math.min(item.completed_pct, 100);
         const targetPct = Math.min(item.target_pct, 100);
+        const agencyAllocation = projectAllocations.get(item.id) ?? { value: 0, percentage: 0 };
 
         // Stacked bar segment widths (relative to project value)
         const base = Math.max(1, item.project_value);
@@ -104,6 +107,13 @@ export function TileView({ items, trackingUpdates = [], onShowDetails, onMaintai
                   </span>
                 ); })()}
               </div>
+            </div>
+
+            <div className="flex items-center justify-between rounded px-3 py-2 border border-cyan-200 bg-cyan-50/70">
+              <span className="text-[9px] font-semibold text-cyan-800 uppercase tracking-wider">Agency Allocation</span>
+              <span className="text-[10px] font-bold text-cyan-900 tabular-nums">
+                {formatINRShort(agencyAllocation.value)} · {formatPct(agencyAllocation.percentage)}
+              </span>
             </div>
 
             {/* Line 3: Financial — single horizontal stacked bar */}
