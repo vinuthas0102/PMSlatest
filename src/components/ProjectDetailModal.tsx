@@ -1083,6 +1083,47 @@ function CreateWOModal({ project, onClose, onCreated }: { project: Project; onCl
   );
 }
 
+type DisciplineChartPoint = {
+  name: string;
+  value: number;
+  color: string;
+  itemCount: number;
+  cat1Completed: number;
+  cat1Total: number;
+  cat2Completed: number;
+  cat2Total: number;
+  cat3Completed: number;
+  cat3Total: number;
+  totalCompleted: number;
+  totalDrawings: number;
+};
+
+function DisciplineTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: Array<{ payload?: DisciplineChartPoint }>;
+}) {
+  const point = payload?.[0]?.payload;
+  if (!active || !point) return null;
+
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-2.5 text-[10px] shadow-lg">
+      <div className="mb-1.5 font-bold text-slate-800">{point.name}</div>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-slate-600">
+        <span>Items</span><strong className="text-right text-slate-800">{point.itemCount}</strong>
+        <span>Category 1</span><strong className="text-right text-slate-800">{point.cat1Completed}/{point.cat1Total}</strong>
+        <span>Category 2</span><strong className="text-right text-slate-800">{point.cat2Completed}/{point.cat2Total}</strong>
+        <span>Category 3</span><strong className="text-right text-slate-800">{point.cat3Completed}/{point.cat3Total}</strong>
+        <span>Completed</span><strong className="text-right text-emerald-700">{point.totalCompleted}</strong>
+        <span>Total</span><strong className="text-right text-slate-800">{point.totalDrawings}</strong>
+        <span>Progress</span><strong className="text-right text-cyan-700">{point.value.toFixed(1)}%</strong>
+      </div>
+    </div>
+  );
+}
+
 function ProjectDrawingStatus({
   workOrders,
   sections,
@@ -1105,6 +1146,15 @@ function ProjectDrawingStatus({
         name: d.discipline,
         value: Number(d.progressPct.toFixed(1)),
         color: CHART_COLORS[idx % CHART_COLORS.length],
+        itemCount: d.itemCount,
+        cat1Completed: d.cat1Completed,
+        cat1Total: d.cat1Total,
+        cat2Completed: d.cat2Completed,
+        cat2Total: d.cat2Total,
+        cat3Completed: d.cat3Completed,
+        cat3Total: d.cat3Total,
+        totalCompleted: d.totalCompleted,
+        totalDrawings: d.totalDrawings,
       })),
     [summary],
   );
@@ -1164,15 +1214,15 @@ function ProjectDrawingStatus({
               </button>
             </div>
           </div>
-          <div className="h-[260px]">
+          <div className="h-[168px]">
             <ResponsiveContainer width="100%" height="100%">
               {chartType === 'bar' ? (
-                <BarChart data={chartData} margin={{ top: 20, right: 10, left: 0, bottom: 20 }}>
+                <BarChart data={chartData} margin={{ top: 8, right: 10, left: 0, bottom: 12 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-slate-100" vertical={false} />
-                  <XAxis dataKey="name" tick={{ fontSize: 10, fontWeight: 600 }} angle={-15} textAnchor="end" height={50} axisLine={{ stroke: '#cbd5e1' }} />
-                  <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} tickFormatter={(v) => `${v}%`} axisLine={false} tickLine={false} />
-                  <Tooltip cursor={{ fill: 'rgba(8,145,178,0.05)' }} formatter={(v: number) => `${v}%`} />
-                  <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={50} maxBarSize={60}>
+                  <XAxis dataKey="name" tick={{ fontSize: 9, fontWeight: 600 }} angle={-15} textAnchor="end" height={34} axisLine={{ stroke: '#cbd5e1' }} />
+                  <YAxis domain={[0, 100]} tick={{ fontSize: 9 }} tickFormatter={(v) => `${v}%`} axisLine={false} tickLine={false} width={30} />
+                  <Tooltip cursor={{ fill: 'rgba(8,145,178,0.05)' }} content={<DisciplineTooltip />} />
+                  <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={30} maxBarSize={36}>
                     {chartData.map((d, i) => (
                       <Cell key={i} fill={d.color} />
                     ))}
@@ -1186,15 +1236,15 @@ function ProjectDrawingStatus({
                     nameKey="name"
                     cx="50%"
                     cy="50%"
-                    outerRadius={80}
-                    innerRadius={40}
+                    outerRadius={52}
+                    innerRadius={26}
                     label={(e: any) => `${e.name}: ${e.value}%`}
                   >
                     {chartData.map((d, i) => (
                       <Cell key={i} fill={d.color} stroke="#fff" strokeWidth={1} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(v: number) => `${v}%`} />
+                  <Tooltip content={<DisciplineTooltip />} />
                 </PieChart>
               )}
             </ResponsiveContainer>

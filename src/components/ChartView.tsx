@@ -75,6 +75,7 @@ function makePoint(
   selected?: boolean,
   anySelected?: boolean,
   rawValue?: number,
+  countOverride?: number,
 ): ChartPoint {
   return {
     name,
@@ -82,7 +83,7 @@ function makePoint(
     color,
     unit,
     rawValue,
-    count: subset.length,
+    count: countOverride ?? subset.length,
     statuses: computeStatuses(subset),
     filterField,
     filterValue,
@@ -245,7 +246,7 @@ export function ChartView({
 
   const drawingData = useMemo<ChartPoint[]>(() => {
     return drawingSummary.byDiscipline.map((d, idx) =>
-      makePoint(d.discipline, Number(d.progressPct.toFixed(1)), CHART_COLORS[idx % CHART_COLORS.length], [], '%'),
+      makePoint(d.discipline, Number(d.progressPct.toFixed(1)), CHART_COLORS[idx % CHART_COLORS.length], [], '%', undefined, undefined, false, false, undefined, d.itemCount),
     );
   }, [drawingSummary]);
 
@@ -255,7 +256,7 @@ export function ChartView({
   );
   const equipmentData = useMemo<ChartPoint[]>(() => {
     return equipmentSummary.byDiscipline.map((d, idx) =>
-      makePoint(d.discipline, Number(d.progressPct.toFixed(1)), CHART_COLORS[idx % CHART_COLORS.length], [], '%'),
+      makePoint(d.discipline, Number(d.progressPct.toFixed(1)), CHART_COLORS[idx % CHART_COLORS.length], [], '%', undefined, undefined, false, false, undefined, d.itemCount),
     );
   }, [equipmentSummary]);
 
@@ -265,7 +266,7 @@ export function ChartView({
   );
   const civilData = useMemo<ChartPoint[]>(() => {
     return civilSummary.byDiscipline.map((d, idx) =>
-      makePoint(d.discipline, Number(d.progressPct.toFixed(1)), CHART_COLORS[idx % CHART_COLORS.length], [], '%'),
+      makePoint(d.discipline, Number(d.progressPct.toFixed(1)), CHART_COLORS[idx % CHART_COLORS.length], [], '%', undefined, undefined, false, false, undefined, d.itemCount),
     );
   }, [civilSummary]);
 
@@ -275,7 +276,7 @@ export function ChartView({
   );
   const manpowerData = useMemo<ChartPoint[]>(() => {
     return manpowerSummary.byDiscipline.map((d, idx) =>
-      makePoint(d.discipline, Number(d.progressPct.toFixed(1)), CHART_COLORS[idx % CHART_COLORS.length], [], '%'),
+      makePoint(d.discipline, Number(d.progressPct.toFixed(1)), CHART_COLORS[idx % CHART_COLORS.length], [], '%', undefined, undefined, false, false, undefined, d.itemCount),
     );
   }, [manpowerSummary]);
 
@@ -648,7 +649,6 @@ export function ChartView({
           title="Drawing Status"
           chartType={chart7Type}
           onChartTypeChange={setChart7Type}
-          compact
           subtitle={
             drawingSummary.totalDrawings > 0
               ? `${drawingSummary.totalCompleted}/${drawingSummary.totalDrawings} drawings · ${drawingSummary.progressPct.toFixed(1)}%`
@@ -656,13 +656,13 @@ export function ChartView({
           }
         >
           {drawingData.length === 0 ? (
-            <div className="flex min-h-[180px] items-center justify-center text-xs text-slate-400">
+            <div className="flex min-h-[300px] items-center justify-center text-xs text-slate-400">
               No drawing progress data available.
             </div>
           ) : chart7Type === 'bar' ? (
-            renderBar(drawingData, false, true, 180)
+            renderBar(drawingData, false, true)
           ) : (
-            renderPie(drawingData, false, true, 180)
+            renderPie(drawingData, false, true)
           )}
         </ChartCard>
         <ChartCard
@@ -676,7 +676,7 @@ export function ChartView({
           }
         >
           {equipmentData.length === 0 ? (
-            <div className="flex h-full min-h-[260px] items-center justify-center text-xs text-slate-400">
+            <div className="flex h-full min-h-[300px] items-center justify-center text-xs text-slate-400">
               No equipment procurement data available.
             </div>
           ) : chart8Type === 'bar' ? (
@@ -696,7 +696,7 @@ export function ChartView({
           }
         >
           {civilData.length === 0 ? (
-            <div className="flex h-full min-h-[260px] items-center justify-center text-xs text-slate-400">
+            <div className="flex h-full min-h-[300px] items-center justify-center text-xs text-slate-400">
               No civil work progress data available.
             </div>
           ) : chart9Type === 'bar' ? (
@@ -716,7 +716,7 @@ export function ChartView({
           }
         >
           {manpowerData.length === 0 ? (
-            <div className="flex h-full min-h-[260px] items-center justify-center text-xs text-slate-400">
+            <div className="flex h-full min-h-[300px] items-center justify-center text-xs text-slate-400">
               No manpower deployment data available.
             </div>
           ) : chart10Type === 'bar' ? (
