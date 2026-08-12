@@ -90,6 +90,7 @@ export function WOSectionWorkspace({ workOrder, sections, progress, documents, a
   const [progressValue, setProgressValue] = useState('');
   const [progressUnit, setProgressUnit] = useState('');
   const [progressRemarks, setProgressRemarks] = useState('');
+  const [progressDate, setProgressDate] = useState(new Date().toISOString().slice(0, 10));
   const [drawingProgressValues, setDrawingProgressValues] = useState({ cat1: '', cat2: '', cat3: '' });
   const [paymentForm, setPaymentForm] = useState(EMPTY_PAYMENT);
   const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
@@ -211,6 +212,7 @@ export function WOSectionWorkspace({ workOrder, sections, progress, documents, a
     setProgressValue('');
     setProgressUnit(item.unit ?? '');
     setProgressRemarks('');
+    setProgressDate(new Date().toISOString().slice(0, 10));
     const latestDrawingProgress = drawingProgress.find((entry) => entry.section_id === item.id);
     setDrawingProgressValues({
       cat1: String(latestDrawingProgress?.cat1_completed ?? 0),
@@ -329,6 +331,15 @@ export function WOSectionWorkspace({ workOrder, sections, progress, documents, a
       setError('Progress can only be tracked after the item is approved.');
       return;
     }
+    const today = new Date().toISOString().slice(0, 10);
+    if (!progressDate) {
+      setError('Select a date of record before saving.');
+      return;
+    }
+    if (progressDate > today) {
+      setError('Date of record cannot be a future date.');
+      return;
+    }
     setSaving(true);
     let progressError = null;
     if (selectedItem.section_type === 'drawing') {
@@ -345,7 +356,7 @@ export function WOSectionWorkspace({ workOrder, sections, progress, documents, a
       const result = await supabase.from('wo_drawing_progress').insert({
         work_order_id: workOrder.id,
         section_id: selectedItem.id,
-        entry_date: new Date().toISOString().slice(0, 10),
+        entry_date: progressDate,
         cat1_completed: cat1,
         cat2_completed: cat2,
         cat3_completed: cat3,
@@ -361,6 +372,7 @@ export function WOSectionWorkspace({ workOrder, sections, progress, documents, a
       const result = await supabase.from('wo_section_progress').insert({
         work_order_id: workOrder.id,
         section_id: selectedItem.id,
+        entry_date: progressDate,
         progress_value: Number(progressValue) || 0,
         progress_unit: progressUnit.trim() || selectedItem.unit || null,
         remarks: progressRemarks.trim() || null,
@@ -375,6 +387,7 @@ export function WOSectionWorkspace({ workOrder, sections, progress, documents, a
       setMessage('Progress update saved.');
       setProgressValue('');
       setProgressRemarks('');
+      setProgressDate(new Date().toISOString().slice(0, 10));
       await onReload();
     }
     setSaving(false);
@@ -547,7 +560,7 @@ export function WOSectionWorkspace({ workOrder, sections, progress, documents, a
 
             {selectedItem && panelTab === 'progress' && <>
               {selectedItem.approval_status !== 'approved' && <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-800">Progress tracking is only available after this item is approved. Submit the item for approval first, then return here to log site progress.</div>}
-              {selectedItem.approval_status === 'approved' && <div className="rounded-lg border border-cyan-100 bg-cyan-50 p-3"><div className="mb-3 flex items-center gap-2 text-xs font-bold text-cyan-800"><Clock3 className="h-4 w-4" /> Add site progress</div>{selectedItem.section_type === 'drawing' ? <><div className="mb-3 grid grid-cols-3 gap-2"><Field label="Total Category 1" value={String(selectedItem.cat1_total)} onChange={() => undefined} readOnly /><Field label="Total Category 2" value={String(selectedItem.cat2_total)} onChange={() => undefined} readOnly /><Field label="Total Category 3" value={String(selectedItem.cat3_total)} onChange={() => undefined} readOnly /></div><div className="grid grid-cols-3 gap-2"><Field label="Completed Category 1" value={drawingProgressValues.cat1} onChange={(value) => setDrawingProgressValues({ ...drawingProgressValues, cat1: value })} type="number" /><Field label="Completed Category 2" value={drawingProgressValues.cat2} onChange={(value) => setDrawingProgressValues({ ...drawingProgressValues, cat2: value })} type="number" /><Field label="Completed Category 3" value={drawingProgressValues.cat3} onChange={(value) => setDrawingProgressValues({ ...drawingProgressValues, cat3: value })} type="number" /></div><div className="mt-3 rounded border border-white bg-white px-3 py-2 text-xs text-slate-600">Current total: <b className="text-emerald-700">{Number(drawingProgressValues.cat1 || 0) + Number(drawingProgressValues.cat2 || 0) + Number(drawingProgressValues.cat3 || 0)}</b> / {selectedItem.required_qty}</div></> : <div className="grid grid-cols-2 gap-2"><Field label="Progress Value" value={progressValue} onChange={setProgressValue} type="number" /><Field label="Unit" value={progressUnit} onChange={setProgressUnit} /></div>}<label className="mt-3 block text-[10px] font-bold uppercase tracking-wide text-slate-500">Remarks<textarea value={progressRemarks} onChange={(event) => setProgressRemarks(event.target.value)} rows={3} className="mt-1 w-full rounded border border-slate-300 p-2 text-xs" /></label><button onClick={saveProgress} disabled={saving} className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg bg-cyan-700 px-3 py-2 text-[11px] font-bold text-white disabled:opacity-50"><Save className="h-3.5 w-3.5" /> Save Progress</button></div>}
+              {selectedItem.approval_status === 'approved' && <div className="rounded-lg border border-cyan-100 bg-cyan-50 p-3"><div className="mb-3 flex items-center gap-2 text-xs font-bold text-cyan-800"><Clock3 className="h-4 w-4" /> Add site progress</div><div className="mb-3"><label className="block text-[10px] font-bold uppercase tracking-wide text-slate-500">Date of Record<input type="date" value={progressDate} max={new Date().toISOString().slice(0, 10)} onChange={(event) => setProgressDate(event.target.value)} className="mt-1 w-full rounded border border-slate-300 px-2 py-1.5 text-xs font-normal normal-case text-slate-700 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-100" /></label></div>{selectedItem.section_type === 'drawing' ? <><div className="mb-3 grid grid-cols-3 gap-2"><Field label="Total Category 1" value={String(selectedItem.cat1_total)} onChange={() => undefined} readOnly /><Field label="Total Category 2" value={String(selectedItem.cat2_total)} onChange={() => undefined} readOnly /><Field label="Total Category 3" value={String(selectedItem.cat3_total)} onChange={() => undefined} readOnly /></div><div className="grid grid-cols-3 gap-2"><Field label="Completed Category 1" value={drawingProgressValues.cat1} onChange={(value) => setDrawingProgressValues({ ...drawingProgressValues, cat1: value })} type="number" /><Field label="Completed Category 2" value={drawingProgressValues.cat2} onChange={(value) => setDrawingProgressValues({ ...drawingProgressValues, cat2: value })} type="number" /><Field label="Completed Category 3" value={drawingProgressValues.cat3} onChange={(value) => setDrawingProgressValues({ ...drawingProgressValues, cat3: value })} type="number" /></div><div className="mt-3 rounded border border-white bg-white px-3 py-2 text-xs text-slate-600">Current total: <b className="text-emerald-700">{Number(drawingProgressValues.cat1 || 0) + Number(drawingProgressValues.cat2 || 0) + Number(drawingProgressValues.cat3 || 0)}</b> / {selectedItem.required_qty}</div></> : <div className="grid grid-cols-2 gap-2"><Field label="Progress Value" value={progressValue} onChange={setProgressValue} type="number" /><Field label="Unit" value={progressUnit} onChange={setProgressUnit} /></div>}<label className="mt-3 block text-[10px] font-bold uppercase tracking-wide text-slate-500">Remarks<textarea value={progressRemarks} onChange={(event) => setProgressRemarks(event.target.value)} rows={3} className="mt-1 w-full rounded border border-slate-300 p-2 text-xs" /></label><button onClick={saveProgress} disabled={saving} className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg bg-cyan-700 px-3 py-2 text-[11px] font-bold text-white disabled:opacity-50"><Save className="h-3.5 w-3.5" /> Save Progress</button></div>}
               <div className="mt-4 rounded-lg border border-slate-200 p-3"><div className="mb-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">Progress updates</div>{selectedProgress.length === 0 ? <p className="text-xs text-slate-400">No progress updates recorded yet.</p> : <div className="space-y-2">{selectedProgress.map((entry) => <div key={entry.id} className="flex items-start justify-between gap-3 rounded bg-slate-50 p-2 text-xs"><div><div className="font-semibold text-slate-700">{entry.progress_value} {entry.progress_unit || ''}</div><div className="text-[10px] text-slate-500">{entry.remarks || 'Progress recorded'}</div></div><div className="text-right text-[10px] text-slate-400">{entry.entry_date}<br />{entry.created_by || 'Site Engineer'}</div></div>)}</div>}</div>
             </>}
           </div>
