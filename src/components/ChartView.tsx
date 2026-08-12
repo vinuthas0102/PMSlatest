@@ -169,6 +169,7 @@ function ChartCard({
   onChartTypeChange,
   selectedCount,
   subtitle,
+  compact = false,
   children,
 }: {
   title: string;
@@ -176,10 +177,11 @@ function ChartCard({
   onChartTypeChange: (t: ChartType) => void;
   selectedCount?: number;
   subtitle?: string;
+  compact?: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <div className="mirror-card rounded border-t-2 border-t-cyan-600 p-3 flex flex-col animate-portal-rise">
+    <div className={`mirror-card rounded border-t-2 border-t-cyan-600 p-3 flex flex-col animate-portal-rise ${compact ? 'self-start' : ''}`}>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5">
           <div>
@@ -207,7 +209,7 @@ function ChartCard({
           </button>
         </div>
       </div>
-      <div className="flex-1 min-h-[300px]">{children}</div>
+      <div className={compact ? 'min-h-0' : 'flex-1 min-h-[300px]'}>{children}</div>
     </div>
   );
 }
@@ -417,8 +419,8 @@ export function ChartView({
     return d.color;
   };
 
-  const renderBar = (data: ChartPoint[], money = false, percent = false) => (
-    <ResponsiveContainer width="100%" height={CHART_H}>
+  const renderBar = (data: ChartPoint[], money = false, percent = false, height = CHART_H) => (
+    <ResponsiveContainer width="100%" height={height}>
       <BarChart data={data} margin={{ top: 20, right: 10, left: 0, bottom: 20 }}>
         <CartesianGrid strokeDasharray="3 3" className="stroke-slate-100" vertical={false} />
         <XAxis dataKey="name" tick={{ fontSize: 10, fontWeight: 600 }} angle={-15} textAnchor="end" height={50} axisLine={{ stroke: '#cbd5e1' }} />
@@ -449,8 +451,8 @@ export function ChartView({
     </ResponsiveContainer>
   );
 
-  const renderPie = (data: ChartPoint[], money = false, percent = false) => (
-    <ResponsiveContainer width="100%" height={CHART_H}>
+  const renderPie = (data: ChartPoint[], money = false, percent = false, height = CHART_H) => (
+    <ResponsiveContainer width="100%" height={height}>
       <PieChart>
         <Pie
           data={data}
@@ -646,6 +648,7 @@ export function ChartView({
           title="Drawing Status"
           chartType={chart7Type}
           onChartTypeChange={setChart7Type}
+          compact
           subtitle={
             drawingSummary.totalDrawings > 0
               ? `${drawingSummary.totalCompleted}/${drawingSummary.totalDrawings} drawings · ${drawingSummary.progressPct.toFixed(1)}%`
@@ -653,13 +656,13 @@ export function ChartView({
           }
         >
           {drawingData.length === 0 ? (
-            <div className="flex h-full min-h-[260px] items-center justify-center text-xs text-slate-400">
+            <div className="flex min-h-[180px] items-center justify-center text-xs text-slate-400">
               No drawing progress data available.
             </div>
           ) : chart7Type === 'bar' ? (
-            renderBar(drawingData, false, true)
+            renderBar(drawingData, false, true, 180)
           ) : (
-            renderPie(drawingData, false, true)
+            renderPie(drawingData, false, true, 180)
           )}
         </ChartCard>
         <ChartCard

@@ -144,6 +144,9 @@ export function useDashboardData() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'wo_sections' }, () => {
         void load();
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'wo_section_progress' }, () => {
+        void load();
+      })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'payment_entries' }, () => {
         void load();
       })
