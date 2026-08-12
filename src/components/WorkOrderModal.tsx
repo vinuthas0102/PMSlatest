@@ -1,6 +1,6 @@
 import { useMemo, useState, useRef, useCallback } from 'react';
 import {
-  X, Building2, ClipboardList, AlertTriangle, CreditCard, Plus, Save, Edit3, ChevronDown,
+  X, Building2, ClipboardList, AlertTriangle, Save, ChevronDown,
   Clock, Ruler, Truck, FileText, TrendingUp, Bold, Italic, Underline, Loader2, User, CalendarClock,
 } from 'lucide-react';
 import type { Project, WorkOrder, WorkOrderDetail, WOSection, PaymentEntry, TrackingUpdate, TrackingType, WOSectionProgress, WOSectionDocument, WOSectionActivity, WODrawingProgress } from '@/types';
@@ -31,7 +31,7 @@ interface WorkOrderModalProps {
   }) => Promise<{ success: boolean; error?: string }>;
 }
 
-type Tab = 'header' | 'sections' | 'payments' | 'exceptions';
+type Tab = 'header' | 'sections' | 'exceptions';
 
 const EXCEPTION_TABS: { key: TrackingType; label: string; icon: typeof Clock; color: string }[] = [
   { key: 'delay', label: 'Extension / Delay', icon: Clock, color: 'text-rose-600' },
@@ -81,14 +81,6 @@ export function WorkOrderModal({
   const [woNumber, setWoNumber] = useState(details.find((d) => d.work_order_id === selectedWO?.id)?.work_order_number ?? '');
   const [startDate, setStartDate] = useState(details.find((d) => d.work_order_id === selectedWO?.id)?.start_date ?? selectedWO?.start_date ?? '');
   const [completionDate, setCompletionDate] = useState(details.find((d) => d.work_order_id === selectedWO?.id)?.end_date ?? '');
-  const [paymentAmount, setPaymentAmount] = useState('');
-  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().slice(0, 10));
-  const [paymentRemarks, setPaymentRemarks] = useState('');
-  const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
-  const [editPaymentAmount, setEditPaymentAmount] = useState('');
-  const [editPaymentDate, setEditPaymentDate] = useState('');
-  const [editPaymentRemarks, setEditPaymentRemarks] = useState('');
-  const [savingPayment, setSavingPayment] = useState(false);
   const [error, setError] = useState('');
   const [escalationOpen, setEscalationOpen] = useState(false);
   const [revisedValue, setRevisedValue] = useState('');
@@ -105,8 +97,6 @@ export function WorkOrderModal({
 
   const woDetail = details.find((d) => d.work_order_id === selectedWO?.id);
   const woSections = sections.filter((s) => s.work_order_id === selectedWO?.id);
-  const woPayments = payments.filter((p) => p.work_order_id === selectedWO?.id);
-  const currentPaid = woPayments.length ? Math.max(...woPayments.map((p) => p.cumulative_paid)) : selectedWO?.paid_amount ?? 0;
   const approvedValue = Number(woDetail?.wo_value ?? selectedWO?.project_value ?? 0);
   const projectValue = Number(project.project_value) || 0;
   const allocationPct = calculateAllocationPct(Number(woValue) || 0, projectValue);
@@ -189,89 +179,6 @@ export function WorkOrderModal({
       .upsert(payload, { onConflict: 'work_order_id' });
     if (saveError) setError('Could not save the work order header.');
     else await onReload();
-  };
-
-  const addPayment = async () => {
-    if (!selectedWO) return;
-    const amount = Number(paymentAmount);
-    if (!amount || amount <= 0) {
-      setError('Enter an Amount Paid greater than zero.');
-      return;
-    }
-
-    const { error: paymentError } = await supabase.rpc('record_work_order_payment', {
-      p_work_order_id: selectedWO.id,
-      p_amount: amount,
-      p_payment_date: paymentDate,
-      p_remarks: paymentRemarks,
-      p_created_by: user?.name ?? null,
-    });
-
-    if (paymentError) {
-      const message = paymentError.message ?? '';
-      if (message.includes('PAYMENT_EXCEEDS_APPROVED_VALUE')) {
-        setError(`This payment would exceed the approved Work Order Value. The remaining balance is ₹${Math.max(0, approvedValue - currentPaid).toFixed(2)}.`);
-      } else if (message.includes('PAYMENT_AMOUNT_MUST_BE_GREATER_THAN_ZERO')) {
-        setError('Enter an Amount Paid greater than zero.');
-      } else {
-        setError('Could not save the payment entry. Please try again.');
-      }
-    } else {
-      setError('');
-      setPaymentAmount('');
-      setPaymentDate(new Date().toISOString().slice(0, 10));
-      setPaymentRemarks('');
-      await onReload();
-    }
-  };
-
-  const startPaymentEdit = (payment: PaymentEntry) => {
-    setEditingPaymentId(payment.id);
-    setEditPaymentAmount(String(payment.amount_paid));
-    setEditPaymentDate(payment.payment_date);
-    setEditPaymentRemarks(payment.remarks ?? '');
-    setError('');
-  };
-
-  const cancelPaymentEdit = () => {
-    setEditingPaymentId(null);
-    setEditPaymentAmount('');
-    setEditPaymentDate('');
-    setEditPaymentRemarks('');
-  };
-
-  const updatePayment = async () => {
-    if (!editingPaymentId) return;
-    const amount = Number(editPaymentAmount);
-    if (!amount || amount <= 0 || !editPaymentDate) {
-      setError('Enter a valid Amount Paid and payment date.');
-      return;
-    }
-
-    setSavingPayment(true);
-    setError('');
-    const { error: paymentError } = await supabase.rpc('update_work_order_payment', {
-      p_payment_id: editingPaymentId,
-      p_amount: amount,
-      p_payment_date: editPaymentDate,
-      p_remarks: editPaymentRemarks,
-    });
-    setSavingPayment(false);
-
-    if (paymentError) {
-      const message = paymentError.message ?? '';
-      if (message.includes('PAYMENT_EXCEEDS_APPROVED_VALUE')) {
-        setError('This change would exceed the approved Work Order Value.');
-      } else if (message.includes('PAYMENT_AMOUNT_MUST_BE_GREATER_THAN_ZERO')) {
-        setError('Enter an Amount Paid greater than zero.');
-      } else {
-        setError('Could not update the payment entry. Please try again.');
-      }
-      return;
-    }
-
-    cancelPaymentEdit();
-    await onReload();
   };
 
   const requestEscalation = async () => {
@@ -373,7 +280,6 @@ export function WorkOrderModal({
           </select>
           {tabButton('header', Building2, 'WO Header')}
           {tabButton('sections', ClipboardList, 'WO Sections')}
-          {tabButton('payments', CreditCard, 'Payments')}
           {tabButton('exceptions', AlertTriangle, 'WO Exceptions')}
         </div>
 
@@ -503,74 +409,9 @@ export function WorkOrderModal({
               documents={woSectionDocuments.filter((entry) => entry.work_order_id === selectedWO.id)}
               activity={woSectionActivity.filter((entry) => entry.work_order_id === selectedWO.id)}
               drawingProgress={woDrawingProgress.filter((entry) => entry.work_order_id === selectedWO.id)}
+              payments={payments.filter((entry) => entry.work_order_id === selectedWO.id)}
               onReload={onReload}
             />
-          ) : tab === 'payments' ? (
-            <div className="space-y-4">
-              <div className="rounded-xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-4 shadow-sm">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <div>
-                    <h3 className="flex items-center gap-2 text-sm font-bold text-slate-800">
-                      <CreditCard className="h-4 w-4 text-emerald-600" />
-                      Payment Management
-                    </h3>
-                    <p className="mt-1 text-xs text-slate-500">Record new payments and correct existing entries for this Work Order.</p>
-                  </div>
-                  <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-bold text-emerald-700">{woPayments.length} {woPayments.length === 1 ? 'entry' : 'entries'}</span>
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
-                  <div className="rounded-lg bg-white p-3"><p className="text-slate-500">Approved Value</p><p className="mt-1 font-bold text-slate-800">₹{approvedValue.toFixed(2)}</p></div>
-                  <div className="rounded-lg bg-white p-3"><p className="text-slate-500">Total Paid</p><p className="mt-1 font-bold text-emerald-700">₹{currentPaid.toFixed(2)}</p></div>
-                  <div className="rounded-lg bg-white p-3"><p className="text-slate-500">Financial Progress</p><p className="mt-1 font-bold text-cyan-700">{approvedValue > 0 ? Math.min(100, (currentPaid / approvedValue) * 100).toFixed(1) : '0.0'}%</p></div>
-                  <div className="rounded-lg bg-white p-3"><p className="text-slate-500">Balance</p><p className="mt-1 font-bold text-rose-600">₹{Math.max(0, approvedValue - currentPaid).toFixed(2)}</p></div>
-                </div>
-              </div>
-
-              {permissions.canLogPayments && (
-                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-700">Add Payment</h4>
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_2fr_auto]">
-                    <label className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Amount Paid
-                      <input type="number" min="0" aria-label="Amount Paid" placeholder="0.00" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} className="mt-1 w-full rounded border border-slate-300 p-2 text-xs" />
-                    </label>
-                    <label className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Payment Date
-                      <input type="date" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} className="mt-1 w-full rounded border border-slate-300 p-2 text-xs text-slate-600" />
-                    </label>
-                    <label className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Remarks
-                      <input type="text" placeholder="Optional remarks" value={paymentRemarks} onChange={(e) => setPaymentRemarks(e.target.value)} className="mt-1 w-full rounded border border-slate-300 p-2 text-xs" />
-                    </label>
-                    <button onClick={addPayment} className="mt-4 flex items-center justify-center gap-1 rounded bg-emerald-700 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-800"><Plus className="h-3.5 w-3.5" />Save Payment</button>
-                  </div>
-                </div>
-              )}
-
-              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-                <div className="border-b border-slate-200 bg-slate-50 px-4 py-3"><h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">Payment History</h4></div>
-                {woPayments.length ? (
-                  <div className="overflow-x-auto">
-                    <table className="w-full min-w-[760px] text-xs">
-                      <thead className="bg-slate-900 text-left text-white"><tr><th className="p-3">Date</th><th className="p-3 text-right">Amount Paid</th><th className="p-3 text-right">Cumulative Total</th><th className="p-3">Remarks</th><th className="p-3">Recorded By</th><th className="p-3 text-right">Action</th></tr></thead>
-                      <tbody>
-                        {woPayments.map((payment) => editingPaymentId === payment.id ? (
-                          <tr key={payment.id} className="border-b border-cyan-100 bg-cyan-50/50">
-                            <td className="p-2"><input type="date" value={editPaymentDate} onChange={(e) => setEditPaymentDate(e.target.value)} className="rounded border border-slate-300 p-1.5 text-xs" /></td>
-                            <td className="p-2"><input type="number" min="0" value={editPaymentAmount} onChange={(e) => setEditPaymentAmount(e.target.value)} className="w-28 rounded border border-slate-300 p-1.5 text-right text-xs" /></td>
-                            <td className="p-2 text-right text-slate-400">Recalculated after save</td>
-                            <td className="p-2"><input type="text" value={editPaymentRemarks} onChange={(e) => setEditPaymentRemarks(e.target.value)} className="w-full rounded border border-slate-300 p-1.5 text-xs" /></td>
-                            <td className="p-2 text-slate-400">{payment.created_by || '-'}</td>
-                            <td className="p-2 text-right whitespace-nowrap"><button onClick={updatePayment} disabled={savingPayment} className="mr-2 rounded bg-cyan-700 px-2 py-1.5 font-bold text-white disabled:opacity-60">{savingPayment ? 'Saving...' : 'Save'}</button><button onClick={cancelPaymentEdit} className="rounded border border-slate-300 px-2 py-1.5 font-semibold text-slate-600">Cancel</button></td>
-                          </tr>
-                        ) : (
-                          <tr key={payment.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                            <td className="p-3 whitespace-nowrap">{payment.payment_date}</td><td className="p-3 text-right font-semibold text-emerald-700">₹{payment.amount_paid.toFixed(2)}</td><td className="p-3 text-right font-semibold text-slate-700">₹{payment.cumulative_paid.toFixed(2)}</td><td className="p-3 text-slate-600">{payment.remarks || '-'}</td><td className="p-3 text-slate-600">{payment.created_by || '-'}</td><td className="p-3 text-right">{permissions.canLogPayments && <button onClick={() => startPaymentEdit(payment)} className="inline-flex items-center gap-1 rounded border border-cyan-200 px-2 py-1.5 font-semibold text-cyan-700 hover:bg-cyan-50"><Edit3 className="h-3 w-3" />Edit</button>}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : <p className="p-8 text-center text-xs text-slate-500">No payments recorded for this Work Order yet.</p>}
-              </div>
-            </div>
           ) : (
             <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
               {/* Exception sub-tabs */}

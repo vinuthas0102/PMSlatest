@@ -499,6 +499,7 @@ function HeaderTab({
               <MetaRow label="MBook Entry" value={formatINR(project.mbook_entry)} valueClass="text-blue-700" />
               <MetaRow label="Billed Amount" value={formatINR(project.billed_amount)} valueClass="text-cyan-700" />
               <MetaRow label="Paid Amount" value={formatINR(project.paid_amount)} valueClass="text-emerald-700" />
+              <MetaRow label="Financial Progress" value={`${project.project_value > 0 ? Math.min(100, (project.paid_amount / project.project_value) * 100).toFixed(1) : '0.0'}%`} valueClass="text-cyan-700" />
               <MetaRow label="Balance" value={formatINR(balance)} valueClass="text-rose-600" />
               <MetaRow label="Security Deposit" value={formatINR(project.security_deposit)} valueClass="text-slate-700" />
             </div>

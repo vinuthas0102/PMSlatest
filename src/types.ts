@@ -269,9 +269,14 @@ export interface WOSectionActivity {
 export interface PaymentEntry {
   id: string;
   work_order_id: string;
+  section_id: string | null;
   amount_paid: number;
   cumulative_paid: number;
   payment_date: string;
+  vendor_invoice_number: string | null;
+  vendor_invoice_date: string | null;
+  voucher_number: string | null;
+  voucher_date: string | null;
   remarks: string | null;
   created_by: string | null;
   created_at: string;

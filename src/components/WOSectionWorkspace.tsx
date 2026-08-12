@@ -1,17 +1,17 @@
 import { useMemo, useState } from 'react';
 import {
-  ArrowLeft, ArrowRight, Check, CheckCircle2, ClipboardCheck, Clock3, FileCheck2,
+  ArrowLeft, ArrowRight, Check, CheckCircle2, ClipboardCheck, Clock3, CreditCard, Edit3, FileCheck2,
   FilePlus2, FileText, History, LockKeyhole, Plus, RotateCcw, Save,
   Upload, X,
 } from 'lucide-react';
-import type { WorkOrder, WOSection, WOSectionActivity, WOSectionDocument, WOSectionProgress, WODrawingProgress } from '@/types';
+import type { PaymentEntry, WorkOrder, WOSection, WOSectionActivity, WOSectionDocument, WOSectionProgress, WODrawingProgress } from '@/types';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/auth/AuthContext';
 
 const SECTION_TYPES = ['drawing', 'equipment', 'civil', 'manpower', 'quality'] as const;
 type SectionType = typeof SECTION_TYPES[number];
 type EditorMode = 'create' | 'edit' | 'track' | null;
-type PanelTab = 'details' | 'activity' | 'progress';
+type PanelTab = 'details' | 'activity' | 'progress' | 'payments';
 
 type Props = {
   workOrder: WorkOrder;
@@ -20,6 +20,7 @@ type Props = {
   documents: WOSectionDocument[];
   activity: WOSectionActivity[];
   drawingProgress: WODrawingProgress[];
+  payments: PaymentEntry[];
   onReload: () => Promise<void>;
 };
 
@@ -29,6 +30,16 @@ const SECTION_LABELS: Record<SectionType, string> = {
   civil: 'Civil Work',
   manpower: 'Manpower',
   quality: 'Quality Documents',
+};
+
+const EMPTY_PAYMENT = {
+  amount: '',
+  paymentDate: new Date().toISOString().slice(0, 10),
+  vendorInvoiceNumber: '',
+  vendorInvoiceDate: '',
+  voucherNumber: '',
+  voucherDate: '',
+  remarks: '',
 };
 
 const EMPTY_ITEM = {
@@ -67,7 +78,7 @@ function formatDate(value: string): string {
   return new Date(value).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-export function WOSectionWorkspace({ workOrder, sections, progress, documents, activity, drawingProgress, onReload }: Props) {
+export function WOSectionWorkspace({ workOrder, sections, progress, documents, activity, drawingProgress, payments, onReload }: Props) {
   const { user, permissions } = useAuth();
   const [activeType, setActiveType] = useState<SectionType>('drawing');
   const [editorMode, setEditorMode] = useState<EditorMode>(null);
@@ -78,6 +89,8 @@ export function WOSectionWorkspace({ workOrder, sections, progress, documents, a
   const [progressUnit, setProgressUnit] = useState('');
   const [progressRemarks, setProgressRemarks] = useState('');
   const [drawingProgressValues, setDrawingProgressValues] = useState({ cat1: '', cat2: '', cat3: '' });
+  const [paymentForm, setPaymentForm] = useState(EMPTY_PAYMENT);
+  const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
   const [documentName, setDocumentName] = useState('');
   const [documentMandatory, setDocumentMandatory] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -89,6 +102,7 @@ export function WOSectionWorkspace({ workOrder, sections, progress, documents, a
   const selectedDocuments = useMemo(() => documents.filter((entry) => entry.section_id === selectedItem?.id), [documents, selectedItem?.id]);
   const selectedActivity = useMemo(() => activity.filter((entry) => entry.section_id === selectedItem?.id), [activity, selectedItem?.id]);
   const selectedDrawingProgress = useMemo(() => drawingProgress.filter((entry) => entry.section_id === selectedItem?.id), [drawingProgress, selectedItem?.id]);
+  const selectedPayments = useMemo(() => payments.filter((entry) => entry.section_id === selectedItem?.id), [payments, selectedItem?.id]);
 
   const openCreate = () => {
     setSelectedItem(null);
@@ -120,6 +134,70 @@ export function WOSectionWorkspace({ workOrder, sections, progress, documents, a
     setPanelTab('details');
     setMessage(null);
     setError(null);
+  };
+
+  const openPaymentEditor = (item: WOSection) => {
+    openDetail(item);
+    setPanelTab('payments');
+    setEditingPaymentId(null);
+    setPaymentForm(EMPTY_PAYMENT);
+  };
+
+  const editPayment = (payment: PaymentEntry) => {
+    setEditingPaymentId(payment.id);
+    setPaymentForm({
+      amount: String(payment.amount_paid),
+      paymentDate: payment.payment_date,
+      vendorInvoiceNumber: payment.vendor_invoice_number ?? '',
+      vendorInvoiceDate: payment.vendor_invoice_date ?? '',
+      voucherNumber: payment.voucher_number ?? '',
+      voucherDate: payment.voucher_date ?? '',
+      remarks: payment.remarks ?? '',
+    });
+  };
+
+  const savePayment = async () => {
+    if (!selectedItem || !permissions.canLogPayments) return;
+    const amount = Number(paymentForm.amount);
+    if (!Number.isFinite(amount) || amount <= 0 || !paymentForm.paymentDate) {
+      setError('Enter a valid payment amount and date.');
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    const rpcName = editingPaymentId ? 'update_section_payment' : 'record_section_payment';
+    const payload = editingPaymentId ? {
+      p_payment_id: editingPaymentId,
+      p_amount: amount,
+      p_payment_date: paymentForm.paymentDate,
+      p_vendor_invoice_number: paymentForm.vendorInvoiceNumber,
+      p_vendor_invoice_date: paymentForm.vendorInvoiceDate || null,
+      p_voucher_number: paymentForm.voucherNumber,
+      p_voucher_date: paymentForm.voucherDate || null,
+      p_remarks: paymentForm.remarks,
+    } : {
+      p_section_id: selectedItem.id,
+      p_amount: amount,
+      p_payment_date: paymentForm.paymentDate,
+      p_vendor_invoice_number: paymentForm.vendorInvoiceNumber,
+      p_vendor_invoice_date: paymentForm.vendorInvoiceDate || null,
+      p_voucher_number: paymentForm.voucherNumber,
+      p_voucher_date: paymentForm.voucherDate || null,
+      p_remarks: paymentForm.remarks,
+      p_created_by: user?.name ?? null,
+    };
+    const result = await supabase.rpc(rpcName, payload);
+    if (result.error) {
+      const detail = result.error.message ?? '';
+      setError(detail.includes('PAYMENT_EXCEEDS_SECTION_VALUE') ? 'This payment exceeds the approved value for this section.' : detail.includes('PAYMENT_EXCEEDS_APPROVED_VALUE') ? 'This payment exceeds the approved Work Order value.' : 'Could not save the payment update. Please try again.');
+    } else {
+      await log(selectedItem.id, editingPaymentId ? 'payment_updated' : 'payment_recorded', `${editingPaymentId ? 'Payment updated' : 'Payment recorded'}: ₹${amount.toFixed(2)}.`);
+      setMessage(editingPaymentId ? 'Payment update saved.' : 'Payment recorded.');
+      setEditingPaymentId(null);
+      setPaymentForm(EMPTY_PAYMENT);
+      await onReload();
+    }
+    setSaving(false);
   };
 
   const openTracker = (item: WOSection) => {
@@ -408,13 +486,16 @@ export function WOSectionWorkspace({ workOrder, sections, progress, documents, a
                       : itemProgress.reduce((sum, entry) => sum + Number(entry.progress_value || 0), 0);
                     const itemDocuments = documents.filter((entry) => entry.section_id === row.id);
                     const completedDocs = itemDocuments.filter((entry) => entry.status === 'accepted').length;
+                    const itemPayments = payments.filter((entry) => entry.section_id === row.id);
+                    const paidValue = itemPayments.reduce((sum, entry) => sum + Number(entry.amount_paid || 0), 0);
+                    const financialPct = Number(row.value) > 0 ? Math.min(100, (paidValue / Number(row.value)) * 100) : 0;
                     return <tr key={row.id} className="border-b border-slate-100 odd:bg-slate-50/60">
                       <td className="max-w-[260px] p-2"><div className="font-semibold text-slate-800">{row.item_code || row.description || 'Unnamed item'}</div><div className="text-[10px] text-slate-500">{row.description && row.item_code ? row.description : row.unit || 'No unit'}</div></td>
                       <td className="p-2 text-slate-600">{row.discipline || '-'}</td>
                       <td className="p-2 font-semibold text-slate-700">{activeType === 'manpower' ? `${row.skilled_count + row.unskilled_count} people` : activeType === 'quality' ? `${completedDocs}/${itemDocuments.length} docs` : `${row.required_qty} ${row.unit || ''}`}</td>
                       <td className="p-2"><div className="flex items-center gap-2"><div className="h-1.5 w-20 overflow-hidden rounded-full bg-slate-200"><div className="h-full rounded-full bg-cyan-600" style={{ width: `${Math.min(100, Number(row.required_qty) ? totalProgress / Number(row.required_qty) * 100 : 0)}%` }} /></div><span className="tabular-nums text-slate-600">{totalProgress} {row.unit || ''}</span></div></td>
                       <td className="p-2"><span className={`rounded-full border px-2 py-1 text-[10px] font-bold ${statusStyle(row.approval_status)}`}>{statusLabel(row.approval_status)}</span></td>
-                      <td className="p-2"><div className="flex justify-end gap-1"><button onClick={() => openDetail(row)} className="rounded border border-slate-200 px-2 py-1 text-[10px] font-bold text-cyan-700 hover:bg-cyan-50">Details</button>{permissions.canTrackWOProgress && row.approval_status === 'approved' && <button onClick={() => openTracker(row)} className="rounded border border-cyan-200 bg-cyan-50 px-2 py-1 text-[10px] font-bold text-cyan-700 hover:bg-cyan-100">Track</button>}</div></td>
+                      <td className="p-2"><div className="flex justify-end gap-1"><button onClick={() => openDetail(row)} className="rounded border border-slate-200 px-2 py-1 text-[10px] font-bold text-cyan-700 hover:bg-cyan-50">Details</button>{permissions.canTrackWOProgress && row.approval_status === 'approved' && <button onClick={() => openTracker(row)} className="rounded border border-cyan-200 bg-cyan-50 px-2 py-1 text-[10px] font-bold text-cyan-700 hover:bg-cyan-100">Track</button>}{permissions.canLogPayments && <button onClick={() => openPaymentEditor(row)} className="inline-flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-700 hover:bg-emerald-100"><CreditCard className="h-3 w-3" /> Payment</button>}</div><div className="mt-1 text-right text-[10px] text-emerald-700">₹{paidValue.toFixed(2)} · {financialPct.toFixed(1)}%</div></td>
                     </tr>;
                   })}
                 </tbody>
@@ -426,7 +507,7 @@ export function WOSectionWorkspace({ workOrder, sections, progress, documents, a
         {editorMode && <aside className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
           <div className="flex items-start justify-between border-b border-slate-200 bg-slate-50 px-4 py-3"><div><div className="flex items-center gap-2"><h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">{!selectedItem ? 'Create Item' : panelTab === 'activity' ? 'Activity Log' : panelTab === 'progress' ? 'Progress Update' : 'Item Detail'}</h3>{selectedItem && <span className={`rounded-full border px-2 py-0.5 text-[9px] font-bold ${statusStyle(selectedItem.approval_status)}`}>{statusLabel(selectedItem.approval_status)}</span>}</div><p className="mt-1 text-[11px] text-slate-500">{selectedItem?.item_code || selectedItem?.description || sectionTitle(itemForm.section_type)}</p></div><button onClick={() => setEditorMode(null)} className="rounded p-1 text-slate-400 hover:bg-slate-200"><X className="h-4 w-4" /></button></div>
           {selectedItem && <div className="flex border-b border-slate-200 px-2 pt-2" role="tablist" aria-label="Item workspace tabs">
-            {(['details', 'activity', 'progress'] as PanelTab[]).map((tab) => <button key={tab} onClick={() => setPanelTab(tab)} role="tab" aria-selected={panelTab === tab} className={`flex-1 rounded-t-lg px-2 py-2 text-[10px] font-bold capitalize transition-colors ${panelTab === tab ? 'border-b-2 border-cyan-700 bg-cyan-50 text-cyan-800' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}>{tab === 'details' ? 'Item Details' : tab === 'activity' ? 'Activity Log' : 'Progress Update'}</button>)}
+            {(['details', 'activity', 'progress', 'payments'] as PanelTab[]).map((tab) => <button key={tab} onClick={() => setPanelTab(tab)} role="tab" aria-selected={panelTab === tab} className={`flex-1 rounded-t-lg px-2 py-2 text-[10px] font-bold capitalize transition-colors ${panelTab === tab ? 'border-b-2 border-cyan-700 bg-cyan-50 text-cyan-800' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}>{tab === 'details' ? 'Item Details' : tab === 'activity' ? 'Activity Log' : tab === 'progress' ? 'Progress Update' : 'Payments'}</button>)}
           </div>}
           <div className="max-h-[72vh] overflow-y-auto p-4">
             {(!selectedItem || panelTab === 'details') && <>
@@ -446,6 +527,15 @@ export function WOSectionWorkspace({ workOrder, sections, progress, documents, a
             </>}
 
             {selectedItem && panelTab === 'activity' && <div className="space-y-4"><div className="rounded-lg border border-slate-200 p-3"><div className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-500"><History className="h-4 w-4 text-cyan-600" /> Activity history</div>{selectedActivity.length === 0 ? <p className="text-xs text-slate-400">No activity recorded yet.</p> : <div className="space-y-3">{selectedActivity.map((entry) => <div key={entry.id} className="border-l-2 border-cyan-200 pl-3"><div className="flex items-center justify-between gap-2"><span className="text-[10px] font-bold uppercase text-cyan-700">{entry.action.replace(/_/g, ' ')}</span><span className="text-[10px] text-slate-400">{formatDate(entry.created_at)}</span></div><div className="text-xs text-slate-600">{entry.details}</div><div className="text-[10px] text-slate-400">{entry.actor_name || 'Workspace user'} · {entry.actor_role || 'user'}</div></div>)}</div>}</div>{selectedItem.section_type === 'drawing' && <div className="rounded-lg border border-cyan-100 bg-cyan-50/50 p-3"><div className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-cyan-800"><History className="h-4 w-4" /> Drawing progress history</div>{selectedDrawingProgress.length === 0 ? <p className="text-xs text-slate-400">No drawing progress recorded yet.</p> : <div className="space-y-2">{selectedDrawingProgress.map((entry) => <div key={entry.id} className="rounded-lg border border-slate-200 bg-white p-2"><div className="flex items-center justify-between gap-2 text-[10px] text-slate-400"><span className="font-bold text-slate-600">{entry.entry_date}</span><span>{entry.created_by || 'Workspace user'} · {entry.created_role || 'user'}</span></div><div className="mt-2 grid grid-cols-2 gap-2 text-xs sm:grid-cols-5"><div><div className="text-[9px] uppercase text-slate-400">Category 1</div><div className="font-bold text-slate-700">{entry.cat1_completed}</div></div><div><div className="text-[9px] uppercase text-slate-400">Category 2</div><div className="font-bold text-slate-700">{entry.cat2_completed}</div></div><div><div className="text-[9px] uppercase text-slate-400">Category 3</div><div className="font-bold text-slate-700">{entry.cat3_completed}</div></div><div><div className="text-[9px] uppercase text-slate-400">Total</div><div className="font-bold text-emerald-700">{entry.total_completed}</div></div><div><div className="text-[9px] uppercase text-slate-400">Progress</div><div className="font-bold text-cyan-700">{Number(entry.progress_pct).toFixed(1)}%</div></div></div>{entry.remarks && <div className="mt-2 border-t border-slate-200 pt-2 text-[10px] text-slate-500">{entry.remarks}</div>}</div>)}</div>}</div>}</div>}
+
+            {selectedItem && panelTab === 'payments' && <div className="space-y-4">
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+                <div className="flex items-center justify-between gap-3"><div><div className="flex items-center gap-2 text-xs font-bold text-emerald-800"><CreditCard className="h-4 w-4" /> Section financial progress</div><p className="mt-1 text-[10px] text-emerald-700">Payments recorded against this approved section.</p></div><span className="text-sm font-bold text-emerald-800">{Number(selectedItem.value) > 0 ? (selectedPayments.reduce((sum, entry) => sum + Number(entry.amount_paid || 0), 0) / Number(selectedItem.value) * 100).toFixed(1) : '0.0'}%</span></div>
+                <div className="mt-3 grid grid-cols-3 gap-2 text-[10px]"><div className="rounded bg-white p-2"><div className="text-slate-500">Approved</div><div className="mt-1 font-bold text-slate-700">₹{Number(selectedItem.value || 0).toFixed(2)}</div></div><div className="rounded bg-white p-2"><div className="text-slate-500">Paid</div><div className="mt-1 font-bold text-emerald-700">₹{selectedPayments.reduce((sum, entry) => sum + Number(entry.amount_paid || 0), 0).toFixed(2)}</div></div><div className="rounded bg-white p-2"><div className="text-slate-500">Balance</div><div className="mt-1 font-bold text-cyan-700">₹{Math.max(0, Number(selectedItem.value || 0) - selectedPayments.reduce((sum, entry) => sum + Number(entry.amount_paid || 0), 0)).toFixed(2)}</div></div></div>
+              </div>
+              {permissions.canLogPayments && <div className="rounded-lg border border-slate-200 p-3"><div className="mb-3 flex items-center justify-between"><div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{editingPaymentId ? 'Edit payment update' : 'Add payment update'}</div>{editingPaymentId && <button onClick={() => { setEditingPaymentId(null); setPaymentForm(EMPTY_PAYMENT); }} className="text-[10px] font-semibold text-slate-500 hover:text-slate-800">Cancel edit</button>}</div><div className="grid grid-cols-2 gap-2"><Field label="Amount Paid" value={paymentForm.amount} onChange={(value) => setPaymentForm({ ...paymentForm, amount: value })} type="number" /><Field label="Payment Date" value={paymentForm.paymentDate} onChange={(value) => setPaymentForm({ ...paymentForm, paymentDate: value })} type="date" /><Field label="Vendor Invoice Number" value={paymentForm.vendorInvoiceNumber} onChange={(value) => setPaymentForm({ ...paymentForm, vendorInvoiceNumber: value })} /><Field label="Vendor Invoice Date" value={paymentForm.vendorInvoiceDate} onChange={(value) => setPaymentForm({ ...paymentForm, vendorInvoiceDate: value })} type="date" /><Field label="Voucher Number" value={paymentForm.voucherNumber} onChange={(value) => setPaymentForm({ ...paymentForm, voucherNumber: value })} /><Field label="Voucher Date" value={paymentForm.voucherDate} onChange={(value) => setPaymentForm({ ...paymentForm, voucherDate: value })} type="date" /></div><label className="mt-2 block text-[10px] font-bold uppercase tracking-wide text-slate-500">Remarks<textarea value={paymentForm.remarks} onChange={(event) => setPaymentForm({ ...paymentForm, remarks: event.target.value })} rows={2} className="mt-1 w-full rounded border border-slate-300 p-2 text-xs font-normal normal-case text-slate-700" /></label><button onClick={savePayment} disabled={saving} className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg bg-emerald-700 px-3 py-2 text-[11px] font-bold text-white disabled:opacity-50"><Save className="h-3.5 w-3.5" />{saving ? 'Saving...' : editingPaymentId ? 'Save Payment Changes' : 'Save Payment Update'}</button></div>}
+              <div className="rounded-lg border border-slate-200 p-3"><div className="mb-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">Payment history</div>{selectedPayments.length === 0 ? <p className="text-xs text-slate-400">No payments recorded for this section yet.</p> : <div className="space-y-2">{selectedPayments.map((payment) => <div key={payment.id} className="rounded border border-slate-200 bg-slate-50 p-2"><div className="flex items-start justify-between gap-2"><div><div className="text-xs font-bold text-emerald-700">₹{Number(payment.amount_paid).toFixed(2)} <span className="font-normal text-slate-500">· {payment.payment_date}</span></div><div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] text-slate-600"><span>Invoice: {payment.vendor_invoice_number || '-'}</span><span>Invoice date: {payment.vendor_invoice_date || '-'}</span><span>Voucher: {payment.voucher_number || '-'}</span><span>Voucher date: {payment.voucher_date || '-'}</span></div>{payment.remarks && <div className="mt-1 text-[10px] text-slate-500">{payment.remarks}</div>}</div>{permissions.canLogPayments && <button onClick={() => editPayment(payment)} className="inline-flex shrink-0 items-center gap-1 rounded border border-cyan-200 bg-white px-2 py-1 text-[10px] font-bold text-cyan-700 hover:bg-cyan-50"><Edit3 className="h-3 w-3" /> Edit</button>}</div><div className="mt-2 text-[10px] text-slate-400">Recorded by {payment.created_by || 'Workspace user'} · Cumulative section paid ₹{Number(payment.cumulative_paid).toFixed(2)}</div></div>)}</div>}</div>
+            </div>}
 
             {selectedItem && panelTab === 'progress' && <>
               {selectedItem.approval_status !== 'approved' && <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-800">Progress tracking is only available after this item is approved. Submit the item for approval first, then return here to log site progress.</div>}

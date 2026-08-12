@@ -4,7 +4,7 @@ import {
   CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart, Line, LabelList,
 } from 'recharts';
 import { BarChart3, PieChart as PieIcon, Check, X, Filter } from 'lucide-react';
-import type { BaseEntity, DelayStatus, WOSection, WOSectionProgress, WODrawingProgress } from '@/types';
+import type { BaseEntity, DelayStatus, PaymentEntry, WOSection, WOSectionProgress, WODrawingProgress } from '@/types';
 import { formatINR, formatINRShort, CATEGORIES, delayStatusShort, DELAY_STATUSES } from '@/lib/format';
 import { aggregateDrawingStatus } from '@/lib/drawingStatus';
 import { aggregateSectionStatus, type SectionType } from '@/lib/sectionStatus';
@@ -20,6 +20,7 @@ interface ChartViewProps {
   woSections?: WOSection[];
   woDrawingProgress?: WODrawingProgress[];
   woSectionProgress?: WOSectionProgress[];
+  paymentEntries?: PaymentEntry[];
 }
 
 type ChartType = 'bar' | 'pie';
@@ -226,6 +227,7 @@ export function ChartView({
   woSections = [],
   woDrawingProgress = [],
   woSectionProgress = [],
+  paymentEntries = [],
 }: ChartViewProps) {
   const [chart1Type, setChart1Type] = useState<ChartType>('bar');
   const [chart2Type, setChart2Type] = useState<ChartType>('bar');
@@ -401,7 +403,13 @@ export function ChartView({
         items.length - completedCount,
         Math.max(1, Math.floor(items.length * (0.3 + (idx % 3) * 0.1))),
       );
-      const outflow = items.reduce((s, i) => s + i.paid_amount, 0) * (seed / 12);
+      const outflow = paymentEntries.length > 0
+        ? paymentEntries.reduce((sum, payment) => {
+          const date = new Date(payment.payment_date);
+          const matches = timelineMode === 'yearly' ? date.getFullYear().toString() === label : MONTHS[date.getMonth()] === label;
+          return matches ? sum + Number(payment.amount_paid || 0) : sum;
+        }, 0)
+        : items.reduce((s, i) => s + i.paid_amount, 0) * (seed / 12);
       return {
         name: label,
         Completed: completedCount,
@@ -411,7 +419,7 @@ export function ChartView({
         statuses: overallStatuses,
       };
     });
-  }, [items, timelineMode]);
+  }, [items, timelineMode, paymentEntries]);
 
   const cellFill = (d: ChartPoint) => {
     if (d.filterField && d.anySelected && !d.selected) {

@@ -329,6 +329,7 @@ function DashboardApp() {
             woSections={data?.woSections ?? []}
             woDrawingProgress={data?.woDrawingProgress ?? []}
             woSectionProgress={data?.woSectionProgress ?? []}
+            paymentEntries={data?.paymentEntries ?? []}
           />
         )}
         {viewType === 'tile' && (
@@ -370,7 +371,7 @@ function DashboardApp() {
 
       {detailProject && data && (
         <ProjectDetailModal
-          project={detailProject}
+          project={data.projects.find((item) => item.id === detailProject.id) ?? detailProject}
           workOrders={data.workOrders}
           details={data.workOrderDetails}
           sections={data.woSections}

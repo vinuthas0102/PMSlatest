@@ -87,7 +87,7 @@ export function WOChartView({ workOrders, workOrderDetails = [], paymentEntries 
     const billed = workOrders.reduce((s, w) => s + safeNum(w.billed_amount), 0);
     const paid = workOrders.reduce((s, w) => {
       const entries = paymentEntries.filter((p) => p.work_order_id === w.id);
-      const cumulative = entries.length ? Math.max(...entries.map((p) => safeNum(p.cumulative_paid))) : safeNum(w.paid_amount);
+      const cumulative = entries.length ? entries.reduce((total, entry) => total + safeNum(entry.amount_paid), 0) : safeNum(w.paid_amount);
       return s + cumulative;
     }, 0);
     return [
