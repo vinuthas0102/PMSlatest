@@ -3,7 +3,7 @@ import {
   X, FileText, FileCheck, MapPin, Calendar, AlertTriangle, Ruler, CalendarClock,
   ChevronDown, ChevronRight, ChevronLeft, Clock, Truck, TrendingUp, User, Save, LockKeyhole,
   Loader2, Plus, Building2, LayoutGrid, Table2, CreditCard, BarChart3,
-  PieChart as PieChartIcon, SlidersHorizontal, RotateCcw, CheckCircle2,
+  PieChart as PieChartIcon, SlidersHorizontal, RotateCcw, CheckCircle2, Check, Filter,
 } from 'lucide-react';
 import type {
   Project, ProjectFormData, ProjectStatus, WorkOrder, WorkOrderDetail,
@@ -692,6 +692,25 @@ function AgencyTab({
     setStatusFilter(null);
   };
 
+  // Chart-driven filter toggles (sync both woFilters and appliedWOFilters)
+  const handleToggleDelayStatus = (status: DelayStatus) => {
+    const toggle = (arr: DelayStatus[]) => arr.includes(status) ? arr.filter((s) => s !== status) : [...arr, status];
+    setWoFilters((prev) => ({ ...prev, delayStatuses: toggle(prev.delayStatuses) }));
+    setAppliedWOFilters((prev) => ({ ...prev, delayStatuses: toggle(prev.delayStatuses) }));
+  };
+
+  const handleToggleAgencyName = (name: string) => {
+    const toggle = (arr: string[]) => arr.includes(name) ? arr.filter((n) => n !== name) : [...arr, name];
+    setWoFilters((prev) => ({ ...prev, agencyNames: toggle(prev.agencyNames) }));
+    setAppliedWOFilters((prev) => ({ ...prev, agencyNames: toggle(prev.agencyNames) }));
+  };
+
+  // Chip bar data
+  const chartChips: { label: string; onRemove: () => void }[] = [
+    ...appliedWOFilters.delayStatuses.map((s) => ({ label: delayStatusShort(s), onRemove: () => handleToggleDelayStatus(s) })),
+    ...appliedWOFilters.agencyNames.map((n) => ({ label: n, onRemove: () => handleToggleAgencyName(n) })),
+  ];
+
   const viewLabel = woViewType === 'chart' ? 'Chart View' : woViewType === 'tile' ? 'Tile View' : woViewType === 'table' ? 'Table View' : 'Card View';
 
   return (
@@ -765,6 +784,33 @@ function AgencyTab({
         </div>
       </div>
 
+      {/* Active selection chips from chart clicks */}
+      {chartChips.length > 0 && (
+        <div className="px-3 pt-2">
+          <div className="flex items-center gap-2 flex-wrap bg-cyan-50 border border-cyan-200 rounded-lg px-3 py-1.5">
+            <span className="text-[11px] font-bold text-cyan-800 uppercase tracking-wide flex items-center gap-1">
+              <Filter className="w-3 h-3" /> Active Selections:
+            </span>
+            {chartChips.map((chip, i) => (
+              <button
+                key={i}
+                onClick={chip.onRemove}
+                className="flex items-center gap-1 text-[11px] font-medium bg-white text-cyan-700 border border-cyan-300 rounded-full px-2 py-0.5 hover:bg-cyan-100 transition-colors"
+              >
+                {chip.label}
+                <X className="w-3 h-3" />
+              </button>
+            ))}
+            <button
+              onClick={handleClearAllWOFilters}
+              className="text-[11px] font-medium text-red-500 hover:text-red-700 flex items-center gap-0.5 ml-auto"
+            >
+              <X className="w-3 h-3" /> Clear All
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 3. Content area - only show the selected view */}
       <div className="flex-1">
         {woViewType === 'chart' && (
@@ -773,11 +819,15 @@ function AgencyTab({
               workOrders={filteredWOs}
               workOrderDetails={details}
               paymentEntries={payments}
+              selectedDelayStatuses={appliedWOFilters.delayStatuses}
+              onToggleDelayStatus={handleToggleDelayStatus}
               agencyChart={
                 <AgencyAllocationChart
                   workOrders={filteredWOs}
                   details={details}
                   projectValue={Number(project.project_value) || 0}
+                  selectedAgencyNames={appliedWOFilters.agencyNames}
+                  onToggleAgencyName={handleToggleAgencyName}
                 />
               }
             />
@@ -844,14 +894,40 @@ const AGENCY_CHART_COLORS = [
   '#9333ea', '#ea580c', '#16a34a', '#475569', '#6b7280',
 ];
 
+function AgencyTooltip({ active, payload, onToggle }: { active?: boolean; payload?: any[]; onToggle?: (name: string) => void }) {
+  if (!active || !payload || !payload.length) return null;
+  const d = payload[0].payload;
+  return (
+    <div className="bg-white/95 backdrop-blur rounded-lg shadow-lg border border-slate-200 px-2.5 py-1.5 text-xs min-w-[130px]">
+      <div className="font-bold text-slate-800 mb-0.5">{d.name}</div>
+      <div className="text-slate-600">{formatINR(d.value)} · {d.pct.toFixed(1)}%</div>
+      <div className="text-slate-400 text-[10px] mb-1">{d.count} WO{d.count > 1 ? 's' : ''}</div>
+      {onToggle && (
+        <button
+          onClick={() => onToggle(d.name)}
+          className={`mt-0.5 w-full flex items-center justify-center gap-1.5 text-[11px] font-semibold py-1 rounded transition-colors ${
+            d.selected ? 'bg-cyan-600 text-white hover:bg-cyan-700' : 'bg-cyan-50 text-cyan-700 border border-cyan-200 hover:bg-cyan-100'
+          }`}
+        >
+          {d.selected ? <><Check className="w-3 h-3" /> Selected</> : <><Filter className="w-3 h-3" /> Select</>}
+        </button>
+      )}
+    </div>
+  );
+}
+
 function AgencyAllocationChart({
   workOrders,
   details,
   projectValue,
+  selectedAgencyNames = [],
+  onToggleAgencyName,
 }: {
   workOrders: WorkOrder[];
   details: WorkOrderDetail[];
   projectValue: number;
+  selectedAgencyNames?: string[];
+  onToggleAgencyName?: (name: string) => void;
 }) {
   const [chartType, setChartType] = useState<'bar' | 'pie'>('bar');
 
@@ -882,13 +958,23 @@ function AgencyAllocationChart({
 
   if (workOrders.length === 0) return null;
 
+  const anySelected = selectedAgencyNames.length > 0;
+  const canSelect = !!onToggleAgencyName;
+
   const chartData = agencyGroups.map((a, i) => ({
     name: a.name,
     value: a.value,
     pct: a.pct,
     count: a.count,
     color: AGENCY_CHART_COLORS[i % AGENCY_CHART_COLORS.length],
+    selected: selectedAgencyNames.includes(a.name),
+    anySelected,
   }));
+
+  const cellFill = (d: typeof chartData[0]) => {
+    if (d.anySelected && !d.selected) return d.color + '40';
+    return d.color;
+  };
 
   const renderBar = () => (
     <ResponsiveContainer width="100%" height={120}>
@@ -896,23 +982,25 @@ function AgencyAllocationChart({
         <CartesianGrid strokeDasharray="2 2" className="stroke-slate-100" vertical={false} />
         <XAxis dataKey="name" tick={{ fontSize: 8, fontWeight: 600 }} angle={-15} textAnchor="end" height={28} interval={0} axisLine={{ stroke: '#cbd5e1' }} />
         <YAxis tick={{ fontSize: 8 }} width={40} tickFormatter={(v) => formatINRShort(v)} axisLine={false} tickLine={false} />
-        <Tooltip
-          cursor={{ fill: 'rgba(8,145,178,0.05)' }}
-          content={({ active, payload }: any) => {
-            if (!active || !payload?.length) return null;
-            const d = payload[0].payload;
-            return (
-              <div className="bg-white border border-slate-200 rounded-lg shadow-lg px-2.5 py-1.5 text-xs">
-                <div className="font-bold text-slate-800 mb-0.5">{d.name}</div>
-                <div className="text-slate-600">{formatINR(d.value)} · {d.pct.toFixed(1)}%</div>
-                <div className="text-slate-400 text-[10px]">{d.count} WO{d.count > 1 ? 's' : ''}</div>
-              </div>
-            );
+        <Tooltip cursor={{ fill: 'rgba(8,145,178,0.05)' }} content={<AgencyTooltip onToggle={onToggleAgencyName} />} />
+        <Bar
+          dataKey="value"
+          radius={[4, 4, 0, 0]}
+          barSize={28}
+          maxBarSize={36}
+          cursor={canSelect ? 'pointer' : undefined}
+          onClick={(_payload: any, idx: number) => {
+            if (canSelect) onToggleAgencyName!(chartData[idx].name);
           }}
-        />
-        <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={28} maxBarSize={36}>
+        >
           {chartData.map((d, i) => (
-            <Cell key={i} fill={d.color} />
+            <Cell
+              key={i}
+              fill={cellFill(d)}
+              stroke={d.selected ? '#0891b2' : 'none'}
+              strokeWidth={d.selected ? 2 : 0}
+              className={canSelect ? 'cursor-pointer' : ''}
+            />
           ))}
         </Bar>
       </BarChart>
@@ -932,25 +1020,22 @@ function AgencyAllocationChart({
           innerRadius={20}
           label={(e: any) => `${e.pct.toFixed(0)}%`}
           labelLine={false}
+          cursor={canSelect ? 'pointer' : undefined}
+          onClick={(_: any, idx: number) => {
+            if (canSelect) onToggleAgencyName!(chartData[idx].name);
+          }}
         >
           {chartData.map((d, i) => (
-            <Cell key={i} fill={d.color} stroke="#fff" strokeWidth={1} />
+            <Cell
+              key={i}
+              fill={cellFill(d)}
+              stroke={d.selected ? '#0891b2' : '#fff'}
+              strokeWidth={d.selected ? 3 : 1}
+              className={canSelect ? 'cursor-pointer' : ''}
+            />
           ))}
         </Pie>
-        <Tooltip
-          formatter={(v: number) => formatINR(v)}
-          content={({ active, payload }: any) => {
-            if (!active || !payload?.length) return null;
-            const d = payload[0].payload;
-            return (
-              <div className="bg-white border border-slate-200 rounded-lg shadow-lg px-2.5 py-1.5 text-xs">
-                <div className="font-bold text-slate-800 mb-0.5">{d.name}</div>
-                <div className="text-slate-600">{formatINR(d.value)} · {d.pct.toFixed(1)}%</div>
-                <div className="text-slate-400 text-[10px]">{d.count} WO{d.count > 1 ? 's' : ''}</div>
-              </div>
-            );
-          }}
-        />
+        <Tooltip content={<AgencyTooltip onToggle={onToggleAgencyName} />} />
       </PieChart>
     </ResponsiveContainer>
   );
@@ -958,11 +1043,18 @@ function AgencyAllocationChart({
   return (
     <div className="mirror-card rounded border-t-2 border-t-cyan-600 p-2 flex flex-col">
       <div className="flex items-center justify-between mb-1">
-        <div className="min-w-0">
-          <h3 className="text-xs font-semibold text-slate-700 truncate">Agency Allocation</h3>
-          <p className="text-[9px] text-slate-500 font-medium truncate">
-            {formatINRShort(totalAllocated)} of {formatINRShort(projectValue)} · {totalPct.toFixed(1)}%{balance > 0 ? ` · ${formatINRShort(balance)} unallocated` : ''}
-          </p>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <div className="min-w-0">
+            <h3 className="text-xs font-semibold text-slate-700 truncate">Agency Allocation</h3>
+            <p className="text-[9px] text-slate-500 font-medium truncate">
+              {formatINRShort(totalAllocated)} of {formatINRShort(projectValue)} · {totalPct.toFixed(1)}%{balance > 0 ? ` · ${formatINRShort(balance)} unallocated` : ''}
+            </p>
+          </div>
+          {selectedAgencyNames.length > 0 && (
+            <span className="text-[9px] font-bold bg-cyan-600 text-white px-1.5 py-0.5 rounded-full shrink-0">
+              {selectedAgencyNames.length}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-0.5 shrink-0">
           <button
@@ -989,8 +1081,8 @@ function AgencyAllocationChart({
           {/* Legend */}
           <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
             {chartData.map((d) => (
-              <div key={d.name} className="flex items-center gap-1 text-[9px] text-slate-600">
-                <div className="w-2 h-2 rounded-sm" style={{ backgroundColor: d.color }} />
+              <div key={d.name} className={`flex items-center gap-1 text-[9px] ${d.anySelected && !d.selected ? 'text-slate-300' : 'text-slate-600'}`}>
+                <div className="w-2 h-2 rounded-sm" style={{ backgroundColor: d.anySelected && !d.selected ? d.color + '40' : d.color }} />
                 <span className="font-medium">{d.name}</span>
                 <span className="text-slate-400">{d.pct.toFixed(0)}%</span>
               </div>
