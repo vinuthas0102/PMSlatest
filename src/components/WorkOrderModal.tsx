@@ -2,6 +2,7 @@ import { useMemo, useState, useRef, useCallback } from 'react';
 import {
   X, Building2, ClipboardList, AlertTriangle, Save, ChevronDown,
   Clock, Ruler, Truck, FileText, TrendingUp, Bold, Italic, Underline, Loader2, User, CalendarClock,
+  ArrowLeft,
 } from 'lucide-react';
 import type { Project, WorkOrder, WorkOrderDetail, WOSection, PaymentEntry, TrackingUpdate, TrackingType, WOSectionProgress, WOSectionDocument, WOSectionActivity, WODrawingProgress } from '@/types';
 import { useAuth } from '@/auth/AuthContext';
@@ -243,19 +244,24 @@ export function WorkOrderModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm" onClick={onClose}>
-      <div className="flex h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-xl bg-slate-50 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex flex-col bg-slate-50">
+      <div className="flex min-h-0 flex-1 flex-col">
         {/* Header */}
-        <div className="flex shrink-0 items-start justify-between bg-gradient-to-r from-slate-950 to-blue-950 px-5 py-4">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="rounded bg-cyan-500/15 px-2 py-1 font-mono text-[10px] font-bold text-cyan-300">
-                {project.seq_no} → {selectedWO?.seq_no ?? '1.1.0'}
-              </span>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-300">Agency / Work Order</span>
+        <div className="flex shrink-0 items-start justify-between bg-gradient-to-r from-slate-950 to-blue-950 px-6 py-5">
+          <div className="flex min-w-0 items-start gap-3">
+            <button onClick={onClose} className="mt-0.5 rounded-lg p-1.5 text-slate-300 hover:bg-white/10 hover:text-white">
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="rounded bg-cyan-500/15 px-2 py-1 font-mono text-[10px] font-bold text-cyan-300">
+                  {project.seq_no} → {selectedWO?.seq_no ?? '1.1.0'}
+                </span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-300">Agency / Work Order</span>
+              </div>
+              <h2 className="mt-1 truncate text-lg font-bold text-white">{project.title}</h2>
+              <p className="text-[11px] text-slate-400">Project parent · {project.state} · {project.district}</p>
             </div>
-            <h2 className="mt-1 truncate text-base font-bold text-white">{project.title}</h2>
-            <p className="text-[11px] text-slate-400">Project parent · {project.state} · {project.district}</p>
           </div>
           <button onClick={onClose} className="rounded-lg p-1.5 text-slate-300 hover:bg-white/10 hover:text-white">
             <X className="h-5 w-5" />
@@ -263,7 +269,7 @@ export function WorkOrderModal({
         </div>
 
         {/* Tab bar */}
-        <div className="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-slate-200 bg-white px-4 py-2">
+        <div className="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-slate-200 bg-white px-6 py-3">
           <select
             value={selectedId}
             onChange={(e) => {
@@ -292,7 +298,7 @@ export function WorkOrderModal({
         </div>
 
         {/* Body */}
-        <div className="min-h-0 flex-1 overflow-y-auto p-4">
+        <div className="min-h-0 flex-1 overflow-y-auto p-6">
           {error && (
             <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
               {error}
