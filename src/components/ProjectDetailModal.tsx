@@ -24,7 +24,34 @@ import {
 
 const CHART_COLORS = ['#0891b2', '#1e40af', '#059669', '#d97706', '#dc2626', '#475569'];
 
-type Tab = 'header' | 'agency';
+type Tab = 'charts' | 'header' | 'agency';
+
+interface WOFilters {
+  agencyNames: string[];
+  delayStatuses: DelayStatus[];
+  completionStatus: string[];
+  minValue: string;
+  maxValue: string;
+}
+const DEFAULT_WO_FILTERS: WOFilters = { agencyNames: [], delayStatuses: [], completionStatus: [], minValue: '', maxValue: '' };
+type WOViewType = 'chart' | 'tile' | 'table' | 'card';
+
+interface SharedWOState {
+  projectWOs: WorkOrder[];
+  filteredWOs: WorkOrder[];
+  statusFilter: string | null;
+  setStatusFilter: (f: string | null) => void;
+  woFilters: WOFilters;
+  setWoFilters: (f: WOFilters) => void;
+  appliedWOFilters: WOFilters;
+  setAppliedWOFilters: (f: WOFilters) => void;
+  agencyNameOptions: string[];
+  isWOFiltered: boolean;
+  handleClearAllWOFilters: () => void;
+  handleToggleDelayStatus: (s: DelayStatus) => void;
+  handleToggleAgencyName: (n: string) => void;
+  chartChips: { label: string; onRemove: () => void }[];
+}
 
 interface ProjectDetailModalProps {
   project: Project;
@@ -116,24 +143,6 @@ function UpdateCard({ u, icon: Icon, color }: { u: TrackingUpdate; icon: typeof 
   );
 }
 
-type WOViewType = 'chart' | 'tile' | 'table' | 'card';
-
-interface WOFilters {
-  agencyNames: string[];
-  delayStatuses: DelayStatus[];
-  completionStatus: string[];
-  minValue: string;
-  maxValue: string;
-}
-
-const DEFAULT_WO_FILTERS: WOFilters = {
-  agencyNames: [],
-  delayStatuses: [],
-  completionStatus: [],
-  minValue: '',
-  maxValue: '',
-};
-
 export function ProjectDetailModal({
   project, workOrders, details, sections, payments, trackingUpdates, woSectionProgress, woSectionDocuments, woSectionActivity, woDrawingProgress,
   mode = 'view', onClose, onReload, onSaveProject, onSaveTrackingUpdate,
@@ -145,6 +154,85 @@ export function ProjectDetailModal({
   const isFinalized = project.status === 'finalized';
   const isMaintainMode = mode === 'maintain';
   const canMaintain = isMaintainMode && canEdit && !isFinalized;
+
+  // Shared WO filter state (used by both Charts tab and Agency tab)
+  const projectWOs = useMemo(() => workOrders.filter((w) => w.project_id === project.id), [workOrders, project.id]);
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [woFilters, setWoFilters] = useState<WOFilters>(DEFAULT_WO_FILTERS);
+  const [appliedWOFilters, setAppliedWOFilters] = useState<WOFilters>(DEFAULT_WO_FILTERS);
+
+  const agencyNameOptions = useMemo(() => {
+    const names = projectWOs.map((wo) => details.find((d) => d.work_order_id === wo.id)?.agency_name).filter(Boolean) as string[];
+    return Array.from(new Set(names)).sort();
+  }, [projectWOs, details]);
+
+  const filteredWOs = useMemo(() => {
+    let result = projectWOs;
+    if (statusFilter) {
+      if (statusFilter === 'completed') result = result.filter((w) => w.completed_pct >= 100);
+      else if (statusFilter === 'active' || statusFilter === 'inprogress') result = result.filter((w) => w.completed_pct > 0 && w.completed_pct < 100);
+      else if (statusFilter === 'delayed') result = result.filter((w) => w.delay_status !== 'On Time');
+      else if (DELAY_STATUSES.includes(statusFilter as DelayStatus)) result = result.filter((w) => w.delay_status === statusFilter);
+    }
+    const f = appliedWOFilters;
+    if (f.agencyNames.length > 0) {
+      result = result.filter((w) => f.agencyNames.includes(details.find((d) => d.work_order_id === w.id)?.agency_name ?? '-'));
+    }
+    if (f.delayStatuses.length > 0) {
+      result = result.filter((w) => f.delayStatuses.includes(w.delay_status));
+    }
+    if (f.completionStatus.length > 0) {
+      result = result.filter((w) => {
+        const cs = w.completed_pct >= 100 ? 'completed' : w.completed_pct > 0 ? 'inprogress' : 'notstarted';
+        return f.completionStatus.includes(cs);
+      });
+    }
+    if (f.minValue) {
+      const min = parseFloat(f.minValue);
+      if (!isNaN(min)) result = result.filter((w) => {
+        const v = Number(details.find((d) => d.work_order_id === w.id)?.wo_value ?? w.project_value) || 0;
+        return v >= min;
+      });
+    }
+    if (f.maxValue) {
+      const max = parseFloat(f.maxValue);
+      if (!isNaN(max)) result = result.filter((w) => {
+        const v = Number(details.find((d) => d.work_order_id === w.id)?.wo_value ?? w.project_value) || 0;
+        return v <= max;
+      });
+    }
+    return result;
+  }, [projectWOs, statusFilter, appliedWOFilters, details]);
+
+  const isWOFiltered =
+    appliedWOFilters.agencyNames.length > 0 ||
+    appliedWOFilters.delayStatuses.length > 0 ||
+    appliedWOFilters.completionStatus.length > 0 ||
+    Boolean(appliedWOFilters.minValue) ||
+    Boolean(appliedWOFilters.maxValue);
+
+  const handleClearAllWOFilters = () => {
+    setWoFilters(DEFAULT_WO_FILTERS);
+    setAppliedWOFilters(DEFAULT_WO_FILTERS);
+    setStatusFilter(null);
+  };
+
+  const handleToggleDelayStatus = (status: DelayStatus) => {
+    const toggle = (arr: DelayStatus[]) => arr.includes(status) ? arr.filter((s) => s !== status) : [...arr, status];
+    setWoFilters((prev) => ({ ...prev, delayStatuses: toggle(prev.delayStatuses) }));
+    setAppliedWOFilters((prev) => ({ ...prev, delayStatuses: toggle(prev.delayStatuses) }));
+  };
+
+  const handleToggleAgencyName = (name: string) => {
+    const toggle = (arr: string[]) => arr.includes(name) ? arr.filter((n) => n !== name) : [...arr, name];
+    setWoFilters((prev) => ({ ...prev, agencyNames: toggle(prev.agencyNames) }));
+    setAppliedWOFilters((prev) => ({ ...prev, agencyNames: toggle(prev.agencyNames) }));
+  };
+
+  const chartChips: { label: string; onRemove: () => void }[] = [
+    ...appliedWOFilters.delayStatuses.map((s) => ({ label: delayStatusShort(s), onRemove: () => handleToggleDelayStatus(s) })),
+    ...appliedWOFilters.agencyNames.map((n) => ({ label: n, onRemove: () => handleToggleAgencyName(n) })),
+  ];
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-slate-50" onClick={onClose}>
@@ -180,6 +268,12 @@ export function ProjectDetailModal({
         {/* Tab bar */}
         <div className="flex shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-4 py-2">
           <button
+            onClick={() => setTab('charts')}
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${tab === 'charts' ? 'bg-cyan-700 text-white shadow' : 'text-slate-500 hover:bg-slate-100'}`}
+          >
+            <BarChart3 className="h-3.5 w-3.5" /> Charts
+          </button>
+          <button
             onClick={() => setTab('header')}
             className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${tab === 'header' ? 'bg-cyan-700 text-white shadow' : 'text-slate-500 hover:bg-slate-100'}`}
           >
@@ -195,6 +289,32 @@ export function ProjectDetailModal({
 
         {/* Body */}
         <div className="min-h-0 flex-1 overflow-y-auto">
+          {tab === 'charts' && (
+            <ChartViewTab
+              project={project}
+              workOrders={workOrders}
+              details={details}
+              sections={sections}
+              payments={payments}
+              woDrawingProgress={woDrawingProgress}
+              sharedWOState={{
+                projectWOs,
+                filteredWOs,
+                statusFilter,
+                setStatusFilter,
+                woFilters,
+                setWoFilters,
+                appliedWOFilters,
+                setAppliedWOFilters,
+                agencyNameOptions,
+                isWOFiltered,
+                handleClearAllWOFilters,
+                handleToggleDelayStatus,
+                handleToggleAgencyName,
+                chartChips,
+              }}
+            />
+          )}
           {tab === 'header' && (
             <HeaderTab
               project={project}
@@ -222,6 +342,22 @@ export function ProjectDetailModal({
               woDrawingProgress={woDrawingProgress}
               onReload={onReload}
               onSaveTrackingUpdate={onSaveTrackingUpdate}
+              sharedWOState={{
+                projectWOs,
+                filteredWOs,
+                statusFilter,
+                setStatusFilter,
+                woFilters,
+                setWoFilters,
+                appliedWOFilters,
+                setAppliedWOFilters,
+                agencyNameOptions,
+                isWOFiltered,
+                handleClearAllWOFilters,
+                handleToggleDelayStatus,
+                handleToggleAgencyName,
+                chartChips,
+              }}
             />
           )}
         </div>
@@ -598,7 +734,7 @@ function HeaderTab({
 /* ─── Agency Tab ─── */
 
 function AgencyTab({
-  project, workOrders, details, sections, payments, trackingUpdates, woSectionProgress, woSectionDocuments, woSectionActivity, woDrawingProgress, onReload, onSaveTrackingUpdate,
+  project, workOrders, details, sections, payments, trackingUpdates, woSectionProgress, woSectionDocuments, woSectionActivity, woDrawingProgress, onReload, onSaveTrackingUpdate, sharedWOState,
 }: {
   project: Project;
   workOrders: WorkOrder[];
@@ -618,107 +754,26 @@ function AgencyTab({
     officer_name: string;
     remarks: string;
   }) => Promise<{ success: boolean; error?: string }>;
+  sharedWOState: SharedWOState;
 }) {
-  const { user, permissions } = useAuth();
-  const projectWOs = useMemo(() => workOrders.filter((w) => w.project_id === project.id), [workOrders, project.id]);
-  const [woViewType, setWoViewType] = useState<WOViewType>('chart');
+  const { permissions } = useAuth();
+  const [woViewType, setWoViewType] = useState<WOViewType>('tile');
   const [selectedWO, setSelectedWO] = useState<WorkOrder | null>(null);
   const [showCreateWO, setShowCreateWO] = useState(false);
   const [woFilterOpen, setWoFilterOpen] = useState(false);
-  const [woFilters, setWoFilters] = useState<WOFilters>(DEFAULT_WO_FILTERS);
-  const [appliedWOFilters, setAppliedWOFilters] = useState<WOFilters>(DEFAULT_WO_FILTERS);
 
   const canManageWOs = permissions.canManageWorkOrders;
 
-  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const { projectWOs, filteredWOs, statusFilter, setStatusFilter, woFilters, setWoFilters, appliedWOFilters, setAppliedWOFilters, agencyNameOptions, isWOFiltered, handleClearAllWOFilters } = sharedWOState;
 
-  // Unique agency names for filter options
-  const agencyNameOptions = useMemo(() => {
-    const names = projectWOs.map((wo) => details.find((d) => d.work_order_id === wo.id)?.agency_name).filter(Boolean) as string[];
-    return Array.from(new Set(names)).sort();
-  }, [projectWOs, details]);
-
-  // Apply both status filter and drawer filters
-  const filteredWOs = useMemo(() => {
-    let result = projectWOs;
-    // Status filter (from DP cards)
-    if (statusFilter) {
-      if (statusFilter === 'completed') result = result.filter((w) => w.completed_pct >= 100);
-      else if (statusFilter === 'active' || statusFilter === 'inprogress') result = result.filter((w) => w.completed_pct > 0 && w.completed_pct < 100);
-      else if (statusFilter === 'delayed') result = result.filter((w) => w.delay_status !== 'On Time');
-      else if (DELAY_STATUSES.includes(statusFilter as DelayStatus)) result = result.filter((w) => w.delay_status === statusFilter);
-    }
-    // Drawer filters
-    const f = appliedWOFilters;
-    if (f.agencyNames.length > 0) {
-      result = result.filter((w) => f.agencyNames.includes(details.find((d) => d.work_order_id === w.id)?.agency_name ?? '-'));
-    }
-    if (f.delayStatuses.length > 0) {
-      result = result.filter((w) => f.delayStatuses.includes(w.delay_status));
-    }
-    if (f.completionStatus.length > 0) {
-      result = result.filter((w) => {
-        const cs = w.completed_pct >= 100 ? 'completed' : w.completed_pct > 0 ? 'inprogress' : 'notstarted';
-        return f.completionStatus.includes(cs);
-      });
-    }
-    if (f.minValue) {
-      const min = parseFloat(f.minValue);
-      if (!isNaN(min)) result = result.filter((w) => {
-        const v = Number(details.find((d) => d.work_order_id === w.id)?.wo_value ?? w.project_value) || 0;
-        return v >= min;
-      });
-    }
-    if (f.maxValue) {
-      const max = parseFloat(f.maxValue);
-      if (!isNaN(max)) result = result.filter((w) => {
-        const v = Number(details.find((d) => d.work_order_id === w.id)?.wo_value ?? w.project_value) || 0;
-        return v <= max;
-      });
-    }
-    return result;
-  }, [projectWOs, statusFilter, appliedWOFilters, details]);
-
-  const isWOFiltered =
-    appliedWOFilters.agencyNames.length > 0 ||
-    appliedWOFilters.delayStatuses.length > 0 ||
-    appliedWOFilters.completionStatus.length > 0 ||
-    Boolean(appliedWOFilters.minValue) ||
-    Boolean(appliedWOFilters.maxValue);
-
-  const handleClearAllWOFilters = () => {
-    setWoFilters(DEFAULT_WO_FILTERS);
-    setAppliedWOFilters(DEFAULT_WO_FILTERS);
-    setStatusFilter(null);
-  };
-
-  // Chart-driven filter toggles (sync both woFilters and appliedWOFilters)
-  const handleToggleDelayStatus = (status: DelayStatus) => {
-    const toggle = (arr: DelayStatus[]) => arr.includes(status) ? arr.filter((s) => s !== status) : [...arr, status];
-    setWoFilters((prev) => ({ ...prev, delayStatuses: toggle(prev.delayStatuses) }));
-    setAppliedWOFilters((prev) => ({ ...prev, delayStatuses: toggle(prev.delayStatuses) }));
-  };
-
-  const handleToggleAgencyName = (name: string) => {
-    const toggle = (arr: string[]) => arr.includes(name) ? arr.filter((n) => n !== name) : [...arr, name];
-    setWoFilters((prev) => ({ ...prev, agencyNames: toggle(prev.agencyNames) }));
-    setAppliedWOFilters((prev) => ({ ...prev, agencyNames: toggle(prev.agencyNames) }));
-  };
-
-  // Chip bar data
-  const chartChips: { label: string; onRemove: () => void }[] = [
-    ...appliedWOFilters.delayStatuses.map((s) => ({ label: delayStatusShort(s), onRemove: () => handleToggleDelayStatus(s) })),
-    ...appliedWOFilters.agencyNames.map((n) => ({ label: n, onRemove: () => handleToggleAgencyName(n) })),
-  ];
-
-  const viewLabel = woViewType === 'chart' ? 'Chart View' : woViewType === 'tile' ? 'Tile View' : woViewType === 'table' ? 'Table View' : 'Card View';
+  const viewLabel = woViewType === 'tile' ? 'Tile View' : woViewType === 'table' ? 'Table View' : 'Card View';
 
   return (
     <div className="flex flex-col">
       {/* 1. DP cards at top (status + allocation DPs) */}
       <StatusBar items={projectWOs} activeFilter={statusFilter} onFilterChange={setStatusFilter} noun="WOs" />
 
-      {/* 2. View controls bar with chart option + filter button */}
+      {/* 2. View controls bar with filter button */}
       <div className="flex items-center justify-between px-3 py-2 bg-cyan-50/60 border-b border-cyan-100">
         <div className="flex items-center gap-2">
           <span className="text-sm font-bold text-slate-800 tracking-tight">{viewLabel}</span>
@@ -749,7 +804,6 @@ function AgencyTab({
         <div className="flex items-center gap-2">
           <div className="flex items-center bg-white border border-slate-200 rounded overflow-hidden">
             {([
-              { key: 'chart' as const, label: 'Chart', icon: BarChart3 },
               { key: 'tile' as const, label: 'Tile', icon: LayoutGrid },
               { key: 'table' as const, label: 'Table', icon: Table2 },
               { key: 'card' as const, label: 'Card', icon: CreditCard },
@@ -784,60 +838,8 @@ function AgencyTab({
         </div>
       </div>
 
-      {/* Active selection chips from chart clicks */}
-      {chartChips.length > 0 && (
-        <div className="px-3 pt-2">
-          <div className="flex items-center gap-2 flex-wrap bg-cyan-50 border border-cyan-200 rounded-lg px-3 py-1.5">
-            <span className="text-[11px] font-bold text-cyan-800 uppercase tracking-wide flex items-center gap-1">
-              <Filter className="w-3 h-3" /> Active Selections:
-            </span>
-            {chartChips.map((chip, i) => (
-              <button
-                key={i}
-                onClick={chip.onRemove}
-                className="flex items-center gap-1 text-[11px] font-medium bg-white text-cyan-700 border border-cyan-300 rounded-full px-2 py-0.5 hover:bg-cyan-100 transition-colors"
-              >
-                {chip.label}
-                <X className="w-3 h-3" />
-              </button>
-            ))}
-            <button
-              onClick={handleClearAllWOFilters}
-              className="text-[11px] font-medium text-red-500 hover:text-red-700 flex items-center gap-0.5 ml-auto"
-            >
-              <X className="w-3 h-3" /> Clear All
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* 3. Content area - only show the selected view */}
       <div className="flex-1">
-        {woViewType === 'chart' && (
-          <>
-            <WOChartView
-              workOrders={filteredWOs}
-              workOrderDetails={details}
-              paymentEntries={payments}
-              selectedDelayStatuses={appliedWOFilters.delayStatuses}
-              onToggleDelayStatus={handleToggleDelayStatus}
-              agencyChart={
-                <AgencyAllocationChart
-                  workOrders={filteredWOs}
-                  details={details}
-                  projectValue={Number(project.project_value) || 0}
-                  selectedAgencyNames={appliedWOFilters.agencyNames}
-                  onToggleAgencyName={handleToggleAgencyName}
-                />
-              }
-            />
-            <ProjectDrawingStatus
-              workOrders={filteredWOs}
-              sections={sections}
-              drawingProgress={woDrawingProgress}
-            />
-          </>
-        )}
         {woViewType === 'tile' && <WOTileView workOrders={filteredWOs} details={details} payments={payments} projectValue={project.project_value} onSelect={(wo) => setSelectedWO(wo)} />}
         {woViewType === 'table' && <WOTableView workOrders={filteredWOs} details={details} payments={payments} projectValue={project.project_value} onSelect={(wo) => setSelectedWO(wo)} />}
         {woViewType === 'card' && <WOCardView workOrders={filteredWOs} details={details} payments={payments} projectValue={project.project_value} onSelect={(wo) => setSelectedWO(wo)} />}
@@ -882,6 +884,78 @@ function AgencyTab({
           onCreated={async () => { setShowCreateWO(false); await onReload(); }}
         />
       )}
+    </div>
+  );
+}
+
+/* ─── Chart View Tab ─── */
+
+function ChartViewTab({
+  project, workOrders, details, sections, payments, woDrawingProgress, sharedWOState,
+}: {
+  project: Project;
+  workOrders: WorkOrder[];
+  details: WorkOrderDetail[];
+  sections: WOSection[];
+  payments: PaymentEntry[];
+  woDrawingProgress: WODrawingProgress[];
+  sharedWOState: SharedWOState;
+}) {
+  const { filteredWOs, appliedWOFilters, handleToggleDelayStatus, handleToggleAgencyName, handleClearAllWOFilters, chartChips } = sharedWOState;
+
+  return (
+    <div className="flex flex-col">
+      {/* Active selection chips from chart clicks */}
+      {chartChips.length > 0 && (
+        <div className="px-3 pt-2">
+          <div className="flex items-center gap-2 flex-wrap bg-cyan-50 border border-cyan-200 rounded-lg px-3 py-1.5">
+            <span className="text-[11px] font-bold text-cyan-800 uppercase tracking-wide flex items-center gap-1">
+              <Filter className="w-3 h-3" /> Active Selections:
+            </span>
+            {chartChips.map((chip, i) => (
+              <button
+                key={i}
+                onClick={chip.onRemove}
+                className="flex items-center gap-1 text-[11px] font-medium bg-white text-cyan-700 border border-cyan-300 rounded-full px-2 py-0.5 hover:bg-cyan-100 transition-colors"
+              >
+                {chip.label}
+                <X className="w-3 h-3" />
+              </button>
+            ))}
+            <button
+              onClick={handleClearAllWOFilters}
+              className="text-[11px] font-medium text-red-500 hover:text-red-700 flex items-center gap-0.5 ml-auto"
+            >
+              <X className="w-3 h-3" /> Clear All
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Charts */}
+      <div className="flex-1">
+        <WOChartView
+          workOrders={filteredWOs}
+          workOrderDetails={details}
+          paymentEntries={payments}
+          selectedDelayStatuses={appliedWOFilters.delayStatuses}
+          onToggleDelayStatus={handleToggleDelayStatus}
+          agencyChart={
+            <AgencyAllocationChart
+              workOrders={filteredWOs}
+              details={details}
+              projectValue={Number(project.project_value) || 0}
+              selectedAgencyNames={appliedWOFilters.agencyNames}
+              onToggleAgencyName={handleToggleAgencyName}
+            />
+          }
+        />
+        <ProjectDrawingStatus
+          workOrders={filteredWOs}
+          sections={sections}
+          drawingProgress={woDrawingProgress}
+        />
+      </div>
     </div>
   );
 }
