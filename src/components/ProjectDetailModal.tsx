@@ -880,11 +880,11 @@ function AgencyAllocationChart({
   }));
 
   const renderBar = () => (
-    <ResponsiveContainer width="100%" height={220}>
-      <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 4 }}>
+    <ResponsiveContainer width="100%" height={120}>
+      <BarChart data={chartData} margin={{ top: 8, right: 4, left: 0, bottom: 4 }}>
         <CartesianGrid strokeDasharray="2 2" className="stroke-slate-100" vertical={false} />
-        <XAxis dataKey="name" tick={{ fontSize: 9, fontWeight: 600 }} angle={-20} textAnchor="end" height={50} interval={0} axisLine={{ stroke: '#cbd5e1' }} />
-        <YAxis tick={{ fontSize: 9 }} width={48} tickFormatter={(v) => formatINRShort(v)} axisLine={false} tickLine={false} />
+        <XAxis dataKey="name" tick={{ fontSize: 8, fontWeight: 600 }} angle={-15} textAnchor="end" height={28} interval={0} axisLine={{ stroke: '#cbd5e1' }} />
+        <YAxis tick={{ fontSize: 8 }} width={40} tickFormatter={(v) => formatINRShort(v)} axisLine={false} tickLine={false} />
         <Tooltip
           cursor={{ fill: 'rgba(8,145,178,0.05)' }}
           content={({ active, payload }: any) => {
@@ -899,7 +899,7 @@ function AgencyAllocationChart({
             );
           }}
         />
-        <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={32} maxBarSize={48}>
+        <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={28} maxBarSize={36}>
           {chartData.map((d, i) => (
             <Cell key={i} fill={d.color} />
           ))}
@@ -909,7 +909,7 @@ function AgencyAllocationChart({
   );
 
   const renderPie = () => (
-    <ResponsiveContainer width="100%" height={220}>
+    <ResponsiveContainer width="100%" height={120}>
       <PieChart>
         <Pie
           data={chartData}
@@ -917,9 +917,9 @@ function AgencyAllocationChart({
           nameKey="name"
           cx="50%"
           cy="50%"
-          outerRadius={80}
-          innerRadius={36}
-          label={(e: any) => `${e.name} · ${e.pct.toFixed(0)}%`}
+          outerRadius={42}
+          innerRadius={20}
+          label={(e: any) => `${e.pct.toFixed(0)}%`}
           labelLine={false}
         >
           {chartData.map((d, i) => (
@@ -945,42 +945,43 @@ function AgencyAllocationChart({
   );
 
   return (
-    <div className="mx-3 mt-2 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-      <div className="flex items-center justify-between mb-2">
-        <div>
-          <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Agency Allocation</h3>
-          <p className="mt-0.5 text-[10px] text-slate-400">
-            {formatINR(totalAllocated)} of {formatINR(projectValue)} · {totalPct.toFixed(1)}% allocated
-            {balance > 0 && <span className="ml-1.5 text-amber-600 font-medium">· {formatINRShort(balance)} unallocated</span>}
+    <div className="mirror-card rounded border-t-2 border-t-cyan-600 p-2 flex flex-col">
+      <div className="flex items-center justify-between mb-1">
+        <div className="min-w-0">
+          <h3 className="text-xs font-semibold text-slate-700 truncate">Agency Allocation</h3>
+          <p className="text-[9px] text-slate-500 font-medium truncate">
+            {formatINRShort(totalAllocated)} of {formatINRShort(projectValue)} · {totalPct.toFixed(1)}%{balance > 0 ? ` · ${formatINRShort(balance)} unallocated` : ''}
           </p>
         </div>
         <div className="flex items-center gap-0.5 shrink-0">
           <button
             onClick={() => setChartType('bar')}
-            className={`p-1 rounded ${chartType === 'bar' ? 'bg-cyan-100 text-cyan-700' : 'text-slate-400 hover:bg-slate-100'}`}
+            className={`p-0.5 rounded ${chartType === 'bar' ? 'bg-cyan-100 text-cyan-700' : 'text-slate-400 hover:bg-slate-100'}`}
           >
-            <BarChart3 className="w-4 h-4" />
+            <BarChart3 className="w-3 h-3" />
           </button>
           <button
             onClick={() => setChartType('pie')}
-            className={`p-1 rounded ${chartType === 'pie' ? 'bg-cyan-100 text-cyan-700' : 'text-slate-400 hover:bg-slate-100'}`}
+            className={`p-0.5 rounded ${chartType === 'pie' ? 'bg-cyan-100 text-cyan-700' : 'text-slate-400 hover:bg-slate-100'}`}
           >
-            <PieChartIcon className="w-4 h-4" />
+            <PieChartIcon className="w-3 h-3" />
           </button>
         </div>
       </div>
       {agencyGroups.length === 0 ? (
-        <div className="text-center text-sm text-slate-400 py-6">No agencies match the current filters.</div>
+        <div className="text-center text-xs text-slate-400 py-6">No agencies match the current filters.</div>
       ) : (
         <>
-          {chartType === 'bar' ? renderBar() : renderPie()}
+          <div className="flex-1 min-h-[120px]">
+            {chartType === 'bar' ? renderBar() : renderPie()}
+          </div>
           {/* Legend */}
-          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+          <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
             {chartData.map((d) => (
-              <div key={d.name} className="flex items-center gap-1.5 text-[10px] text-slate-600">
-                <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: d.color }} />
+              <div key={d.name} className="flex items-center gap-1 text-[9px] text-slate-600">
+                <div className="w-2 h-2 rounded-sm" style={{ backgroundColor: d.color }} />
                 <span className="font-medium">{d.name}</span>
-                <span className="text-slate-400">{d.pct.toFixed(1)}%</span>
+                <span className="text-slate-400">{d.pct.toFixed(0)}%</span>
               </div>
             ))}
           </div>
@@ -1726,13 +1727,13 @@ function ProjectDrawingStatus({
   );
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+    <div className="p-2">
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-1">
         <div>
-          <h3 className="text-sm font-bold text-slate-800">Project-level Drawing Status</h3>
-          <p className="text-[11px] text-slate-500">Auto-consolidated from approved Work Order drawing items.</p>
+          <h3 className="text-xs font-semibold text-slate-700">Project-level Drawing Status</h3>
+          <p className="text-[9px] font-medium text-slate-500">Auto-consolidated from approved Work Order drawing items.</p>
         </div>
-        <span className="rounded-lg border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-xs font-bold text-cyan-800">{summary.progressPct.toFixed(1)}% complete</span>
+        <span className="rounded border border-cyan-200 bg-cyan-50 px-1.5 py-0.5 text-[10px] font-bold text-cyan-800">{summary.progressPct.toFixed(1)}% complete</span>
       </div>
 
       {summary.byDiscipline.length === 0 ? (
