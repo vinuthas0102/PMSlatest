@@ -694,13 +694,6 @@ function AgencyTab({
       {/* 1. DP cards at top (status + allocation DPs) */}
       <StatusBar items={projectWOs} activeFilter={statusFilter} onFilterChange={setStatusFilter} noun="WOs" />
 
-      {/* Agency Allocation Chart (replaces DP cards) */}
-      <AgencyAllocationChart
-        workOrders={filteredWOs}
-        details={details}
-        projectValue={Number(project.project_value) || 0}
-      />
-
       {/* 2. View controls bar with chart option + filter button */}
       <div className="flex items-center justify-between px-3 py-2 bg-cyan-50/60 border-b border-cyan-100">
         <div className="flex items-center gap-2">
@@ -771,6 +764,11 @@ function AgencyTab({
       <div className="flex-1">
         {woViewType === 'chart' && (
           <>
+            <AgencyAllocationChart
+              workOrders={filteredWOs}
+              details={details}
+              projectValue={Number(project.project_value) || 0}
+            />
             <WOChartView workOrders={filteredWOs} workOrderDetails={details} paymentEntries={payments} />
             <ProjectDrawingStatus
               workOrders={filteredWOs}
