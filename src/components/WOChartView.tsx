@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import type { ReactNode } from 'react';
 import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis,
   CartesianGrid, Tooltip, ResponsiveContainer,
@@ -62,9 +63,10 @@ interface WOChartViewProps {
   workOrders: WorkOrder[];
   workOrderDetails?: WorkOrderDetail[];
   paymentEntries?: PaymentEntry[];
+  agencyChart?: ReactNode;
 }
 
-export function WOChartView({ workOrders, workOrderDetails = [], paymentEntries = [] }: WOChartViewProps) {
+export function WOChartView({ workOrders, workOrderDetails = [], paymentEntries = [], agencyChart }: WOChartViewProps) {
   const [scheduleType, setScheduleType] = useState<ChartType>('bar');
   const [financialType, setFinancialType] = useState<ChartType>('bar');
   const [physicalType, setPhysicalType] = useState<ChartType>('bar');
@@ -159,7 +161,8 @@ export function WOChartView({ workOrders, workOrderDetails = [], paymentEntries 
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-2 p-2">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 p-2">
+      {agencyChart}
       <MiniChartCard title="Schedule Status" chartType={scheduleType} onChartTypeChange={setScheduleType} subtitle="WO count by delay severity">
         {scheduleType === 'bar' ? renderBar(scheduleData) : renderPie(scheduleData)}
       </MiniChartCard>

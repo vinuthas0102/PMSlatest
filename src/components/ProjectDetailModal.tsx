@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   X, FileText, FileCheck, MapPin, Calendar, AlertTriangle, Ruler, CalendarClock,
-  ChevronDown, ChevronRight, Clock, Truck, TrendingUp, User, Save, LockKeyhole,
+  ChevronDown, ChevronRight, ChevronLeft, Clock, Truck, TrendingUp, User, Save, LockKeyhole,
   Loader2, Plus, Building2, LayoutGrid, Table2, CreditCard, BarChart3,
   PieChart as PieChartIcon, SlidersHorizontal, RotateCcw, CheckCircle2,
 } from 'lucide-react';
@@ -147,11 +147,15 @@ export function ProjectDetailModal({
   const canMaintain = isMaintainMode && canEdit && !isFinalized;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm" onClick={onClose}>
-      <div className="flex h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-xl bg-slate-50 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex flex-col bg-slate-50" onClick={onClose}>
+      <div className="flex h-full w-full flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex shrink-0 items-start justify-between bg-gradient-to-r from-slate-950 to-blue-950 px-5 py-4">
-          <div className="min-w-0">
+          <div className="min-w-0 flex items-start gap-3">
+            <button onClick={onClose} className="mt-0.5 rounded-lg p-1.5 text-slate-300 hover:bg-white/10 hover:text-white transition-colors" title="Back to project list">
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span className="rounded bg-cyan-500/15 px-2 py-1 font-mono text-[10px] font-bold text-cyan-300">{project.seq_no}</span>
               <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-300">CMS Project</span>
@@ -166,8 +170,9 @@ export function ProjectDetailModal({
             </div>
             <h2 className="mt-1 truncate text-base font-bold text-white">{project.title}</h2>
             <p className="text-[11px] text-slate-400">{project.state} · {project.district}</p>
+            </div>
           </div>
-          <button onClick={onClose} className="rounded-lg p-1.5 text-slate-300 hover:bg-white/10 hover:text-white">
+          <button onClick={onClose} className="rounded-lg p-1.5 text-slate-300 hover:bg-white/10 hover:text-white transition-colors" title="Close">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -764,12 +769,18 @@ function AgencyTab({
       <div className="flex-1">
         {woViewType === 'chart' && (
           <>
-            <AgencyAllocationChart
+            <WOChartView
               workOrders={filteredWOs}
-              details={details}
-              projectValue={Number(project.project_value) || 0}
+              workOrderDetails={details}
+              paymentEntries={payments}
+              agencyChart={
+                <AgencyAllocationChart
+                  workOrders={filteredWOs}
+                  details={details}
+                  projectValue={Number(project.project_value) || 0}
+                />
+              }
             />
-            <WOChartView workOrders={filteredWOs} workOrderDetails={details} paymentEntries={payments} />
             <ProjectDrawingStatus
               workOrders={filteredWOs}
               sections={sections}
