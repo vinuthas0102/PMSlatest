@@ -244,8 +244,8 @@ export function WorkOrderModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-slate-50">
-      <div className="flex min-h-0 flex-1 flex-col">
+    <div className="fixed inset-0 z-50 flex flex-col bg-slate-950/97 p-2.5">
+      <div className="flex min-h-0 flex-1 flex-col rounded-lg bg-slate-50 shadow-2xl ring-1 ring-slate-700/60 overflow-hidden">
         {/* Header */}
         <div className="flex shrink-0 items-start justify-between bg-gradient-to-r from-slate-950 to-blue-950 px-6 py-5">
           <div className="flex min-w-0 items-start gap-3">

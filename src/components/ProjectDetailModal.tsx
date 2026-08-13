@@ -148,7 +148,7 @@ export function ProjectDetailModal({
   mode = 'view', onClose, onReload, onSaveProject, onSaveTrackingUpdate,
 }: ProjectDetailModalProps) {
   const { user, permissions } = useAuth();
-  const [tab, setTab] = useState<Tab>('header');
+  const [tab, setTab] = useState<Tab>('charts');
 
   const canEdit = permissions.canEditProject;
   const isFinalized = project.status === 'finalized';
@@ -235,8 +235,8 @@ export function ProjectDetailModal({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-slate-50" onClick={onClose}>
-      <div className="flex h-full w-full flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex flex-col bg-slate-900/95 p-1.5" onClick={onClose}>
+      <div className="flex h-full w-full flex-col overflow-hidden rounded-lg bg-slate-50 shadow-2xl ring-1 ring-slate-700/50" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex shrink-0 items-start justify-between bg-gradient-to-r from-slate-950 to-blue-950 px-5 py-4">
           <div className="min-w-0 flex items-start gap-3">
@@ -901,11 +901,60 @@ function ChartViewTab({
   woDrawingProgress: WODrawingProgress[];
   sharedWOState: SharedWOState;
 }) {
-  const { filteredWOs, appliedWOFilters, handleToggleDelayStatus, handleToggleAgencyName, handleClearAllWOFilters, chartChips } = sharedWOState;
+  const {
+    projectWOs, filteredWOs, statusFilter, setStatusFilter,
+    woFilters, setWoFilters, appliedWOFilters, setAppliedWOFilters,
+    agencyNameOptions, isWOFiltered, handleClearAllWOFilters,
+    handleToggleDelayStatus, handleToggleAgencyName, chartChips,
+  } = sharedWOState;
+
+  const [woFilterOpen, setWoFilterOpen] = useState(false);
 
   return (
     <div className="flex flex-col">
-      {/* Active selection chips from chart clicks */}
+      {/* 1. DP cards at top — project-level WO status */}
+      <StatusBar items={projectWOs} activeFilter={statusFilter} onFilterChange={setStatusFilter} noun="WOs" />
+
+      {/* 2. Toolbar with filter indicator + filter button */}
+      <div className="flex items-center justify-between px-3 py-2 bg-cyan-50/60 border-b border-cyan-100">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-bold text-slate-800 tracking-tight">Project Charts</span>
+          <span className="text-slate-300">|</span>
+          {isWOFiltered || statusFilter ? (
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setWoFilterOpen(true)}
+                className="text-xs font-semibold text-cyan-700 hover:text-cyan-900 underline decoration-cyan-400 decoration-2 underline-offset-2 transition-colors"
+              >
+                Filtered Data
+              </button>
+              <button
+                onClick={handleClearAllWOFilters}
+                title="Clear all filters"
+                className="flex items-center text-cyan-700 hover:text-red-600 transition-colors"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
+            <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+              ALL Data
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setWoFilterOpen(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium text-slate-600 bg-white border border-slate-200 rounded hover:bg-slate-100 transition-colors"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Filters</span>
+          </button>
+        </div>
+      </div>
+
+      {/* 3. Active selection chips from chart clicks */}
       {chartChips.length > 0 && (
         <div className="px-3 pt-2">
           <div className="flex items-center gap-2 flex-wrap bg-cyan-50 border border-cyan-200 rounded-lg px-3 py-1.5">
@@ -932,7 +981,7 @@ function ChartViewTab({
         </div>
       )}
 
-      {/* Charts */}
+      {/* 4. Charts — project-level summaries */}
       <div className="flex-1">
         <WOChartView
           workOrders={filteredWOs}
@@ -956,6 +1005,17 @@ function ChartViewTab({
           drawingProgress={woDrawingProgress}
         />
       </div>
+
+      {/* WO Filter Drawer */}
+      <WOFilterDrawer
+        open={woFilterOpen}
+        onClose={() => setWoFilterOpen(false)}
+        filters={woFilters}
+        onFiltersChange={setWoFilters}
+        onApply={() => { setAppliedWOFilters(woFilters); setWoFilterOpen(false); }}
+        onReset={() => { setWoFilters(DEFAULT_WO_FILTERS); setAppliedWOFilters(DEFAULT_WO_FILTERS); }}
+        agencyNameOptions={agencyNameOptions}
+      />
     </div>
   );
 }
