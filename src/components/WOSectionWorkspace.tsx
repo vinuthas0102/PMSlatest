@@ -482,7 +482,7 @@ export function WOSectionWorkspace({ workOrder, sections, progress, documents, a
         <button onClick={() => changeType(1)} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Next section"><ArrowRight className="h-4 w-4" /></button>
       </div>
 
-      <div className={`grid gap-3 ${editorMode ? 'lg:grid-cols-[minmax(0,1fr)_380px]' : 'grid-cols-1'}`}>
+      <div className={`grid gap-3 ${editorMode ? 'lg:grid-cols-[minmax(0,1fr)_460px]' : 'grid-cols-1'}`}>
         <section className="min-w-0 rounded-xl border border-slate-200 bg-white shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 py-3">
             <div>
@@ -508,8 +508,9 @@ export function WOSectionWorkspace({ workOrder, sections, progress, documents, a
                     const itemPayments = payments.filter((entry) => entry.section_id === row.id);
                     const paidValue = itemPayments.reduce((sum, entry) => sum + Number(entry.amount_paid || 0), 0);
                     const financialPct = Number(row.value) > 0 ? Math.min(100, (paidValue / Number(row.value)) * 100) : 0;
-                    return <tr key={row.id} className="border-b border-slate-100 odd:bg-slate-50/60">
-                      <td className="max-w-[260px] p-2"><div className="font-semibold text-slate-800">{row.item_code || row.description || 'Unnamed item'}</div><div className="text-[10px] text-slate-500">{row.description && row.item_code ? row.description : row.unit || 'No unit'}</div></td>
+                    const isSelected = selectedItem?.id === row.id && editorMode !== null;
+                    return <tr key={row.id} className={`border-b border-slate-100 ${isSelected ? 'bg-cyan-50 ring-1 ring-inset ring-cyan-300' : 'odd:bg-slate-50/60'} ${isSelected ? '' : 'hover:bg-slate-50'} transition-colors`}>
+                      <td className="max-w-[260px] p-2"><div className={`font-semibold ${isSelected ? 'text-cyan-900' : 'text-slate-800'}`}>{row.item_code || row.description || 'Unnamed item'}</div><div className="text-[10px] text-slate-500">{row.description && row.item_code ? row.description : row.unit || 'No unit'}</div></td>
                       <td className="p-2 text-slate-600">{row.discipline || '-'}</td>
                       <td className="p-2 font-semibold text-slate-700">{activeType === 'manpower' ? `${row.skilled_count + row.unskilled_count} people` : activeType === 'quality' ? `${completedDocs}/${itemDocuments.length} docs` : `${row.required_qty} ${row.unit || ''}`}<div className="mt-1 text-[10px] font-normal text-slate-400">{row.start_date || row.end_date ? `${row.start_date || '—'} to ${row.end_date || '—'}` : 'No dates'}</div></td>
                       <td className="p-2"><div className="flex items-center gap-2"><div className="h-1.5 w-20 overflow-hidden rounded-full bg-slate-200"><div className="h-full rounded-full bg-cyan-600" style={{ width: `${Math.min(100, Number(row.required_qty) ? totalProgress / Number(row.required_qty) * 100 : 0)}%` }} /></div><span className="tabular-nums text-slate-600">{totalProgress} {row.unit || ''}</span></div></td>
