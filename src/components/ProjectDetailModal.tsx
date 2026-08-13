@@ -3,7 +3,7 @@ import {
   X, FileText, FileCheck, MapPin, Calendar, AlertTriangle, Ruler, CalendarClock,
   ChevronDown, ChevronRight, Clock, Truck, TrendingUp, User, Save, LockKeyhole,
   Loader2, Plus, Building2, LayoutGrid, Table2, CreditCard, BarChart3,
-  PieChart as PieChartIcon,
+  PieChart as PieChartIcon, SlidersHorizontal, RotateCcw, CheckCircle2,
 } from 'lucide-react';
 import type {
   Project, ProjectFormData, ProjectStatus, WorkOrder, WorkOrderDetail,
@@ -116,7 +116,23 @@ function UpdateCard({ u, icon: Icon, color }: { u: TrackingUpdate; icon: typeof 
   );
 }
 
-type WOViewType = 'tile' | 'table' | 'card';
+type WOViewType = 'chart' | 'tile' | 'table' | 'card';
+
+interface WOFilters {
+  agencyNames: string[];
+  delayStatuses: DelayStatus[];
+  completionStatus: string[];
+  minValue: string;
+  maxValue: string;
+}
+
+const DEFAULT_WO_FILTERS: WOFilters = {
+  agencyNames: [],
+  delayStatuses: [],
+  completionStatus: [],
+  minValue: '',
+  maxValue: '',
+};
 
 export function ProjectDetailModal({
   project, workOrders, details, sections, payments, trackingUpdates, woSectionProgress, woSectionDocuments, woSectionActivity, woDrawingProgress,
@@ -600,9 +616,12 @@ function AgencyTab({
 }) {
   const { user, permissions } = useAuth();
   const projectWOs = useMemo(() => workOrders.filter((w) => w.project_id === project.id), [workOrders, project.id]);
-  const [woViewType, setWoViewType] = useState<WOViewType>('tile');
+  const [woViewType, setWoViewType] = useState<WOViewType>('chart');
   const [selectedWO, setSelectedWO] = useState<WorkOrder | null>(null);
   const [showCreateWO, setShowCreateWO] = useState(false);
+  const [woFilterOpen, setWoFilterOpen] = useState(false);
+  const [woFilters, setWoFilters] = useState<WOFilters>(DEFAULT_WO_FILTERS);
+  const [appliedWOFilters, setAppliedWOFilters] = useState<WOFilters>(DEFAULT_WO_FILTERS);
 
   const canManageWOs = permissions.canManageWorkOrders;
 
@@ -616,21 +635,113 @@ function AgencyTab({
   const allocationTotal = allocationRows.reduce((sum, row) => sum + row.pct, 0);
   const agencyValueTotal = allocationRows.reduce((sum, row) => sum + row.value, 0);
 
+  // Unique agency names for filter options
+  const agencyNameOptions = useMemo(() => {
+    const names = projectWOs.map((wo) => details.find((d) => d.work_order_id === wo.id)?.agency_name).filter(Boolean) as string[];
+    return Array.from(new Set(names)).sort();
+  }, [projectWOs, details]);
+
+  // Apply both status filter and drawer filters
   const filteredWOs = useMemo(() => {
-    if (!statusFilter) return projectWOs;
-    if (statusFilter === 'completed') return projectWOs.filter((w) => w.completed_pct >= 100);
-    if (statusFilter === 'active') return projectWOs.filter((w) => w.completed_pct > 0 && w.completed_pct < 100);
-    if (statusFilter === 'delayed') return projectWOs.filter((w) => w.delay_status !== 'On Time');
-    return projectWOs;
-  }, [projectWOs, statusFilter]);
+    let result = projectWOs;
+    // Status filter (from DP cards)
+    if (statusFilter) {
+      if (statusFilter === 'completed') result = result.filter((w) => w.completed_pct >= 100);
+      else if (statusFilter === 'active' || statusFilter === 'inprogress') result = result.filter((w) => w.completed_pct > 0 && w.completed_pct < 100);
+      else if (statusFilter === 'delayed') result = result.filter((w) => w.delay_status !== 'On Time');
+      else if (DELAY_STATUSES.includes(statusFilter as DelayStatus)) result = result.filter((w) => w.delay_status === statusFilter);
+    }
+    // Drawer filters
+    const f = appliedWOFilters;
+    if (f.agencyNames.length > 0) {
+      result = result.filter((w) => f.agencyNames.includes(details.find((d) => d.work_order_id === w.id)?.agency_name ?? '-'));
+    }
+    if (f.delayStatuses.length > 0) {
+      result = result.filter((w) => f.delayStatuses.includes(w.delay_status));
+    }
+    if (f.completionStatus.length > 0) {
+      result = result.filter((w) => {
+        const cs = w.completed_pct >= 100 ? 'completed' : w.completed_pct > 0 ? 'inprogress' : 'notstarted';
+        return f.completionStatus.includes(cs);
+      });
+    }
+    if (f.minValue) {
+      const min = parseFloat(f.minValue);
+      if (!isNaN(min)) result = result.filter((w) => {
+        const v = Number(details.find((d) => d.work_order_id === w.id)?.wo_value ?? w.project_value) || 0;
+        return v >= min;
+      });
+    }
+    if (f.maxValue) {
+      const max = parseFloat(f.maxValue);
+      if (!isNaN(max)) result = result.filter((w) => {
+        const v = Number(details.find((d) => d.work_order_id === w.id)?.wo_value ?? w.project_value) || 0;
+        return v <= max;
+      });
+    }
+    return result;
+  }, [projectWOs, statusFilter, appliedWOFilters, details]);
+
+  const isWOFiltered =
+    appliedWOFilters.agencyNames.length > 0 ||
+    appliedWOFilters.delayStatuses.length > 0 ||
+    appliedWOFilters.completionStatus.length > 0 ||
+    Boolean(appliedWOFilters.minValue) ||
+    Boolean(appliedWOFilters.maxValue);
+
+  const handleClearAllWOFilters = () => {
+    setWoFilters(DEFAULT_WO_FILTERS);
+    setAppliedWOFilters(DEFAULT_WO_FILTERS);
+    setStatusFilter(null);
+  };
+
+  const viewLabel = woViewType === 'chart' ? 'Chart View' : woViewType === 'tile' ? 'Tile View' : woViewType === 'table' ? 'Table View' : 'Card View';
 
   return (
     <div className="flex flex-col">
-      {/* Action bar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-slate-200 bg-white">
+      {/* 1. DP cards at top (status + allocation DPs) */}
+      <StatusBar items={projectWOs} activeFilter={statusFilter} onFilterChange={setStatusFilter} noun="WOs" />
+
+      {/* Allocation DP cards */}
+      <AllocationDPs
+        allocationRows={allocationRows}
+        allocationTotal={allocationTotal}
+        agencyValueTotal={agencyValueTotal}
+        projectValue={Number(project.project_value) || 0}
+      />
+
+      {/* 2. View controls bar with chart option + filter button */}
+      <div className="flex items-center justify-between px-3 py-2 bg-cyan-50/60 border-b border-cyan-100">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-bold text-slate-800 tracking-tight">{viewLabel}</span>
+          <span className="text-slate-300">|</span>
+          {isWOFiltered || statusFilter ? (
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setWoFilterOpen(true)}
+                className="text-xs font-semibold text-cyan-700 hover:text-cyan-900 underline decoration-cyan-400 decoration-2 underline-offset-2 transition-colors"
+              >
+                Filtered Data
+              </button>
+              <button
+                onClick={handleClearAllWOFilters}
+                title="Clear all filters"
+                className="flex items-center text-cyan-700 hover:text-red-600 transition-colors"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
+            <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+              ALL Data
+            </span>
+          )}
+        </div>
+
         <div className="flex items-center gap-2">
           <div className="flex items-center bg-white border border-slate-200 rounded overflow-hidden">
             {([
+              { key: 'chart' as const, label: 'Chart', icon: BarChart3 },
               { key: 'tile' as const, label: 'Tile', icon: LayoutGrid },
               { key: 'table' as const, label: 'Table', icon: Table2 },
               { key: 'card' as const, label: 'Card', icon: CreditCard },
@@ -645,8 +756,15 @@ function AgencyTab({
               );
             })}
           </div>
-        </div>
-        <div className="flex items-center gap-2">
+
+          <button
+            onClick={() => setWoFilterOpen(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium text-slate-600 bg-white border border-slate-200 rounded hover:bg-slate-100 transition-colors"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Filters</span>
+          </button>
+
           {canManageWOs && (
             <button
               onClick={() => setShowCreateWO(true)}
@@ -658,43 +776,33 @@ function AgencyTab({
         </div>
       </div>
 
-      <div className="mx-4 mt-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-        <div className="mb-2 flex items-center justify-between">
-          <div>
-            <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Agency Allocation</h3>
-            <p className="mt-0.5 text-[10px] text-slate-400">{formatINR(agencyValueTotal)} of {formatINR(project.project_value)}</p>
-          </div>
-          <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${Math.abs(allocationTotal - 100) < 0.01 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800'}`}>{allocationTotal.toFixed(1)}% / 100%</span>
-        </div>
-        <div className="space-y-1.5">
-          {allocationRows.map(({ wo, agencyName, value, pct }) => (
-            <div key={wo.id} className="flex items-center justify-between text-xs">
-              <span className="min-w-0 truncate text-slate-600">{agencyName} · {wo.title}</span>
-              <span className="ml-3 shrink-0 font-bold tabular-nums text-cyan-700">{formatINRShort(value)} · {pct.toFixed(1)}%</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* WO Charts */}
-      <WOChartView workOrders={projectWOs} workOrderDetails={details} paymentEntries={payments} />
-
-      {/* Project-level Drawing Status */}
-      <ProjectDrawingStatus
-        workOrders={projectWOs}
-        sections={sections}
-        drawingProgress={woDrawingProgress}
-      />
-
-      {/* WO Status bar */}
-      <StatusBar items={projectWOs} activeFilter={statusFilter} onFilterChange={setStatusFilter} noun="WOs" />
-
-      {/* WO Views */}
+      {/* 3. Content area - only show the selected view */}
       <div className="flex-1">
+        {woViewType === 'chart' && (
+          <>
+            <WOChartView workOrders={filteredWOs} workOrderDetails={details} paymentEntries={payments} />
+            <ProjectDrawingStatus
+              workOrders={filteredWOs}
+              sections={sections}
+              drawingProgress={woDrawingProgress}
+            />
+          </>
+        )}
         {woViewType === 'tile' && <WOTileView workOrders={filteredWOs} details={details} payments={payments} projectValue={project.project_value} onSelect={(wo) => setSelectedWO(wo)} />}
         {woViewType === 'table' && <WOTableView workOrders={filteredWOs} details={details} payments={payments} projectValue={project.project_value} onSelect={(wo) => setSelectedWO(wo)} />}
         {woViewType === 'card' && <WOCardView workOrders={filteredWOs} details={details} payments={payments} projectValue={project.project_value} onSelect={(wo) => setSelectedWO(wo)} />}
       </div>
+
+      {/* WO Filter Drawer */}
+      <WOFilterDrawer
+        open={woFilterOpen}
+        onClose={() => setWoFilterOpen(false)}
+        filters={woFilters}
+        onFiltersChange={setWoFilters}
+        onApply={() => { setAppliedWOFilters(woFilters); setWoFilterOpen(false); }}
+        onReset={() => { setWoFilters(DEFAULT_WO_FILTERS); setAppliedWOFilters(DEFAULT_WO_FILTERS); }}
+        agencyNameOptions={agencyNameOptions}
+      />
 
       {/* WorkOrderModal for selected WO */}
       {selectedWO && (
@@ -724,6 +832,297 @@ function AgencyTab({
           onCreated={async () => { setShowCreateWO(false); await onReload(); }}
         />
       )}
+    </div>
+  );
+}
+
+/* ─── Allocation DP Cards ─── */
+
+function AllocationDPs({
+  allocationRows,
+  allocationTotal,
+  agencyValueTotal,
+  projectValue,
+}: {
+  allocationRows: { wo: WorkOrder; agencyName: string; value: number; pct: number }[];
+  allocationTotal: number;
+  agencyValueTotal: number;
+  projectValue: number;
+}) {
+  // Group by agency name
+  const agencyGroups = useMemo(() => {
+    const map = new Map<string, { count: number; value: number; pct: number }>();
+    for (const row of allocationRows) {
+      const existing = map.get(row.agencyName) ?? { count: 0, value: 0, pct: 0 };
+      existing.count += 1;
+      existing.value += row.value;
+      existing.pct += row.pct;
+      map.set(row.agencyName, existing);
+    }
+    return Array.from(map.entries()).map(([name, data]) => ({ name, ...data }));
+  }, [allocationRows]);
+
+  const balance = Math.max(0, projectValue - agencyValueTotal);
+  const isFullyAllocated = Math.abs(allocationTotal - 100) < 0.01;
+
+  return (
+    <div className="bg-white border-b border-slate-200">
+      <div className="flex items-stretch gap-2 px-3 py-2 overflow-x-auto">
+        {/* Total Allocation DP */}
+        <div
+          className={`relative flex flex-col justify-between overflow-hidden min-w-[158px] rounded-lg border-l-4 border border-r bg-gradient-to-br from-indigo-50 to-white border-l-indigo-500 border-indigo-200 shadow-sm`}
+          style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.8), 0 1px 3px rgba(15,23,42,0.07)' }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-b from-white/50 to-transparent pointer-events-none rounded-lg" />
+          <div className="relative px-3 pt-2.5 pb-1 flex items-start gap-2.5">
+            <div className="shrink-0 w-8 h-8 rounded-md flex items-center justify-center bg-indigo-100">
+              <Building2 className="w-4 h-4 text-indigo-600" />
+            </div>
+            <div className="flex-1 min-w-0 text-left">
+              <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider leading-none mb-1">Total Allocation</div>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-2xl font-extrabold leading-none text-indigo-700">{allocationTotal.toFixed(0)}%</span>
+                <span className="text-[10px] text-slate-400 font-medium">{allocationRows.length} WOs</span>
+              </div>
+              <div className="text-[11px] font-semibold mt-0.5 text-indigo-700 opacity-80">{formatINRShort(agencyValueTotal)}</div>
+            </div>
+          </div>
+          <div className="relative h-1.5 w-full bg-black/5 mt-1 rounded-b-lg overflow-hidden">
+            <div className="h-full bg-indigo-500 transition-all duration-500" style={{ width: `${Math.min(allocationTotal, 100)}%` }} />
+          </div>
+        </div>
+
+        {/* Balance DP */}
+        <div
+          className={`relative flex flex-col justify-between overflow-hidden min-w-[158px] rounded-lg border-l-4 border border-r bg-gradient-to-br ${isFullyAllocated ? 'from-emerald-50 to-white border-l-emerald-500 border-emerald-200' : 'from-amber-50 to-white border-l-amber-500 border-amber-200'} shadow-sm`}
+          style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.8), 0 1px 3px rgba(15,23,42,0.07)' }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-b from-white/50 to-transparent pointer-events-none rounded-lg" />
+          <div className="relative px-3 pt-2.5 pb-1 flex items-start gap-2.5">
+            <div className={`shrink-0 w-8 h-8 rounded-md flex items-center justify-center ${isFullyAllocated ? 'bg-emerald-100' : 'bg-amber-100'}`}>
+              {isFullyAllocated ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <AlertTriangle className="w-4 h-4 text-amber-600" />}
+            </div>
+            <div className="flex-1 min-w-0 text-left">
+              <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider leading-none mb-1">{isFullyAllocated ? 'Fully Allocated' : 'Unallocated'}</div>
+              <div className="flex items-baseline gap-1.5">
+                <span className={`text-2xl font-extrabold leading-none ${isFullyAllocated ? 'text-emerald-700' : 'text-amber-700'}`}>{formatINRShort(balance)}</span>
+              </div>
+              <div className="text-[11px] font-semibold mt-0.5 text-slate-500 opacity-80">of {formatINRShort(projectValue)}</div>
+            </div>
+          </div>
+          <div className="relative h-1.5 w-full bg-black/5 mt-1 rounded-b-lg overflow-hidden">
+            <div className={`h-full ${isFullyAllocated ? 'bg-emerald-500' : 'bg-amber-500'} transition-all duration-500`} style={{ width: `${Math.min(allocationTotal, 100)}%` }} />
+          </div>
+        </div>
+
+        {/* Per-agency DPs */}
+        {agencyGroups.map((agency) => {
+          const pct = Math.min(agency.pct, 100);
+          return (
+            <div
+              key={agency.name}
+              className="relative flex flex-col justify-between overflow-hidden min-w-[158px] rounded-lg border-l-4 border border-r bg-gradient-to-br from-cyan-50 to-white border-l-cyan-500 border-cyan-200 shadow-sm hover:shadow-md transition-all"
+              style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.8), 0 1px 3px rgba(15,23,42,0.07)' }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-b from-white/50 to-transparent pointer-events-none rounded-lg" />
+              <div className="relative px-3 pt-2.5 pb-1 flex items-start gap-2.5">
+                <div className="shrink-0 w-8 h-8 rounded-md flex items-center justify-center bg-cyan-100">
+                  <Building2 className="w-4 h-4 text-cyan-600" />
+                </div>
+                <div className="flex-1 min-w-0 text-left">
+                  <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider leading-none mb-1 truncate">{agency.name}</div>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-2xl font-extrabold leading-none text-cyan-700">{agency.pct.toFixed(0)}%</span>
+                    <span className="text-[10px] text-slate-400 font-medium">{agency.count} WO{agency.count > 1 ? 's' : ''}</span>
+                  </div>
+                  <div className="text-[11px] font-semibold mt-0.5 text-cyan-700 opacity-80">{formatINRShort(agency.value)}</div>
+                </div>
+              </div>
+              <div className="relative h-1.5 w-full bg-black/5 mt-1 rounded-b-lg overflow-hidden">
+                <div className="h-full bg-cyan-500 transition-all duration-500" style={{ width: `${pct}%` }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ─── WO Filter Drawer ─── */
+
+function WOFilterDrawer({
+  open,
+  onClose,
+  filters,
+  onFiltersChange,
+  onApply,
+  onReset,
+  agencyNameOptions,
+}: {
+  open: boolean;
+  onClose: () => void;
+  filters: WOFilters;
+  onFiltersChange: (f: WOFilters) => void;
+  onApply: () => void;
+  onReset: () => void;
+  agencyNameOptions: string[];
+}) {
+  if (!open) return null;
+
+  const toggleAgency = (name: string) => {
+    const next = filters.agencyNames.includes(name)
+      ? filters.agencyNames.filter((n) => n !== name)
+      : [...filters.agencyNames, name];
+    onFiltersChange({ ...filters, agencyNames: next });
+  };
+
+  const toggleDelay = (status: DelayStatus) => {
+    const next = filters.delayStatuses.includes(status)
+      ? filters.delayStatuses.filter((s) => s !== status)
+      : [...filters.delayStatuses, status];
+    onFiltersChange({ ...filters, delayStatuses: next });
+  };
+
+  const toggleCompletion = (cs: string) => {
+    const next = filters.completionStatus.includes(cs)
+      ? filters.completionStatus.filter((s) => s !== cs)
+      : [...filters.completionStatus, cs];
+    onFiltersChange({ ...filters, completionStatus: next });
+  };
+
+  return (
+    <div className="fixed inset-0 z-40 flex">
+      <div className="flex-1 bg-black/20" onClick={onClose} />
+      <div className="w-2/5 max-w-[500px] min-w-[350px] bg-white shadow-2xl flex flex-col border-l border-slate-200">
+        {/* Header */}
+        <div className="flex items-center justify-between px-3 py-2 bg-slate-900 text-white border-b border-slate-700">
+          <h2 className="text-sm font-bold">Filter Agency WOs</h2>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={onReset}
+              className="flex items-center gap-1 text-[11px] font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-2 py-1 rounded transition-colors"
+            >
+              <RotateCcw className="w-3 h-3" /> Reset
+            </button>
+            <button
+              onClick={onClose}
+              className="flex items-center gap-1 text-[11px] font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-2 py-1 rounded transition-colors"
+            >
+              <X className="w-3 h-3" /> Close
+            </button>
+          </div>
+        </div>
+
+        <div className="text-[11px] text-slate-500 bg-slate-50 px-3 py-1.5 border-b border-slate-100">
+          Set filter conditions and click <span className="font-semibold text-cyan-700">Search Now</span> to filter work orders
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          {/* 1. Agency Name Filter */}
+          {agencyNameOptions.length > 0 && (
+            <div className="px-3 py-2 border-b border-slate-100">
+              <h3 className="text-xs font-semibold text-slate-700 mb-1.5">1. Agency Name</h3>
+              <div className="flex flex-wrap gap-1.5">
+                {agencyNameOptions.map((name) => {
+                  const isSelected = filters.agencyNames.includes(name);
+                  return (
+                    <button
+                      key={name}
+                      onClick={() => toggleAgency(name)}
+                      className={`flex items-center gap-1 text-[11px] px-2 py-1 rounded border transition-all ${isSelected ? 'bg-cyan-100 text-cyan-700 border-cyan-300 ring-1 ring-cyan-400' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}
+                    >
+                      {name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* 2. Delay Status Filter */}
+          <div className="px-3 py-2 border-b border-slate-100">
+            <h3 className="text-xs font-semibold text-slate-700 mb-1.5">2. Delay Status</h3>
+            <div className="flex flex-wrap gap-1.5">
+              {DELAY_STATUSES.map((status) => {
+                const isSelected = filters.delayStatuses.includes(status);
+                const colors = delayStatusColor(status);
+                return (
+                  <button
+                    key={status}
+                    onClick={() => toggleDelay(status)}
+                    className={`flex items-center gap-1.5 text-[11px] px-2 py-1 rounded border transition-all ${isSelected ? `${colors.bg} ${colors.text} ${colors.border} ring-1 ring-cyan-400` : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}
+                  >
+                    <div className={`w-2 h-2 rounded-full ${colors.dot}`} />
+                    {delayStatusShort(status)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 3. Completion Status Filter */}
+          <div className="px-3 py-2 border-b border-slate-100">
+            <h3 className="text-xs font-semibold text-slate-700 mb-1.5">3. Completion Status</h3>
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                { key: 'completed', label: 'Completed' },
+                { key: 'inprogress', label: 'In Progress' },
+                { key: 'notstarted', label: 'Not Started' },
+              ].map((cs) => {
+                const isSelected = filters.completionStatus.includes(cs.key);
+                return (
+                  <button
+                    key={cs.key}
+                    onClick={() => toggleCompletion(cs.key)}
+                    className={`text-[11px] px-2 py-1 rounded border transition-all ${isSelected ? 'bg-cyan-100 text-cyan-700 border-cyan-300 ring-1 ring-cyan-400' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}
+                  >
+                    {cs.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 4. WO Value Range Filter */}
+          <div className="px-3 py-2 border-b border-slate-100">
+            <h3 className="text-xs font-semibold text-slate-700 mb-1.5">4. WO Value Range</h3>
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <label className="text-[10px] text-slate-500 block mb-0.5">Min Value</label>
+                <input
+                  type="number"
+                  value={filters.minValue}
+                  onChange={(e) => onFiltersChange({ ...filters, minValue: e.target.value })}
+                  placeholder="0"
+                  className="w-full text-[11px] border border-slate-200 rounded px-1.5 py-1 focus:outline-none focus:border-cyan-400"
+                />
+              </div>
+              <div className="text-slate-400 mt-4">→</div>
+              <div className="flex-1">
+                <label className="text-[10px] text-slate-500 block mb-0.5">Max Value</label>
+                <input
+                  type="number"
+                  value={filters.maxValue}
+                  onChange={(e) => onFiltersChange({ ...filters, maxValue: e.target.value })}
+                  placeholder="No limit"
+                  className="w-full text-[11px] border border-slate-200 rounded px-1.5 py-1 focus:outline-none focus:border-cyan-400"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Search Now */}
+        <div className="px-3 py-2 border-t border-slate-200 bg-slate-50">
+          <button
+            onClick={onApply}
+            className="flex items-center justify-center gap-2 w-full bg-cyan-700 hover:bg-cyan-800 text-white text-sm font-bold py-2 rounded transition-colors"
+          >
+            Search Now
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
