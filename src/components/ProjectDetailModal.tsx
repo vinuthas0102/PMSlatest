@@ -627,14 +627,6 @@ function AgencyTab({
 
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
 
-  const allocationRows = useMemo(() => projectWOs.map((wo) => {
-    const detail = details.find((entry) => entry.work_order_id === wo.id);
-    const value = Number(detail?.wo_value ?? wo.project_value) || 0;
-    return { wo, agencyName: detail?.agency_name ?? '-', value, pct: calculateAllocationPct(value, Number(project.project_value) || 0) };
-  }), [details, project.project_value, projectWOs]);
-  const allocationTotal = allocationRows.reduce((sum, row) => sum + row.pct, 0);
-  const agencyValueTotal = allocationRows.reduce((sum, row) => sum + row.value, 0);
-
   // Unique agency names for filter options
   const agencyNameOptions = useMemo(() => {
     const names = projectWOs.map((wo) => details.find((d) => d.work_order_id === wo.id)?.agency_name).filter(Boolean) as string[];
@@ -702,11 +694,10 @@ function AgencyTab({
       {/* 1. DP cards at top (status + allocation DPs) */}
       <StatusBar items={projectWOs} activeFilter={statusFilter} onFilterChange={setStatusFilter} noun="WOs" />
 
-      {/* Allocation DP cards */}
-      <AllocationDPs
-        allocationRows={allocationRows}
-        allocationTotal={allocationTotal}
-        agencyValueTotal={agencyValueTotal}
+      {/* Agency Allocation Chart (replaces DP cards) */}
+      <AgencyAllocationChart
+        workOrders={filteredWOs}
+        details={details}
         projectValue={Number(project.project_value) || 0}
       />
 
@@ -836,115 +827,167 @@ function AgencyTab({
   );
 }
 
-/* ─── Allocation DP Cards ─── */
+/* ─── Agency Allocation Chart ─── */
 
-function AllocationDPs({
-  allocationRows,
-  allocationTotal,
-  agencyValueTotal,
+const AGENCY_CHART_COLORS = [
+  '#0891b2', '#1e40af', '#059669', '#d97706', '#7c3aed',
+  '#dc2626', '#db2777', '#0d9488', '#ca8a04', '#2563eb',
+  '#9333ea', '#ea580c', '#16a34a', '#475569', '#6b7280',
+];
+
+function AgencyAllocationChart({
+  workOrders,
+  details,
   projectValue,
 }: {
-  allocationRows: { wo: WorkOrder; agencyName: string; value: number; pct: number }[];
-  allocationTotal: number;
-  agencyValueTotal: number;
+  workOrders: WorkOrder[];
+  details: WorkOrderDetail[];
   projectValue: number;
 }) {
-  // Group by agency name
-  const agencyGroups = useMemo(() => {
-    const map = new Map<string, { count: number; value: number; pct: number }>();
-    for (const row of allocationRows) {
-      const existing = map.get(row.agencyName) ?? { count: 0, value: 0, pct: 0 };
-      existing.count += 1;
-      existing.value += row.value;
-      existing.pct += row.pct;
-      map.set(row.agencyName, existing);
-    }
-    return Array.from(map.entries()).map(([name, data]) => ({ name, ...data }));
-  }, [allocationRows]);
+  const [chartType, setChartType] = useState<'bar' | 'pie'>('bar');
 
-  const balance = Math.max(0, projectValue - agencyValueTotal);
-  const isFullyAllocated = Math.abs(allocationTotal - 100) < 0.01;
+  const agencyGroups = useMemo(() => {
+    const map = new Map<string, { count: number; value: number }>();
+    for (const wo of workOrders) {
+      const detail = details.find((d) => d.work_order_id === wo.id);
+      const agencyName = detail?.agency_name ?? '-';
+      const value = Number(detail?.wo_value ?? wo.project_value) || 0;
+      const existing = map.get(agencyName) ?? { count: 0, value: 0 };
+      existing.count += 1;
+      existing.value += value;
+      map.set(agencyName, existing);
+    }
+    return Array.from(map.entries())
+      .map(([name, data]) => ({
+        name,
+        count: data.count,
+        value: data.value,
+        pct: projectValue > 0 ? (data.value / projectValue) * 100 : 0,
+      }))
+      .sort((a, b) => b.value - a.value);
+  }, [workOrders, details, projectValue]);
+
+  const totalAllocated = agencyGroups.reduce((s, a) => s + a.value, 0);
+  const totalPct = projectValue > 0 ? (totalAllocated / projectValue) * 100 : 0;
+  const balance = Math.max(0, projectValue - totalAllocated);
+
+  if (workOrders.length === 0) return null;
+
+  const chartData = agencyGroups.map((a, i) => ({
+    name: a.name,
+    value: a.value,
+    pct: a.pct,
+    count: a.count,
+    color: AGENCY_CHART_COLORS[i % AGENCY_CHART_COLORS.length],
+  }));
+
+  const renderBar = () => (
+    <ResponsiveContainer width="100%" height={220}>
+      <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 4 }}>
+        <CartesianGrid strokeDasharray="2 2" className="stroke-slate-100" vertical={false} />
+        <XAxis dataKey="name" tick={{ fontSize: 9, fontWeight: 600 }} angle={-20} textAnchor="end" height={50} interval={0} axisLine={{ stroke: '#cbd5e1' }} />
+        <YAxis tick={{ fontSize: 9 }} width={48} tickFormatter={(v) => formatINRShort(v)} axisLine={false} tickLine={false} />
+        <Tooltip
+          cursor={{ fill: 'rgba(8,145,178,0.05)' }}
+          content={({ active, payload }: any) => {
+            if (!active || !payload?.length) return null;
+            const d = payload[0].payload;
+            return (
+              <div className="bg-white border border-slate-200 rounded-lg shadow-lg px-2.5 py-1.5 text-xs">
+                <div className="font-bold text-slate-800 mb-0.5">{d.name}</div>
+                <div className="text-slate-600">{formatINR(d.value)} · {d.pct.toFixed(1)}%</div>
+                <div className="text-slate-400 text-[10px]">{d.count} WO{d.count > 1 ? 's' : ''}</div>
+              </div>
+            );
+          }}
+        />
+        <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={32} maxBarSize={48}>
+          {chartData.map((d, i) => (
+            <Cell key={i} fill={d.color} />
+          ))}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  );
+
+  const renderPie = () => (
+    <ResponsiveContainer width="100%" height={220}>
+      <PieChart>
+        <Pie
+          data={chartData}
+          dataKey="value"
+          nameKey="name"
+          cx="50%"
+          cy="50%"
+          outerRadius={80}
+          innerRadius={36}
+          label={(e: any) => `${e.name} · ${e.pct.toFixed(0)}%`}
+          labelLine={false}
+        >
+          {chartData.map((d, i) => (
+            <Cell key={i} fill={d.color} stroke="#fff" strokeWidth={1} />
+          ))}
+        </Pie>
+        <Tooltip
+          formatter={(v: number) => formatINR(v)}
+          content={({ active, payload }: any) => {
+            if (!active || !payload?.length) return null;
+            const d = payload[0].payload;
+            return (
+              <div className="bg-white border border-slate-200 rounded-lg shadow-lg px-2.5 py-1.5 text-xs">
+                <div className="font-bold text-slate-800 mb-0.5">{d.name}</div>
+                <div className="text-slate-600">{formatINR(d.value)} · {d.pct.toFixed(1)}%</div>
+                <div className="text-slate-400 text-[10px]">{d.count} WO{d.count > 1 ? 's' : ''}</div>
+              </div>
+            );
+          }}
+        />
+      </PieChart>
+    </ResponsiveContainer>
+  );
 
   return (
-    <div className="bg-white border-b border-slate-200">
-      <div className="flex items-stretch gap-2 px-3 py-2 overflow-x-auto">
-        {/* Total Allocation DP */}
-        <div
-          className={`relative flex flex-col justify-between overflow-hidden min-w-[158px] rounded-lg border-l-4 border border-r bg-gradient-to-br from-indigo-50 to-white border-l-indigo-500 border-indigo-200 shadow-sm`}
-          style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.8), 0 1px 3px rgba(15,23,42,0.07)' }}
-        >
-          <div className="absolute inset-0 bg-gradient-to-b from-white/50 to-transparent pointer-events-none rounded-lg" />
-          <div className="relative px-3 pt-2.5 pb-1 flex items-start gap-2.5">
-            <div className="shrink-0 w-8 h-8 rounded-md flex items-center justify-center bg-indigo-100">
-              <Building2 className="w-4 h-4 text-indigo-600" />
-            </div>
-            <div className="flex-1 min-w-0 text-left">
-              <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider leading-none mb-1">Total Allocation</div>
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-2xl font-extrabold leading-none text-indigo-700">{allocationTotal.toFixed(0)}%</span>
-                <span className="text-[10px] text-slate-400 font-medium">{allocationRows.length} WOs</span>
-              </div>
-              <div className="text-[11px] font-semibold mt-0.5 text-indigo-700 opacity-80">{formatINRShort(agencyValueTotal)}</div>
-            </div>
-          </div>
-          <div className="relative h-1.5 w-full bg-black/5 mt-1 rounded-b-lg overflow-hidden">
-            <div className="h-full bg-indigo-500 transition-all duration-500" style={{ width: `${Math.min(allocationTotal, 100)}%` }} />
-          </div>
+    <div className="mx-3 mt-2 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+      <div className="flex items-center justify-between mb-2">
+        <div>
+          <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Agency Allocation</h3>
+          <p className="mt-0.5 text-[10px] text-slate-400">
+            {formatINR(totalAllocated)} of {formatINR(projectValue)} · {totalPct.toFixed(1)}% allocated
+            {balance > 0 && <span className="ml-1.5 text-amber-600 font-medium">· {formatINRShort(balance)} unallocated</span>}
+          </p>
         </div>
-
-        {/* Balance DP */}
-        <div
-          className={`relative flex flex-col justify-between overflow-hidden min-w-[158px] rounded-lg border-l-4 border border-r bg-gradient-to-br ${isFullyAllocated ? 'from-emerald-50 to-white border-l-emerald-500 border-emerald-200' : 'from-amber-50 to-white border-l-amber-500 border-amber-200'} shadow-sm`}
-          style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.8), 0 1px 3px rgba(15,23,42,0.07)' }}
-        >
-          <div className="absolute inset-0 bg-gradient-to-b from-white/50 to-transparent pointer-events-none rounded-lg" />
-          <div className="relative px-3 pt-2.5 pb-1 flex items-start gap-2.5">
-            <div className={`shrink-0 w-8 h-8 rounded-md flex items-center justify-center ${isFullyAllocated ? 'bg-emerald-100' : 'bg-amber-100'}`}>
-              {isFullyAllocated ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <AlertTriangle className="w-4 h-4 text-amber-600" />}
-            </div>
-            <div className="flex-1 min-w-0 text-left">
-              <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider leading-none mb-1">{isFullyAllocated ? 'Fully Allocated' : 'Unallocated'}</div>
-              <div className="flex items-baseline gap-1.5">
-                <span className={`text-2xl font-extrabold leading-none ${isFullyAllocated ? 'text-emerald-700' : 'text-amber-700'}`}>{formatINRShort(balance)}</span>
-              </div>
-              <div className="text-[11px] font-semibold mt-0.5 text-slate-500 opacity-80">of {formatINRShort(projectValue)}</div>
-            </div>
-          </div>
-          <div className="relative h-1.5 w-full bg-black/5 mt-1 rounded-b-lg overflow-hidden">
-            <div className={`h-full ${isFullyAllocated ? 'bg-emerald-500' : 'bg-amber-500'} transition-all duration-500`} style={{ width: `${Math.min(allocationTotal, 100)}%` }} />
-          </div>
+        <div className="flex items-center gap-0.5 shrink-0">
+          <button
+            onClick={() => setChartType('bar')}
+            className={`p-1 rounded ${chartType === 'bar' ? 'bg-cyan-100 text-cyan-700' : 'text-slate-400 hover:bg-slate-100'}`}
+          >
+            <BarChart3 className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setChartType('pie')}
+            className={`p-1 rounded ${chartType === 'pie' ? 'bg-cyan-100 text-cyan-700' : 'text-slate-400 hover:bg-slate-100'}`}
+          >
+            <PieChartIcon className="w-4 h-4" />
+          </button>
         </div>
-
-        {/* Per-agency DPs */}
-        {agencyGroups.map((agency) => {
-          const pct = Math.min(agency.pct, 100);
-          return (
-            <div
-              key={agency.name}
-              className="relative flex flex-col justify-between overflow-hidden min-w-[158px] rounded-lg border-l-4 border border-r bg-gradient-to-br from-cyan-50 to-white border-l-cyan-500 border-cyan-200 shadow-sm hover:shadow-md transition-all"
-              style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.8), 0 1px 3px rgba(15,23,42,0.07)' }}
-            >
-              <div className="absolute inset-0 bg-gradient-to-b from-white/50 to-transparent pointer-events-none rounded-lg" />
-              <div className="relative px-3 pt-2.5 pb-1 flex items-start gap-2.5">
-                <div className="shrink-0 w-8 h-8 rounded-md flex items-center justify-center bg-cyan-100">
-                  <Building2 className="w-4 h-4 text-cyan-600" />
-                </div>
-                <div className="flex-1 min-w-0 text-left">
-                  <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider leading-none mb-1 truncate">{agency.name}</div>
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-2xl font-extrabold leading-none text-cyan-700">{agency.pct.toFixed(0)}%</span>
-                    <span className="text-[10px] text-slate-400 font-medium">{agency.count} WO{agency.count > 1 ? 's' : ''}</span>
-                  </div>
-                  <div className="text-[11px] font-semibold mt-0.5 text-cyan-700 opacity-80">{formatINRShort(agency.value)}</div>
-                </div>
-              </div>
-              <div className="relative h-1.5 w-full bg-black/5 mt-1 rounded-b-lg overflow-hidden">
-                <div className="h-full bg-cyan-500 transition-all duration-500" style={{ width: `${pct}%` }} />
-              </div>
-            </div>
-          );
-        })}
       </div>
+      {agencyGroups.length === 0 ? (
+        <div className="text-center text-sm text-slate-400 py-6">No agencies match the current filters.</div>
+      ) : (
+        <>
+          {chartType === 'bar' ? renderBar() : renderPie()}
+          {/* Legend */}
+          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+            {chartData.map((d) => (
+              <div key={d.name} className="flex items-center gap-1.5 text-[10px] text-slate-600">
+                <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: d.color }} />
+                <span className="font-medium">{d.name}</span>
+                <span className="text-slate-400">{d.pct.toFixed(1)}%</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
