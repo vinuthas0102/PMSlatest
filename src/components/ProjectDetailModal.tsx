@@ -271,13 +271,13 @@ export function ProjectDetailModal({
             onClick={() => setTab('charts')}
             className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${tab === 'charts' ? 'bg-cyan-700 text-white shadow' : 'text-slate-500 hover:bg-slate-100'}`}
           >
-            <BarChart3 className="h-3.5 w-3.5" /> Charts
+            <BarChart3 className="h-3.5 w-3.5" /> Project Chart
           </button>
           <button
             onClick={() => setTab('header')}
             className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${tab === 'header' ? 'bg-cyan-700 text-white shadow' : 'text-slate-500 hover:bg-slate-100'}`}
           >
-            <FileText className="h-3.5 w-3.5" /> Header
+            <FileText className="h-3.5 w-3.5" /> Project Header
           </button>
           <button
             onClick={() => setTab('agency')}
