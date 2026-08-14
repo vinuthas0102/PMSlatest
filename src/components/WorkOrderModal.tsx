@@ -9,6 +9,7 @@ import { useAuth } from '@/auth/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { calculateAllocationPct, delayStatusColor, delayStatusShort, DELAY_STATUSES, formatINRShort } from '@/lib/format';
 import { WOSectionWorkspace } from '@/components/WOSectionWorkspace';
+import { DownloadButton } from '@/components/DownloadButton';
 
 interface WorkOrderModalProps {
   project: Project;
@@ -266,6 +267,11 @@ export function WorkOrderModal({
           <button onClick={onClose} className="rounded-lg p-1.5 text-slate-300 hover:bg-white/10 hover:text-white">
             <X className="h-5 w-5" />
           </button>
+          <DownloadButton
+            title={`Work Order ${selectedWO?.seq_no ?? ''} - ${project.title}`}
+            subtitle={`${project.state} · ${project.district}`}
+            className="flex items-center gap-1.5 rounded-lg bg-white/10 border border-white/20 px-2.5 py-1.5 text-xs font-semibold text-slate-200 hover:bg-white/20 transition-colors"
+          />
         </div>
 
         {/* Tab bar */}

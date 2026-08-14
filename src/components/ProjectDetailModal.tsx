@@ -17,6 +17,7 @@ import {
 } from '@/lib/format';
 import { StatusBar } from '@/components/StatusBar';
 import { WOChartView } from '@/components/WOChartView';
+import { DownloadButton } from '@/components/DownloadButton';
 import { aggregateDrawingStatus } from '@/lib/drawingStatus';
 import {
   BarChart, Bar, Cell, PieChart, Pie, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -263,6 +264,11 @@ export function ProjectDetailModal({
           <button onClick={onClose} className="rounded-lg p-1.5 text-slate-300 hover:bg-white/10 hover:text-white transition-colors" title="Close">
             <X className="h-5 w-5" />
           </button>
+          <DownloadButton
+            title={`Project ${project.seq_no} - ${project.title}`}
+            subtitle={`${project.state} · ${project.district}`}
+            className="flex items-center gap-1.5 rounded-lg bg-white/10 border border-white/20 px-2.5 py-1.5 text-xs font-semibold text-slate-200 hover:bg-white/20 transition-colors"
+          />
         </div>
 
         {/* Tab bar */}

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Building2, Lock, Mail, LogIn, AlertCircle, ShieldCheck, Eye, EyeOff, UserCog } from 'lucide-react';
 import { useAuth, DEMO_USERS, type DemoUser } from '@/auth/AuthContext';
+import { DownloadButton } from '@/components/DownloadButton';
 import epiLogo from '@/components/logo.png';
 
 const ROLE_ACCENTS: Record<string, { border: string; bg: string; text: string; dot: string }> = {
@@ -126,6 +127,15 @@ export function LandingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-cyan-50 to-slate-200 flex items-center justify-center p-4 sm:p-6 relative overflow-hidden">
+      {/* Export button */}
+      <div className="absolute top-4 right-4 z-20">
+        <DownloadButton
+          title="EPI Portal - Login Page"
+          subtitle="Engineering Projects (India) Ltd."
+          className="flex items-center gap-1.5 rounded-lg bg-white/80 border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-white transition-colors shadow-sm"
+        />
+      </div>
+
       {/* Animated particle background */}
       <div className="absolute inset-0 opacity-35">
         <ParticleField />

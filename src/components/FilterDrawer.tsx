@@ -6,6 +6,7 @@ import {
   DELAY_STATUSES, delayStatusColor, delayStatusShort,
 } from '@/lib/format';
 import { IndiaMap } from '@/components/IndiaMap';
+import { DownloadButton } from '@/components/DownloadButton';
 
 interface FilterDrawerProps {
   open: boolean;
@@ -136,6 +137,10 @@ export function FilterDrawer({ open, onClose, filters, onFiltersChange, onApply,
           <div className="flex items-center justify-between px-3 py-2 bg-slate-900 text-white border-b border-slate-700">
             <h2 className="text-sm font-bold">Filter Conditions</h2>
             <div className="flex items-center gap-1.5">
+              <DownloadButton
+                title="Filter Conditions"
+                className="flex items-center gap-1 text-[11px] font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-2 py-1 rounded transition-colors"
+              />
               <button
                 onClick={onReset}
                 className="flex items-center gap-1 text-[11px] font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-2 py-1 rounded transition-colors"

@@ -2,6 +2,7 @@ import { User, Clock, LogOut, ChevronDown, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { DEPT_NAME } from '@/lib/constants';
 import { useAuth } from '@/auth/AuthContext';
+import { DownloadButton } from '@/components/DownloadButton';
 import epiLogo from './logo.png';
 
 interface HeaderProps {
@@ -35,6 +36,12 @@ export function Header({ levelLabel, onCreateProject }: HeaderProps) {
         </div>
 
         <div className="flex items-center gap-4 shrink-0">
+          <DownloadButton
+            title="EPI Project Dashboard"
+            subtitle={levelLabel}
+            className="flex items-center gap-1.5 rounded-lg bg-blue-800/60 border border-blue-400/30 px-2.5 py-1.5 text-xs font-semibold text-blue-100 hover:bg-blue-700/50 transition-colors"
+          />
+
           {permissions.canCreateProject && onCreateProject && (
             <button
               onClick={onCreateProject}
