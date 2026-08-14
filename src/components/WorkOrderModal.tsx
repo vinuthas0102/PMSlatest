@@ -264,14 +264,16 @@ export function WorkOrderModal({
               <p className="text-[11px] text-slate-400">Project parent · {project.state} · {project.district}</p>
             </div>
           </div>
-          <button onClick={onClose} className="rounded-lg p-1.5 text-slate-300 hover:bg-white/10 hover:text-white">
-            <X className="h-5 w-5" />
-          </button>
-          <DownloadButton
-            title={`Work Order ${selectedWO?.seq_no ?? ''} - ${project.title}`}
-            subtitle={`${project.state} · ${project.district}`}
-            className="flex items-center gap-1.5 rounded-lg bg-white/10 border border-white/20 px-2.5 py-1.5 text-xs font-semibold text-slate-200 hover:bg-white/20 transition-colors"
-          />
+          <div className="flex items-center gap-2">
+            <DownloadButton
+              title={`Work Order ${selectedWO?.seq_no ?? ''} - ${project.title}`}
+              subtitle={`${project.state} · ${project.district}`}
+              className="flex items-center gap-1.5 rounded-lg bg-white/10 border border-white/20 px-2.5 py-1.5 text-xs font-semibold text-slate-200 hover:bg-white/20 transition-colors"
+            />
+            <button onClick={onClose} className="rounded-lg p-1.5 text-slate-300 hover:bg-white/10 hover:text-white">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
         {/* Tab bar */}

@@ -17,7 +17,7 @@ export function DownloadButton({
   title,
   subtitle,
   className,
-  label = 'Export',
+  label = '',
 }: DownloadButtonProps) {
   const [exporting, setExporting] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
