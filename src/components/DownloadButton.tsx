@@ -58,23 +58,5 @@ export function DownloadButton({
     }, 50);
   };
 
-  return (
-    <button
-      ref={buttonRef}
-      onClick={handleExport}
-      disabled={exporting}
-      title={`Download this page as HTML`}
-      className={
-        className ??
-        'flex items-center gap-1.5 rounded-lg bg-white border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors disabled:opacity-50'
-      }
-    >
-      {exporting ? (
-        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-      ) : (
-        <Download className="w-3.5 h-3.5" />
-      )}
-      {label && <span className="hidden sm:inline">{exporting ? 'Exporting...' : label}</span>}
-    </button>
-  );
+  return null;
 }
