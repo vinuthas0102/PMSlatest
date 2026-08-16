@@ -1,10 +1,10 @@
 import { useState, useMemo } from 'react';
 import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis,
-  CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart, Line, LabelList,
+  CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList,
 } from 'recharts';
 import { BarChart3, PieChart as PieIcon, Check, X, Filter } from 'lucide-react';
-import type { BaseEntity, DelayStatus, PaymentEntry, WOSection, WOSectionProgress, WODrawingProgress } from '@/types';
+import type { BaseEntity, DelayStatus, WOSection, WOSectionProgress, WODrawingProgress } from '@/types';
 import { formatINR, formatINRShort, CATEGORIES, delayStatusShort, DELAY_STATUSES } from '@/lib/format';
 import { aggregateDrawingStatus } from '@/lib/drawingStatus';
 import { aggregateSectionStatus, type SectionType } from '@/lib/sectionStatus';
@@ -20,7 +20,6 @@ interface ChartViewProps {
   woSections?: WOSection[];
   woDrawingProgress?: WODrawingProgress[];
   woSectionProgress?: WOSectionProgress[];
-  paymentEntries?: PaymentEntry[];
 }
 
 type ChartType = 'bar' | 'pie';
@@ -140,31 +139,6 @@ function StatusTooltip({
   );
 }
 
-function TimelineTooltip({ active, payload, label }: { active?: boolean; payload?: any[]; label?: string }) {
-  if (!active || !payload || !payload.length) return null;
-  const p = payload[0].payload as any;
-  const s = p.statuses as StatusInfo;
-  return (
-    <div className="bg-white/95 backdrop-blur rounded-lg shadow-lg border border-slate-200 px-3 py-2 text-xs min-w-[150px]">
-      <div className="font-semibold text-slate-800 mb-0.5">{label}</div>
-      {payload.map((entry: any) => (
-        <div key={entry.dataKey} className="text-slate-600">
-          {entry.name}: {entry.dataKey === 'Outflow' ? formatINRShort(entry.value) : entry.value}
-        </div>
-      ))}
-      <div className="pt-1.5 mt-1.5 border-t border-slate-100 space-y-1">
-        <div className="font-medium text-slate-500">Projects: {p.count}</div>
-        <div className="grid grid-cols-2 gap-x-2 gap-y-0.5">
-          <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ background: '#059669' }} />On Time: {s.onTime}</div>
-          <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ background: '#d97706' }} />Warning: {s.warning}</div>
-          <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ background: '#ea580c' }} />Serious: {s.serious}</div>
-          <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ background: '#dc2626' }} />Critical: {s.critical}</div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function ChartCard({
   title,
   chartType,
@@ -216,8 +190,6 @@ function ChartCard({
   );
 }
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
 export function ChartView({
   items,
   selectedStates,
@@ -227,7 +199,6 @@ export function ChartView({
   woSections = [],
   woDrawingProgress = [],
   woSectionProgress = [],
-  paymentEntries = [],
 }: ChartViewProps) {
   const [chart1Type, setChart1Type] = useState<ChartType>('bar');
   const [chart2Type, setChart2Type] = useState<ChartType>('bar');
@@ -239,8 +210,6 @@ export function ChartView({
   const [chart8Type, setChart8Type] = useState<ChartType>('bar');
   const [chart9Type, setChart9Type] = useState<ChartType>('bar');
   const [chart10Type, setChart10Type] = useState<ChartType>('bar');
-  const [timelineMode, setTimelineMode] = useState<'yearly' | 'monthly'>('monthly');
-
   const drawingSummary = useMemo(
     () => aggregateDrawingStatus(woSections, woDrawingProgress, null, { onlyApproved: true }),
     [woSections, woDrawingProgress],
@@ -393,34 +362,6 @@ export function ChartView({
     }).filter((d) => d.value > 0);
   }, [items, selectedCategories]);
 
-  const timelineData = useMemo(() => {
-    const labels = timelineMode === 'yearly' ? ['2023', '2024', '2025', '2026'] : MONTHS;
-    const overallStatuses = computeStatuses(items);
-    return labels.map((label, idx) => {
-      const seed = idx + 1;
-      const completedCount = Math.floor(items.filter((i) => i.completed_pct >= 100).length * (seed / 12));
-      const activeCount = Math.min(
-        items.length - completedCount,
-        Math.max(1, Math.floor(items.length * (0.3 + (idx % 3) * 0.1))),
-      );
-      const outflow = paymentEntries.length > 0
-        ? paymentEntries.reduce((sum, payment) => {
-          const date = new Date(payment.payment_date);
-          const matches = timelineMode === 'yearly' ? date.getFullYear().toString() === label : MONTHS[date.getMonth()] === label;
-          return matches ? sum + Number(payment.amount_paid || 0) : sum;
-        }, 0)
-        : items.reduce((s, i) => s + i.paid_amount, 0) * (seed / 12);
-      return {
-        name: label,
-        Completed: completedCount,
-        Active: activeCount,
-        Outflow: Math.round(outflow),
-        count: items.length,
-        statuses: overallStatuses,
-      };
-    });
-  }, [items, timelineMode, paymentEntries]);
-
   const cellFill = (d: ChartPoint) => {
     if (d.filterField && d.anySelected && !d.selected) {
       return d.color + '40';
@@ -566,22 +507,6 @@ export function ChartView({
     </ResponsiveContainer>
   );
 
-  const renderTimelineChart = () => (
-    <ResponsiveContainer width="100%" height={CHART_H}>
-      <ComposedChart data={timelineData} margin={{ top: 20, right: 10, left: 0, bottom: 10 }}>
-        <CartesianGrid strokeDasharray="3 3" className="stroke-slate-100" vertical={false} />
-        <XAxis dataKey="name" tick={{ fontSize: 10 }} axisLine={{ stroke: '#cbd5e1' }} />
-        <YAxis yAxisId="left" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-        <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10 }} tickFormatter={(v) => formatINRShort(v)} axisLine={false} tickLine={false} />
-        <Tooltip cursor={{ fill: 'rgba(8,145,178,0.05)' }} content={<TimelineTooltip />} />
-        <Legend wrapperStyle={{ fontSize: 10 }} />
-        <Bar yAxisId="left" dataKey="Completed" stackId="a" fill="#059669" radius={[0, 0, 0, 0]} barSize={30} maxBarSize={40} />
-        <Bar yAxisId="left" dataKey="Active" stackId="a" fill="#0891b2" radius={[6, 6, 0, 0]} barSize={30} maxBarSize={40} />
-        <Line yAxisId="right" type="monotone" dataKey="Outflow" stroke="#d97706" strokeWidth={2} dot={{ r: 3 }} />
-      </ComposedChart>
-    </ResponsiveContainer>
-  );
-
   const allChips: { field: FilterField; label: string; value: string }[] = [
     ...selectedStates.map((s) => ({ field: 'states' as FilterField, label: s, value: s })),
     ...selectedCategories.map((c) => ({ field: 'categories' as FilterField, label: c, value: c })),
@@ -633,23 +558,6 @@ export function ChartView({
         <ChartCard title="Category-wise" chartType={chart5Type} onChartTypeChange={setChart5Type} selectedCount={selectedCategories.length}>
           {chart5Type === 'bar' ? renderBar(categoryData) : renderPie(categoryData)}
         </ChartCard>
-        <div className="mirror-card rounded border-t-2 border-t-cyan-600 p-3 flex flex-col animate-portal-rise">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-semibold text-slate-700">Timeline Trend</h3>
-            <div className="flex items-center bg-slate-100 rounded text-[11px]">
-              {(['yearly', 'monthly'] as const).map((m) => (
-                <button
-                  key={m}
-                  onClick={() => setTimelineMode(m)}
-                  className={`px-2 py-0.5 rounded font-medium transition-colors ${timelineMode === m ? 'bg-cyan-700 text-white' : 'text-slate-500 hover:bg-slate-200'}`}
-                >
-                  {m === 'yearly' ? 'Year' : 'Month'}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="flex-1 min-h-[300px]">{renderTimelineChart()}</div>
-        </div>
         <ChartCard title="Project Status" chartType={chart1Type} onChartTypeChange={setChart1Type}>
           {chart1Type === 'bar' ? renderBar(physicalData) : renderPie(physicalData)}
         </ChartCard>

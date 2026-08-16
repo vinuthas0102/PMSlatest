@@ -329,7 +329,6 @@ function DashboardApp() {
             woSections={data?.woSections ?? []}
             woDrawingProgress={data?.woDrawingProgress ?? []}
             woSectionProgress={data?.woSectionProgress ?? []}
-            paymentEntries={data?.paymentEntries ?? []}
           />
         )}
         {viewType === 'tile' && (
