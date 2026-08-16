@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Building2, Activity, CheckCircle2, Loader2, AlertTriangle } from 'lucide-react';
+import { ChevronDown, ChevronUp, Building2, Activity, CheckCircle2, Loader2, AlertTriangle, Ban } from 'lucide-react';
 import type { BaseEntity, DelayStatus } from '@/types';
 import { formatINRShort, delayStatusShort, DELAY_STATUSES } from '@/lib/format';
 
@@ -96,6 +96,20 @@ const TOP_DPS: DPCard[] = [
     borderColor: 'border-amber-200',
     hoverBorder: 'hover:border-amber-400',
   },
+  {
+    key: 'cancelled',
+    label: 'Cancelled',
+    icon: Ban,
+    accent: 'border-l-rose-500',
+    gradFrom: 'from-rose-50',
+    gradTo: 'to-white',
+    numColor: 'text-rose-700',
+    barColor: 'bg-rose-500',
+    iconBg: 'bg-rose-100',
+    iconColor: 'text-rose-600',
+    borderColor: 'border-rose-200',
+    hoverBorder: 'hover:border-rose-400',
+  },
 ];
 
 interface SubConfig {
@@ -162,11 +176,13 @@ export function StatusBar({ items, activeFilter, onFilterChange, noun = 'Project
   const activeItems = items.filter((i) => i.completed_pct < 100 && i.completed_pct > 0);
   const inProgressItems = items.filter((i) => i.completed_pct > 0 && i.completed_pct < 100);
   const delayedItems = items.filter((i) => i.delay_status !== 'On Time');
+  const cancelledItems = items.filter((i) => i.lifecycle_status === 'cancelled');
 
   const completed = completedItems.length;
   const active = activeItems.length;
   const inProgress = inProgressItems.length;
   const delayed = delayedItems.length;
+  const cancelled = cancelledItems.length;
 
   const totalFinancial = items.reduce((s, i) => s + i.mbook_entry, 0);
   const avgCompletion = total > 0 ? items.reduce((s, i) => s + i.completed_pct, 0) / total : 0;
@@ -193,6 +209,11 @@ export function StatusBar({ items, activeFilter, onFilterChange, noun = 'Project
       count: delayed,
       pct: avgOf(delayedItems),
       value: delayedItems.reduce((s, i) => s + i.mbook_entry, 0),
+    },
+    cancelled: {
+      count: cancelled,
+      pct: avgOf(cancelledItems),
+      value: cancelledItems.reduce((s, i) => s + i.mbook_entry, 0),
     },
   };
 

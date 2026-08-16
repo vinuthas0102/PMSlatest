@@ -17,6 +17,7 @@ import type {
   WOSectionDocument,
   WOSectionActivity,
   WODrawingProgress,
+  LifecycleEvent,
 } from '@/types';
 
 const LOADING_KEY = 'pms_data_v9';
@@ -68,11 +69,12 @@ export function useDashboardData() {
           woSectionDocuments: cachedData.woSectionDocuments ?? [],
           woSectionActivity: cachedData.woSectionActivity ?? [],
           woDrawingProgress: cachedData.woDrawingProgress ?? [],
+          lifecycleEvents: cachedData.lifecycleEvents ?? [],
         });
         setLoading(false);
       }
 
-      const [projRes, woRes, schedRes, trkRes, allSpecs, trackingUpdatesRes, woDetailsRes, woSectionsRes, paymentsRes, amendmentsRes, woSectionProgressRes, woSectionDocumentsRes, woSectionActivityRes, woDrawingProgressRes] = await Promise.all([
+      const [projRes, woRes, schedRes, trkRes, allSpecs, trackingUpdatesRes, woDetailsRes, woSectionsRes, paymentsRes, amendmentsRes, woSectionProgressRes, woSectionDocumentsRes, woSectionActivityRes, woDrawingProgressRes, lifecycleEventsRes] = await Promise.all([
         supabase.from('projects').select('*').order('seq_no'),
         supabase.from('work_orders').select('*').order('seq_no'),
         supabase.from('schedules').select('*').order('seq_no'),
@@ -87,6 +89,7 @@ export function useDashboardData() {
         supabase.from('wo_section_documents').select('*').order('created_at', { ascending: false }),
         supabase.from('wo_section_activity').select('*').order('created_at', { ascending: false }),
         supabase.from('wo_drawing_progress').select('*').order('created_at', { ascending: false }),
+        supabase.from('lifecycle_events').select('*').order('created_at', { ascending: false }),
       ]);
 
       if (projRes.error) throw projRes.error;
@@ -102,6 +105,7 @@ export function useDashboardData() {
       if (woSectionDocumentsRes.error) throw woSectionDocumentsRes.error;
       if (woSectionActivityRes.error) throw woSectionActivityRes.error;
       if (woDrawingProgressRes.error) throw woDrawingProgressRes.error;
+      if (lifecycleEventsRes.error) throw lifecycleEventsRes.error;
 
       const dashboardData: DashboardData = {
         projects: (projRes.data as Project[]) ?? [],
@@ -118,6 +122,7 @@ export function useDashboardData() {
         woSectionDocuments: (woSectionDocumentsRes.data as WOSectionDocument[]) ?? [],
         woSectionActivity: (woSectionActivityRes.data as WOSectionActivity[]) ?? [],
         woDrawingProgress: (woDrawingProgressRes.data as WODrawingProgress[]) ?? [],
+        lifecycleEvents: (lifecycleEventsRes.data as LifecycleEvent[]) ?? [],
       };
       sessionStorage.setItem(LOADING_KEY, JSON.stringify(dashboardData));
       setData(dashboardData);
@@ -148,6 +153,9 @@ export function useDashboardData() {
         void load();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'payment_entries' }, () => {
+        void load();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'lifecycle_events' }, () => {
         void load();
       })
       .subscribe();

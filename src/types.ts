@@ -27,10 +27,27 @@ export interface BaseEntity {
   start_date: string | null;
   end_date: string | null;
   created_at: string;
+  lifecycle_status: LifecycleStatus;
 }
 
 export type ProjectType = 'EPC' | 'PMC';
 export type ProjectStatus = 'draft' | 'finalized';
+
+export type LifecycleStatus = 'active' | 'cancelled' | 'completed';
+
+export type LifecycleAction = 'cancel' | 'reinstate' | 'complete';
+
+export type LifecycleTargetType = 'project' | 'work_order';
+
+export interface LifecycleEvent {
+  id: string;
+  target_type: LifecycleTargetType;
+  target_id: string;
+  action: LifecycleAction;
+  reason: string;
+  performed_by: string | null;
+  created_at: string;
+}
 
 export interface Project extends BaseEntity {
   description: string | null;
@@ -64,6 +81,7 @@ export interface Project extends BaseEntity {
   civil_pct: number;
   manpower_pct: number;
   others_pct: number;
+  lifecycle_status: LifecycleStatus;
 }
 
 export interface ProjectFormData {
@@ -190,6 +208,7 @@ export interface WorkOrderDetail {
   start_date: string | null;
   end_date: string | null;
   status: ProjectStatus;
+  lifecycle_status: LifecycleStatus;
   created_at: string;
 }
 
@@ -331,4 +350,5 @@ export interface DashboardData {
   woSectionDocuments: WOSectionDocument[];
   woSectionActivity: WOSectionActivity[];
   woDrawingProgress: WODrawingProgress[];
+  lifecycleEvents: LifecycleEvent[];
 }

@@ -1,7 +1,8 @@
 import { FileText, MapPin, AlertTriangle, Ruler, CalendarClock, FilePlus, Wrench } from 'lucide-react';
-import type { BaseEntity, TrackingUpdate, TrackingType } from '@/types';
+import type { BaseEntity, TrackingUpdate, TrackingType, LifecycleStatus } from '@/types';
 import type { ProjectAllocation } from '@/lib/projectAllocation';
 import { formatINRShort, formatPct, delayStatusColor, delayStatusShort } from '@/lib/format';
+import { LIFECYCLE_STATUS_BADGE, LIFECYCLE_STATUS_LABEL } from '@/lib/lifecycle';
 
 interface TileViewProps {
   items: BaseEntity[];
@@ -62,6 +63,11 @@ export function TileView({ items, trackingUpdates = [], projectAllocations = new
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${colors.bg} ${colors.text} ${colors.border}`}>
                 {delayStatusShort(item.delay_status)}
               </span>
+              {item.lifecycle_status && item.lifecycle_status !== 'active' && (
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${LIFECYCLE_STATUS_BADGE[item.lifecycle_status as LifecycleStatus]}`}>
+                  {LIFECYCLE_STATUS_LABEL[item.lifecycle_status as LifecycleStatus]}
+                </span>
+              )}
               <span className="text-sm font-semibold text-slate-800 truncate flex-1 min-w-0">{item.title}</span>
               <div className="flex items-center gap-1 text-[10px] text-slate-500">
                 <MapPin className="w-3 h-3" />

@@ -99,6 +99,9 @@ function DashboardApp() {
     if (statusFilter === 'delayed') {
       return drawerFilteredItems.filter((i) => i.delay_status !== 'On Time');
     }
+    if (statusFilter === 'cancelled') {
+      return drawerFilteredItems.filter((i) => i.lifecycle_status === 'cancelled');
+    }
     const delayStatusMap: Record<string, DelayStatus> = {
       'On Time': 'On Time',
       'Delayed - Warning': 'Delayed - Warning',
@@ -380,6 +383,7 @@ function DashboardApp() {
           woSectionDocuments={data.woSectionDocuments}
           woSectionActivity={data.woSectionActivity}
           woDrawingProgress={data.woDrawingProgress}
+          lifecycleEvents={data.lifecycleEvents}
           mode={detailMode}
           onClose={() => setDetailProject(null)}
           onReload={reload}

@@ -71,6 +71,7 @@ export interface Permissions {
   canApproveWOItems: boolean;
   canTrackWOProgress: boolean;
   canUploadWODocuments: boolean;
+  canManageLifecycle: boolean;
 }
 
 export function getPermissions(role: Role): Permissions {
@@ -93,6 +94,7 @@ export function getPermissions(role: Role): Permissions {
         canApproveWOItems: true,
         canTrackWOProgress: false,
         canUploadWODocuments: false,
+        canManageLifecycle: true,
       };
     case 'management':
       return {
@@ -112,6 +114,7 @@ export function getPermissions(role: Role): Permissions {
         canApproveWOItems: false,
         canTrackWOProgress: false,
         canUploadWODocuments: false,
+        canManageLifecycle: false,
       };
     case 'pm':
       return {
@@ -131,6 +134,7 @@ export function getPermissions(role: Role): Permissions {
         canApproveWOItems: true,
         canTrackWOProgress: false,
         canUploadWODocuments: false,
+        canManageLifecycle: true,
       };
     case 'nodal':
       return {
@@ -150,6 +154,7 @@ export function getPermissions(role: Role): Permissions {
         canApproveWOItems: true,
         canTrackWOProgress: false,
         canUploadWODocuments: false,
+        canManageLifecycle: false,
       };
     case 'site':
       return {
@@ -169,6 +174,7 @@ export function getPermissions(role: Role): Permissions {
         canApproveWOItems: false,
         canTrackWOProgress: true,
         canUploadWODocuments: true,
+        canManageLifecycle: false,
       };
   }
 }

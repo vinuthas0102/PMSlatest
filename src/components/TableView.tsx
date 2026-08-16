@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { ArrowUpDown, FileText, FilePlus, Wrench } from 'lucide-react';
-import type { BaseEntity } from '@/types';
+import type { BaseEntity, LifecycleStatus } from '@/types';
 import type { ProjectAllocation } from '@/lib/projectAllocation';
 import { formatINRShort, formatPct, delayStatusColor, delayStatusShort } from '@/lib/format';
+import { LIFECYCLE_STATUS_BADGE, LIFECYCLE_STATUS_LABEL } from '@/lib/lifecycle';
 
 interface TableViewProps {
   items: BaseEntity[];
@@ -131,6 +132,11 @@ export function TableView({ items, projectAllocations = new Map(), onShowDetails
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${colors.bg} ${colors.text} ${colors.border}`}>
                     {delayStatusShort(item.delay_status)}
                   </span>
+                  {item.lifecycle_status && item.lifecycle_status !== 'active' && (
+                    <span className={`ml-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${LIFECYCLE_STATUS_BADGE[item.lifecycle_status as LifecycleStatus]}`}>
+                      {LIFECYCLE_STATUS_LABEL[item.lifecycle_status as LifecycleStatus]}
+                    </span>
+                  )}
                 </td>
                 <td className="px-2 py-1.5 text-indigo-700 font-semibold whitespace-nowrap text-right tabular-nums">{formatINRShort(item.project_value)}</td>
                 <td className="px-2 py-1.5 text-cyan-800 font-semibold whitespace-nowrap text-right tabular-nums">

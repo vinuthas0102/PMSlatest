@@ -2,14 +2,16 @@ import { useMemo, useState, useRef, useCallback } from 'react';
 import {
   X, Building2, ClipboardList, AlertTriangle, Save, ChevronDown,
   Clock, Ruler, Truck, FileText, TrendingUp, Bold, Italic, Underline, Loader2, User, CalendarClock,
-  ArrowLeft,
+  ArrowLeft, Ban, CheckCircle2, RotateCcw,
 } from 'lucide-react';
-import type { Project, WorkOrder, WorkOrderDetail, WOSection, PaymentEntry, TrackingUpdate, TrackingType, WOSectionProgress, WOSectionDocument, WOSectionActivity, WODrawingProgress } from '@/types';
+import type { Project, WorkOrder, WorkOrderDetail, WOSection, PaymentEntry, TrackingUpdate, TrackingType, WOSectionProgress, WOSectionDocument, WOSectionActivity, WODrawingProgress, LifecycleAction, LifecycleEvent } from '@/types';
 import { useAuth } from '@/auth/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { calculateAllocationPct, delayStatusColor, delayStatusShort, DELAY_STATUSES, formatINRShort } from '@/lib/format';
 import { WOSectionWorkspace } from '@/components/WOSectionWorkspace';
 import { DownloadButton } from '@/components/DownloadButton';
+import { LIFECYCLE_STATUS_BADGE, LIFECYCLE_STATUS_LABEL } from '@/lib/lifecycle';
+import { LifecycleActionPanel } from '@/components/LifecycleActionPanel';
 
 interface WorkOrderModalProps {
   project: Project;
@@ -22,6 +24,7 @@ interface WorkOrderModalProps {
   woSectionDocuments?: WOSectionDocument[];
   woSectionActivity?: WOSectionActivity[];
   woDrawingProgress?: WODrawingProgress[];
+  lifecycleEvents?: LifecycleEvent[];
   onClose: () => void;
   onReload: () => Promise<void>;
   onSaveTrackingUpdate: (entry: {
@@ -65,11 +68,14 @@ export function WorkOrderModal({
   woSectionDocuments = [],
   woSectionActivity = [],
   woDrawingProgress = [],
+  lifecycleEvents = [],
   onClose,
   onReload,
   onSaveTrackingUpdate,
 }: WorkOrderModalProps) {
   const { user, permissions } = useAuth();
+  const [lifecycleAction, setLifecycleAction] = useState<LifecycleAction | null>(null);
+  const [lifecyclePanelOpen, setLifecyclePanelOpen] = useState(false);
   const projectWOs = workOrders.filter((wo) => wo.project_id === project.id);
   const [selectedId, setSelectedId] = useState(projectWOs[0]?.id ?? '');
   const selectedWO = projectWOs.find((wo) => wo.id === selectedId) ?? projectWOs[0];
@@ -118,6 +124,19 @@ export function WorkOrderModal({
   const exceptions = useMemo(() => trackingUpdates.filter((u) => u.project_id === project.id), [trackingUpdates, project.id]);
   const tabExceptions = useMemo(() => exceptions.filter((e) => e.tracking_type === exceptionTab), [exceptions, exceptionTab]);
   const tabMeta = EXCEPTION_TABS.find((t) => t.key === exceptionTab);
+
+  const canManageLifecycle = permissions.canManageLifecycle;
+  const woLifecycleStatus = woDetail?.lifecycle_status ?? 'active';
+  const woLifecycleEvents = useMemo(
+    () => lifecycleEvents.filter((e) => e.target_type === 'work_order' && e.target_id === selectedWO?.id),
+    [lifecycleEvents, selectedWO?.id],
+  );
+  const isWOCompleteEnabled = agencyPhysicalPct >= 100;
+
+  const openLifecyclePanel = (action: LifecycleAction) => {
+    setLifecycleAction(action);
+    setLifecyclePanelOpen(true);
+  };
 
   const resetEditor = useCallback(() => {
     if (editorRef.current) editorRef.current.innerHTML = '';
@@ -259,12 +278,43 @@ export function WorkOrderModal({
                   {project.seq_no} → {selectedWO?.seq_no ?? '1.1.0'}
                 </span>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-300">Agency / Work Order</span>
+                <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold border ${LIFECYCLE_STATUS_BADGE[woLifecycleStatus]}`}>
+                  {LIFECYCLE_STATUS_LABEL[woLifecycleStatus]}
+                </span>
               </div>
               <h2 className="mt-1 truncate text-lg font-bold text-white">{project.title}</h2>
               <p className="text-[11px] text-slate-400">Project parent · {project.state} · {project.district}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {canManageLifecycle && selectedWO && woLifecycleStatus === 'active' && (
+              <>
+                <button
+                  onClick={() => openLifecyclePanel('cancel')}
+                  className="flex items-center gap-1.5 rounded-lg bg-rose-600/80 border border-rose-400/30 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-rose-600 transition-colors"
+                  title="Cancel this work order"
+                >
+                  <Ban className="h-3.5 w-3.5" /> Cancel
+                </button>
+                <button
+                  onClick={() => openLifecyclePanel('complete')}
+                  disabled={!isWOCompleteEnabled}
+                  className="flex items-center gap-1.5 rounded-lg bg-blue-600/80 border border-blue-400/30 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-600 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                  title={isWOCompleteEnabled ? 'Mark this work order complete' : 'Complete available at 100% physical progress'}
+                >
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Complete
+                </button>
+              </>
+            )}
+            {canManageLifecycle && selectedWO && woLifecycleStatus === 'cancelled' && (
+              <button
+                onClick={() => openLifecyclePanel('reinstate')}
+                className="flex items-center gap-1.5 rounded-lg bg-emerald-600/80 border border-emerald-400/30 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-600 transition-colors"
+                title="Reinstate this work order"
+              >
+                <RotateCcw className="h-3.5 w-3.5" /> Reinstate
+              </button>
+            )}
             <DownloadButton
               title={`Work Order ${selectedWO?.seq_no ?? ''} - ${project.title}`}
               subtitle={`${project.state} · ${project.district}`}
@@ -275,6 +325,18 @@ export function WorkOrderModal({
             </button>
           </div>
         </div>
+
+        <LifecycleActionPanel
+          open={lifecyclePanelOpen}
+          action={lifecycleAction}
+          targetType="work_order"
+          targetId={selectedWO?.id ?? ''}
+          targetLabel={`Work Order ${selectedWO?.seq_no ?? ''} · ${selectedWO?.title ?? ''}`}
+          performedBy={user?.name ?? null}
+          events={woLifecycleEvents}
+          onClose={() => setLifecyclePanelOpen(false)}
+          onDone={onReload}
+        />
 
         {/* Tab bar */}
         <div className="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-slate-200 bg-white px-6 py-3">

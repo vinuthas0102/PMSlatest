@@ -1,7 +1,8 @@
 import { FileText, MapPin, FilePlus, Wrench } from 'lucide-react';
-import type { BaseEntity } from '@/types';
+import type { BaseEntity, LifecycleStatus } from '@/types';
 import type { ProjectAllocation } from '@/lib/projectAllocation';
 import { formatINRShort, formatPct, delayStatusColor, delayStatusShort } from '@/lib/format';
+import { LIFECYCLE_STATUS_BADGE, LIFECYCLE_STATUS_LABEL } from '@/lib/lifecycle';
 
 interface CardViewProps {
   items: BaseEntity[];
@@ -53,6 +54,11 @@ export function CardView({ items, projectAllocations = new Map(), onShowDetails,
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${colors.bg} ${colors.text} ${colors.border}`}>
                 {delayStatusShort(item.delay_status)}
               </span>
+              {item.lifecycle_status && item.lifecycle_status !== 'active' && (
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${LIFECYCLE_STATUS_BADGE[item.lifecycle_status as LifecycleStatus]}`}>
+                  {LIFECYCLE_STATUS_LABEL[item.lifecycle_status as LifecycleStatus]}
+                </span>
+              )}
             </div>
 
             {/* Title */}

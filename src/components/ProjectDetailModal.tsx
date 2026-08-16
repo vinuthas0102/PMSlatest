@@ -3,11 +3,12 @@ import {
   X, FileText, FileCheck, MapPin, Calendar, AlertTriangle, Ruler, CalendarClock,
   ChevronDown, ChevronRight, ChevronLeft, Clock, Truck, TrendingUp, User, Save, LockKeyhole,
   Loader2, Plus, Building2, LayoutGrid, Table2, CreditCard, BarChart3,
-  PieChart as PieChartIcon, SlidersHorizontal, RotateCcw, CheckCircle2, Check, Filter,
+  PieChart as PieChartIcon, SlidersHorizontal, RotateCcw, CheckCircle2, Check, Filter, Ban,
 } from 'lucide-react';
 import type {
   Project, ProjectFormData, ProjectStatus, WorkOrder, WorkOrderDetail,
   WOSection, PaymentEntry, TrackingUpdate, TrackingType, DelayStatus, WOSectionProgress, WOSectionDocument, WOSectionActivity, WODrawingProgress,
+  LifecycleAction, LifecycleEvent,
 } from '@/types';
 import { useAuth } from '@/auth/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -19,6 +20,8 @@ import { StatusBar } from '@/components/StatusBar';
 import { WOChartView } from '@/components/WOChartView';
 import { DownloadButton } from '@/components/DownloadButton';
 import { aggregateDrawingStatus } from '@/lib/drawingStatus';
+import { LIFECYCLE_STATUS_BADGE, LIFECYCLE_STATUS_LABEL } from '@/lib/lifecycle';
+import { LifecycleActionPanel } from '@/components/LifecycleActionPanel';
 import {
   BarChart, Bar, Cell, PieChart, Pie, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
@@ -65,6 +68,7 @@ interface ProjectDetailModalProps {
   woSectionDocuments: WOSectionDocument[];
   woSectionActivity: WOSectionActivity[];
   woDrawingProgress: WODrawingProgress[];
+  lifecycleEvents: LifecycleEvent[];
   mode?: 'view' | 'maintain';
   onClose: () => void;
   onReload: () => Promise<void>;
@@ -145,16 +149,30 @@ function UpdateCard({ u, icon: Icon, color }: { u: TrackingUpdate; icon: typeof 
 }
 
 export function ProjectDetailModal({
-  project, workOrders, details, sections, payments, trackingUpdates, woSectionProgress, woSectionDocuments, woSectionActivity, woDrawingProgress,
+  project, workOrders, details, sections, payments, trackingUpdates, woSectionProgress, woSectionDocuments, woSectionActivity, woDrawingProgress, lifecycleEvents,
   mode = 'view', onClose, onReload, onSaveProject, onSaveTrackingUpdate,
 }: ProjectDetailModalProps) {
   const { user, permissions } = useAuth();
   const [tab, setTab] = useState<Tab>('charts');
+  const [lifecycleAction, setLifecycleAction] = useState<LifecycleAction | null>(null);
+  const [lifecyclePanelOpen, setLifecyclePanelOpen] = useState(false);
 
   const canEdit = permissions.canEditProject;
   const isFinalized = project.status === 'finalized';
   const isMaintainMode = mode === 'maintain';
   const canMaintain = isMaintainMode && canEdit && !isFinalized;
+  const canManageLifecycle = permissions.canManageLifecycle;
+  const lifecycleStatus = project.lifecycle_status ?? 'active';
+  const projectLifecycleEvents = useMemo(
+    () => lifecycleEvents.filter((e) => e.target_type === 'project' && e.target_id === project.id),
+    [lifecycleEvents, project.id],
+  );
+  const isCompleteEnabled = project.completed_pct >= 100;
+
+  const openLifecyclePanel = (action: LifecycleAction) => {
+    setLifecycleAction(action);
+    setLifecyclePanelOpen(true);
+  };
 
   // Shared WO filter state (used by both Charts tab and Agency tab)
   const projectWOs = useMemo(() => workOrders.filter((w) => w.project_id === project.id), [workOrders, project.id]);
@@ -256,12 +274,43 @@ export function ProjectDetailModal({
               <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${delayStatusColor(project.delay_status).bg} ${delayStatusColor(project.delay_status).text}`}>
                 {delayStatusShort(project.delay_status)}
               </span>
+              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold border ${LIFECYCLE_STATUS_BADGE[lifecycleStatus]}`}>
+                {LIFECYCLE_STATUS_LABEL[lifecycleStatus]}
+              </span>
             </div>
             <h2 className="mt-1 truncate text-base font-bold text-white">{project.title}</h2>
             <p className="text-[11px] text-slate-400">{project.state} · {project.district}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {canManageLifecycle && lifecycleStatus === 'active' && (
+              <>
+                <button
+                  onClick={() => openLifecyclePanel('cancel')}
+                  className="flex items-center gap-1.5 rounded-lg bg-rose-600/80 border border-rose-400/30 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-rose-600 transition-colors"
+                  title="Cancel this project"
+                >
+                  <Ban className="h-3.5 w-3.5" /> Cancel
+                </button>
+                <button
+                  onClick={() => openLifecyclePanel('complete')}
+                  disabled={!isCompleteEnabled}
+                  className="flex items-center gap-1.5 rounded-lg bg-blue-600/80 border border-blue-400/30 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-600 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                  title={isCompleteEnabled ? 'Mark this project complete' : 'Complete available at 100% physical progress'}
+                >
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Complete
+                </button>
+              </>
+            )}
+            {canManageLifecycle && lifecycleStatus === 'cancelled' && (
+              <button
+                onClick={() => openLifecyclePanel('reinstate')}
+                className="flex items-center gap-1.5 rounded-lg bg-emerald-600/80 border border-emerald-400/30 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-600 transition-colors"
+                title="Reinstate this project"
+              >
+                <RotateCcw className="h-3.5 w-3.5" /> Reinstate
+              </button>
+            )}
             <DownloadButton
               title={`Project ${project.seq_no} - ${project.title}`}
               subtitle={`${project.state} · ${project.district}`}
@@ -348,6 +397,7 @@ export function ProjectDetailModal({
               woSectionDocuments={woSectionDocuments}
               woSectionActivity={woSectionActivity}
               woDrawingProgress={woDrawingProgress}
+              lifecycleEvents={lifecycleEvents}
               onReload={onReload}
               onSaveTrackingUpdate={onSaveTrackingUpdate}
               sharedWOState={{
@@ -370,6 +420,17 @@ export function ProjectDetailModal({
           )}
         </div>
       </div>
+      <LifecycleActionPanel
+        open={lifecyclePanelOpen}
+        action={lifecycleAction}
+        targetType="project"
+        targetId={project.id}
+        targetLabel={`Project ${project.seq_no} · ${project.title}`}
+        performedBy={user?.name ?? null}
+        events={projectLifecycleEvents}
+        onClose={() => setLifecyclePanelOpen(false)}
+        onDone={onReload}
+      />
     </div>
   );
 }
@@ -742,7 +803,7 @@ function HeaderTab({
 /* ─── Agency Tab ─── */
 
 function AgencyTab({
-  project, workOrders, details, sections, payments, trackingUpdates, woSectionProgress, woSectionDocuments, woSectionActivity, woDrawingProgress, onReload, onSaveTrackingUpdate, sharedWOState,
+  project, workOrders, details, sections, payments, trackingUpdates, woSectionProgress, woSectionDocuments, woSectionActivity, woDrawingProgress, lifecycleEvents, onReload, onSaveTrackingUpdate, sharedWOState,
 }: {
   project: Project;
   workOrders: WorkOrder[];
@@ -754,6 +815,7 @@ function AgencyTab({
   woSectionDocuments: WOSectionDocument[];
   woSectionActivity: WOSectionActivity[];
   woDrawingProgress: WODrawingProgress[];
+  lifecycleEvents: LifecycleEvent[];
   onReload: () => Promise<void>;
   onSaveTrackingUpdate: (entry: {
     project_id: string;
@@ -878,6 +940,7 @@ function AgencyTab({
           woSectionDocuments={woSectionDocuments}
           woSectionActivity={woSectionActivity}
           woDrawingProgress={woDrawingProgress}
+          lifecycleEvents={lifecycleEvents}
           onClose={() => setSelectedWO(null)}
           onReload={onReload}
           onSaveTrackingUpdate={onSaveTrackingUpdate}
@@ -1628,7 +1691,7 @@ function WOCardView({ workOrders, details, payments, onSelect, projectValue }: {
 /* ─── WorkOrderModal wrapper (delegates to existing WorkOrderModal) ─── */
 
 function WorkOrderModalWrapper({
-  project, selectedWO, workOrders, details, sections, payments, trackingUpdates, woSectionProgress, woSectionDocuments, woSectionActivity, woDrawingProgress, onClose, onReload, onSaveTrackingUpdate,
+  project, selectedWO, workOrders, details, sections, payments, trackingUpdates, woSectionProgress, woSectionDocuments, woSectionActivity, woDrawingProgress, lifecycleEvents, onClose, onReload, onSaveTrackingUpdate,
 }: {
   project: Project;
   selectedWO: WorkOrder;
@@ -1641,6 +1704,7 @@ function WorkOrderModalWrapper({
   woSectionDocuments: WOSectionDocument[];
   woSectionActivity: WOSectionActivity[];
   woDrawingProgress: WODrawingProgress[];
+  lifecycleEvents: LifecycleEvent[];
   onClose: () => void;
   onReload: () => Promise<void>;
   onSaveTrackingUpdate: (entry: {
@@ -1677,6 +1741,7 @@ function WorkOrderModalWrapper({
       woSectionDocuments={woSectionDocuments}
       woSectionActivity={woSectionActivity}
       woDrawingProgress={woDrawingProgress}
+      lifecycleEvents={lifecycleEvents}
       onClose={onClose}
       onReload={onReload}
       onSaveTrackingUpdate={onSaveTrackingUpdate}
